@@ -1,7 +1,7 @@
 import { Boxes, IndianRupee, ShoppingCart, Truck } from 'lucide-react';
 
 import { customers, orders, products } from '@/lib/data';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import Image from "next/image";
 import {
   Card,
   CardContent,
@@ -89,35 +89,37 @@ export default function DashboardHomePage() {
           <CardHeader>
             <CardTitle>Recent Sales</CardTitle>
             <CardDescription>
-              You made {orders.length} sales this month.
+              Here are the most recent items sold.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-8">
+            <div className="space-y-4">
               {orders.slice(0, 5).map((order) => {
-                const customer = customers.find(
-                  (c) => c.name === order.customer.name
+                const product = products.find(
+                  (p) => p.price === order.total
                 );
                 return (
-                  <div key={order.id} className="flex items-center">
-                    <Avatar className="h-9 w-9">
-                      {customer && (
-                        <AvatarImage
-                          src={customer.avatarUrl}
-                          alt="Avatar"
-                          data-ai-hint={customer.avatarHint}
+                  <div key={order.id} className="flex items-center gap-4">
+                    {product ? (
+                      <div className="h-12 w-12 flex-shrink-0">
+                        <Image
+                          src={product.imageUrl}
+                          alt={product.name}
+                          width={48}
+                          height={48}
+                          className="h-full w-full rounded-md object-cover"
+                          data-ai-hint={product.imageHint}
                         />
-                      )}
-                      <AvatarFallback>
-                        {order.customer.name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="ml-4 space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {order.customer.name}
+                      </div>
+                    ) : (
+                      <div className="h-12 w-12 flex-shrink-0 rounded-md bg-muted" />
+                    )}
+                    <div className="flex-1">
+                      <p className="text-sm font-medium leading-none truncate">
+                        {product ? product.name : "Unknown Item"}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {order.customer.email}
+                        {order.customer.name}
                       </p>
                     </div>
                     <div className="ml-auto font-medium">
