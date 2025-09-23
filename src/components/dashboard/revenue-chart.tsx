@@ -1,34 +1,44 @@
 'use client';
 
 import {
-  Bar,
-  BarChart,
+  Line,
+  LineChart,
   CartesianGrid,
   ResponsiveContainer,
   XAxis,
   YAxis,
+  Tooltip,
 } from 'recharts';
+import { useState, useEffect } from 'react';
 
-const allMonthsData = [
-  { month: 'Jan', total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: 'Feb', total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: 'Mar', total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: 'Apr', total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: 'May', total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: 'Jun', total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: 'Jul', total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: 'Aug', total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: 'Sep', total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: 'Oct', total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: 'Nov', total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: 'Dec', total: Math.floor(Math.random() * 5000) + 1000 },
-];
+const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export function RevenueChart() {
-  const chartData = allMonthsData.slice(-4);
+  const [chartData, setChartData] = useState<{ month: string; total: number }[]>([]);
+
+  useEffect(() => {
+    const generateChartData = () => {
+      const today = new Date();
+      const data = [];
+      for (let i = 3; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        data.push({
+          month: monthNames[d.getMonth()],
+          total: Math.floor(Math.random() * 2000) + 500,
+        });
+      }
+      setChartData(data);
+    };
+    generateChartData();
+  }, []);
+
+  if (chartData.length === 0) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <ResponsiveContainer width="100%" height={350}>
-      <BarChart data={chartData}>
+      <LineChart data={chartData}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis
           dataKey="month"
@@ -44,13 +54,26 @@ export function RevenueChart() {
           axisLine={false}
           tickFormatter={(value) => `₹${value}`}
         />
-        <Bar
-          dataKey="total"
-          fill="hsl(var(--primary))"
-          radius={[4, 4, 0, 0]}
-          maxBarSize={60}
+        <Tooltip
+            contentStyle={{
+                backgroundColor: 'hsl(var(--background))',
+                borderColor: 'hsl(var(--border))',
+            }}
         />
-      </BarChart>
+        <Line
+          type="monotone"
+          dataKey="total"
+          stroke="hsl(var(--primary))"
+          strokeWidth={2}
+          dot={{
+            fill: "hsl(var(--primary))",
+            r: 4,
+          }}
+          activeDot={{
+            r: 6
+          }}
+        />
+      </LineChart>
     </ResponsiveContainer>
   );
 }
