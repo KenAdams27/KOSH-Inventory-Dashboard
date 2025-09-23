@@ -81,12 +81,18 @@ const productSchema = z.object({
 
 function ProductForm({
   onSave,
+  product,
 }: {
   onSave: (data: z.infer<typeof productSchema>) => void;
+  product?: Product | null;
 }) {
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
-    defaultValues: {
+    defaultValues: product ? {
+      ...product,
+      colors: product.colors.join(', '),
+      sizes: product.sizes.join(', '),
+    } : {
       name: "",
       brand: "",
       description: "",
@@ -307,6 +313,8 @@ function ProductDetailsDialog({ product }: { product: Product }) {
 export default function InventoryPage() {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -340,6 +348,44 @@ export default function InventoryPage() {
       description: `${data.name} has been added to your inventory.`,
     });
   };
+
+  const handleEditProduct = (data: z.infer<typeof productSchema>) => {
+    if (!editingProduct) return;
+
+    const uploadedImages = [data.image1, data.image2, data.image3, data.image4]
+    .map(field => {
+        if (field && field.length > 0 && field[0] instanceof File) {
+            return URL.createObjectURL(field[0]);
+        }
+        return null;
+    })
+    .filter((url): url is string => !!url);
+
+    setProducts(prev => prev.map(p => {
+      if (p.id === editingProduct.id) {
+        const existingImages = p.images;
+        const newImages = uploadedImages.length > 0 ? uploadedImages : existingImages;
+
+        return {
+          ...p,
+          ...data,
+          images: newImages,
+          imageHints: newImages.map(i => 'updated product'),
+          colors: data.colors.split(',').map(s => s.trim()),
+          sizes: data.sizes.split(',').map(s => s.trim()),
+          status: data.quantity > 0 ? "In Stock" : "Out of Stock",
+        };
+      }
+      return p;
+    }));
+    
+    setIsEditSheetOpen(false);
+    setEditingProduct(null);
+    toast({
+      title: "Product Updated",
+      description: `${data.name} has been updated.`,
+    });
+  }
   
   const handleDeleteProduct = (productId: string) => {
     setProducts((prev) => prev.filter(p => p.id !== productId));
@@ -353,6 +399,11 @@ export default function InventoryPage() {
   const handleViewDetails = (product: Product) => {
     setSelectedProduct(product);
     setIsDetailsOpen(true);
+  };
+  
+  const handleEditClick = (product: Product) => {
+    setEditingProduct(product);
+    setIsEditSheetOpen(true);
   };
 
 
@@ -386,6 +437,23 @@ export default function InventoryPage() {
         </Sheet>
       </PageHeader>
       
+      <Sheet open={isEditSheetOpen} onOpenChange={(isOpen) => {
+          setIsEditSheetOpen(isOpen);
+          if (!isOpen) setEditingProduct(null);
+      }}>
+          <SheetContent className="sm:max-w-2xl mr-5">
+              <SheetHeader>
+                  <SheetTitle>Edit Product</SheetTitle>
+                  <SheetDescription>
+                      Update the details for &quot;{editingProduct?.name}&quot;.
+                  </SheetDescription>
+              </SheetHeader>
+              <div className="py-4 overflow-y-auto max-h-[calc(100vh-8rem)] pr-4">
+                  <ProductForm onSave={handleEditProduct} product={editingProduct} />
+              </div>
+          </SheetContent>
+      </Sheet>
+
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <Card>
           <CardHeader>
@@ -462,7 +530,7 @@ export default function InventoryPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem onSelect={() => handleViewDetails(product)}>Details</DropdownMenuItem>
-                          <DropdownMenuItem>Edit</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleEditClick(product)}>Edit</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleDeleteProduct(product.id)}>Delete</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
