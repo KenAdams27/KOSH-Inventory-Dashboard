@@ -423,14 +423,14 @@ export default function InventoryPage() {
               </span>
             </Button>
           </SheetTrigger>
-          <SheetContent className="sm:max-w-2xl mr-5">
+          <SheetContent className="sm:max-w-2xl">
             <SheetHeader>
               <SheetTitle>Add a New Product</SheetTitle>
               <SheetDescription>
                 Fill in the details below to add a new product to your inventory.
               </SheetDescription>
             </SheetHeader>
-            <div className="py-4 overflow-y-auto max-h-[calc(100vh-8rem)] pr-4">
+            <div className="py-4 overflow-y-auto max-h-[calc(100vh-8rem)] pr-6">
               <ProductForm onSave={handleAddProduct} />
             </div>
           </SheetContent>
@@ -441,14 +441,14 @@ export default function InventoryPage() {
           setIsEditSheetOpen(isOpen);
           if (!isOpen) setEditingProduct(null);
       }}>
-          <SheetContent className="sm:max-w-2xl mr-5">
+          <SheetContent className="sm:max-w-2xl">
               <SheetHeader>
                   <SheetTitle>Edit Product</SheetTitle>
                   <SheetDescription>
                       Update the details for &quot;{editingProduct?.name}&quot;.
                   </SheetDescription>
               </SheetHeader>
-              <div className="py-4 overflow-y-auto max-h-[calc(100vh-8rem)] pr-4">
+              <div className="py-4 overflow-y-auto max-h-[calc(100vh-8rem)] pr-6">
                   <ProductForm onSave={handleEditProduct} product={editingProduct} />
               </div>
           </SheetContent>
