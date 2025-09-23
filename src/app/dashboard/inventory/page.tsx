@@ -22,6 +22,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -232,10 +240,76 @@ function StockStatusToggle({ product }: { product: Product }) {
   )
 }
 
+function ProductDetailsDialog({ product }: { product: Product }) {
+  return (
+    <DialogContent className="sm:max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>{product.name}</DialogTitle>
+        <DialogDescription>
+          Viewing details for product ID: {product.id}
+        </DialogDescription>
+      </DialogHeader>
+      <div className="grid gap-6 py-4">
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label className="text-right">Brand</Label>
+          <div className="col-span-3">{product.brand}</div>
+        </div>
+        <div className="grid grid-cols-4 items-start gap-4">
+          <Label className="text-right mt-1">Description</Label>
+          <div className="col-span-3">{product.description || 'N/A'}</div>
+        </div>
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label className="text-right">Category</Label>
+          <div className="col-span-3">{product.category}</div>
+        </div>
+        <div className="grid grid-cols-4 items-start gap-4">
+          <Label className="text-right mt-1">Images</Label>
+          <div className="col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4">
+            {product.images.map((img, index) => (
+              <Image
+                key={index}
+                alt={`Product image ${index + 1}`}
+                className="aspect-square w-full rounded-md object-cover"
+                height="100"
+                src={img}
+                width="100"
+                data-ai-hint={product.imageHints[index]}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label className="text-right">Colors</Label>
+          <div className="col-span-3 flex flex-wrap gap-2">
+            {product.colors.map(color => <Badge key={color} variant="secondary">{color}</Badge>)}
+          </div>
+        </div>
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label className="text-right">Sizes</Label>
+          <div className="col-span-3 flex flex-wrap gap-2">
+            {product.sizes.map(size => <Badge key={size} variant="outline">{size}</Badge>)}
+          </div>
+        </div>
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label className="text-right">Price</Label>
+          <div className="col-span-3">₹{product.price.toFixed(2)}</div>
+        </div>
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label className="text-right">Quantity</Label>
+          <div className="col-span-3">{product.quantity}</div>
+        </div>
+      </div>
+    </DialogContent>
+  );
+}
+
+
 export default function InventoryPage() {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const { toast } = useToast();
 
   const handleAddProduct = (data: z.infer<typeof productSchema>) => {
@@ -276,6 +350,12 @@ export default function InventoryPage() {
     });
   }
 
+  const handleViewDetails = (product: Product) => {
+    setSelectedProduct(product);
+    setIsDetailsOpen(true);
+  };
+
+
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -306,99 +386,101 @@ export default function InventoryPage() {
         </Sheet>
       </PageHeader>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Products</CardTitle>
-          <CardDescription>
-            A list of all products in your inventory.
-          </CardDescription>
-          <div className="relative mt-4">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search products..."
-              className="w-full rounded-lg bg-background pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="hidden w-[100px] sm:table-cell">
-                  <span className="sr-only">Image</span>
-                </TableHead>
-                <TableHead>Product ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden md:table-cell">Price</TableHead>
-                <TableHead className="hidden md:table-cell">
-                  Quantity
-                </TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProducts.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell className="hidden sm:table-cell">
-                    <Image
-                      alt="Product image"
-                      className="aspect-square rounded-md object-cover"
-                      height="64"
-                      src={product.images[0]}
-                      width="64"
-                      data-ai-hint={product.imageHints[0]}
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium">{product.id}</TableCell>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>
-                    <StockStatusToggle product={product} />
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    ₹{product.price.toFixed(2)}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {product.quantity}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          aria-haspopup="true"
-                          size="icon"
-                          variant="ghost"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDeleteProduct(product.id)}>Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Products</CardTitle>
+            <CardDescription>
+              A list of all products in your inventory.
+            </CardDescription>
+            <div className="relative mt-4">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search products..."
+                className="w-full rounded-lg bg-background pl-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="hidden w-[100px] sm:table-cell">
+                    <span className="sr-only">Image</span>
+                  </TableHead>
+                  <TableHead>Product ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden md:table-cell">Price</TableHead>
+                  <TableHead className="hidden md:table-cell">
+                    Quantity
+                  </TableHead>
+                  <TableHead>
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-        <CardFooter>
-          <div className="text-xs text-muted-foreground">
-            Showing <strong>1-{filteredProducts.length}</strong> of <strong>{products.length}</strong>{" "}
-            products
-          </div>
-        </CardFooter>
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {filteredProducts.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell className="hidden sm:table-cell">
+                      <Image
+                        alt="Product image"
+                        className="aspect-square rounded-md object-cover"
+                        height="64"
+                        src={product.images[0]}
+                        width="64"
+                        data-ai-hint={product.imageHints[0]}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium">{product.id}</TableCell>
+                    <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell>
+                      <StockStatusToggle product={product} />
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      ₹{product.price.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {product.quantity}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            aria-haspopup="true"
+                            size="icon"
+                            variant="ghost"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onSelect={() => handleViewDetails(product)}>Details</DropdownMenuItem>
+                          <DropdownMenuItem>Edit</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDeleteProduct(product.id)}>Delete</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+          <CardFooter>
+            <div className="text-xs text-muted-foreground">
+              Showing <strong>1-{filteredProducts.length}</strong> of <strong>{products.length}</strong>{" "}
+              products
+            </div>
+          </CardFooter>
+        </Card>
+        {selectedProduct && <ProductDetailsDialog product={selectedProduct} />}
+      </Dialog>
     </>
   );
 }
-
-    
