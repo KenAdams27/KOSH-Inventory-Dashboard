@@ -1,6 +1,6 @@
 import { Boxes, IndianRupee, ShoppingCart, Truck } from 'lucide-react';
 
-import { customers, orders, products } from '@/lib/data';
+import { orders, products } from '@/lib/data';
 import Image from "next/image";
 import {
   Card,
@@ -103,12 +103,12 @@ export default function DashboardHomePage() {
                     {product ? (
                       <div className="h-12 w-12 flex-shrink-0">
                         <Image
-                          src={product.imageUrl}
+                          src={product.images[0]}
                           alt={product.name}
                           width={48}
                           height={48}
                           className="h-full w-full rounded-md object-cover"
-                          data-ai-hint={product.imageHint}
+                          data-ai-hint={product.imageHints[0]}
                         />
                       </div>
                     ) : (

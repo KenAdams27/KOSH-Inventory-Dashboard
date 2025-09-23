@@ -1,17 +1,17 @@
 import type { Product, Order, Customer, User } from './types';
 
 export const products: Product[] = [
-  { id: 'prod-001', name: 'Acoustic Guitar', price: 299.99, quantity: 25, status: 'In Stock', imageUrl: 'https://picsum.photos/seed/guitar/400/400', imageHint: 'acoustic guitar' },
-  { id: 'prod-002', name: 'Electric Keyboard', price: 449.99, quantity: 15, status: 'In Stock', imageUrl: 'https://picsum.photos/seed/keyboard/400/400', imageHint: 'electric keyboard' },
-  { id: 'prod-003', name: 'Drum Set', price: 799.99, quantity: 8, status: 'Low Stock', imageUrl: 'https://picsum.photos/seed/drums/400/400', imageHint: 'drum set' },
-  { id: 'prod-004', name: 'Violin', price: 199.99, quantity: 0, status: 'Out of Stock', imageUrl: 'https://picsum.photos/seed/violin/400/400', imageHint: 'violin' },
-  { id: 'prod-005', name: 'Saxophone', price: 599.99, quantity: 12, status: 'In Stock', imageUrl: 'https://picsum.photos/seed/sax/400/400', imageHint: 'saxophone' },
+  { id: 'prod-001', name: 'Acoustic Guitar', brand: 'Fender', description: 'A beautiful acoustic guitar.', category: 'Ethnic wear', images: ['https://picsum.photos/seed/guitar/400/400'], imageHints: ['acoustic guitar'], colors: ['Brown', 'Black'], sizes: ['Standard'], price: 299.99, quantity: 25, status: 'In Stock' },
+  { id: 'prod-002', name: 'Electric Keyboard', brand: 'Yamaha', description: 'A 61-key electric keyboard.', category: 'Ethnic wear', images: ['https://picsum.photos/seed/keyboard/400/400'], imageHints: ['electric keyboard'], colors: ['Black'], sizes: ['61-key'], price: 449.99, quantity: 15, status: 'In Stock' },
+  { id: 'prod-003', name: 'Blue Bedsheet', brand: 'Home Goods', description: 'A soft cotton bedsheet.', category: 'bedsheets', images: ['https://picsum.photos/seed/bedsheet/400/400'], imageHints: ['blue bedsheet'], colors: ['Blue', 'White'], sizes: ['Queen', 'King'], price: 79.99, quantity: 8, status: 'Low Stock' },
+  { id: 'prod-004', name: 'Violin', brand: 'Stradivarius', description: 'A classic violin.', category: 'Ethnic wear', images: ['https://picsum.photos/seed/violin/400/400'], imageHints: ['violin'], colors: ['Brown'], sizes: ['4/4'], price: 199.99, quantity: 0, status: 'Out of Stock' },
+  { id: 'prod-005', name: 'Red Saree', brand: 'Ethnic Styles', description: 'A traditional red saree.', category: 'Ethnic wear', images: ['https://picsum.photos/seed/saree/400/400'], imageHints: ['red saree'], colors: ['Red', 'Gold'], sizes: ['Free Size'], price: 599.99, quantity: 12, status: 'In Stock' },
 ];
 
 export const orders: Order[] = [
   { id: 'ord-001', customer: { name: 'Olivia Martin', email: 'olivia.martin@email.com' }, date: '2023-11-23', status: 'Fulfilled', total: 299.99 },
   { id: 'ord-002', customer: { name: 'Jackson Lee', email: 'jackson.lee@email.com' }, date: '2023-11-24', status: 'Pending', total: 449.99 },
-  { id: 'ord-003', customer: { name: 'Isabella Nguyen', email: 'isabella.nguyen@email.com' }, date: '2023-11-25', status: 'Cancelled', total: 799.99 },
+  { id: 'ord-003', customer: { name: 'Isabella Nguyen', email: 'isabella.nguyen@email.com' }, date: '2023-11-25', status: 'Cancelled', total: 79.99 },
   { id: 'ord-004', customer: { name: 'William Kim', email: 'will@email.com' }, date: '2023-11-26', status: 'Fulfilled', total: 199.99 },
   { id: 'ord-005', customer: { name: 'Sofia Davis', email: 'sofia.davis@email.com' }, date: '2023-11-27', status: 'Pending', total: 599.99 },
 ];

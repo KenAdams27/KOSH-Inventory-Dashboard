@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { MoreHorizontal, PlusCircle, Search } from "lucide-react";
 import { z } from "zod";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateStockStatus } from "@/ai/flows/real-time-stock-updates";
 import { useToast } from "@/hooks/use-toast";
@@ -51,12 +51,21 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/page-header";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const productSchema = z.object({
   name: z.string().min(1, "Name is required"),
+  brand: z.string().min(1, "Brand is required"),
+  description: z.string().optional(),
+  category: z.enum(["Ethnic wear", "bedsheets"]),
+  image1: z.string().url("Please enter a valid image URL").optional(),
+  image2: z.string().url("Please enter a valid image URL").optional(),
+  image3: z.string().url("Please enter a valid image URL").optional(),
+  image4: z.string().url("Please enter a valid image URL").optional(),
+  colors: z.string().min(1, "Please enter at least one color"),
+  sizes: z.string().min(1, "Please enter at least one size"),
   price: z.coerce.number().min(0, "Price must be a positive number"),
   quantity: z.coerce.number().int().min(0, "Quantity must be a positive integer"),
-  description: z.string().optional(),
 });
 
 function ProductForm({
@@ -66,7 +75,20 @@ function ProductForm({
 }) {
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
-    defaultValues: { name: "", price: 0, quantity: 0, description: "" },
+    defaultValues: {
+      name: "",
+      brand: "",
+      description: "",
+      category: "Ethnic wear",
+      image1: "",
+      image2: "",
+      image3: "",
+      image4: "",
+      colors: "",
+      sizes: "",
+      price: 0,
+      quantity: 0,
+    },
   });
 
   function onSubmit(data: z.infer<typeof productSchema>) {
@@ -78,29 +100,78 @@ function ProductForm({
       <div className="space-y-2">
         <Label htmlFor="name">Product Name</Label>
         <Input id="name" {...form.register("name")} />
-        {form.formState.errors.name && (
-          <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
-        )}
+        {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="brand">Brand</Label>
+        <Input id="brand" {...form.register("brand")} />
+        {form.formState.errors.brand && <p className="text-sm text-destructive">{form.formState.errors.brand.message}</p>}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
+        <Textarea id="description" {...form.register("description")} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="category">Category</Label>
+        <Controller
+          control={form.control}
+          name="category"
+          render={({ field }) => (
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Ethnic wear">Ethnic wear</SelectItem>
+                <SelectItem value="bedsheets">Bedsheets</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="image1">Image 1 URL</Label>
+          <Input id="image1" placeholder="https://..." {...form.register("image1")} />
+          {form.formState.errors.image1 && <p className="text-sm text-destructive">{form.formState.errors.image1.message}</p>}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="image2">Image 2 URL</Label>
+          <Input id="image2" placeholder="https://..." {...form.register("image2")} />
+          {form.formState.errors.image2 && <p className="text-sm text-destructive">{form.formState.errors.image2.message}</p>}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="image3">Image 3 URL</Label>
+          <Input id="image3" placeholder="https://..." {...form.register("image3")} />
+          {form.formState.errors.image3 && <p className="text-sm text-destructive">{form.formState.errors.image3.message}</p>}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="image4">Image 4 URL</Label>
+          <Input id="image4" placeholder="https://..." {...form.register("image4")} />
+          {form.formState.errors.image4 && <p className="text-sm text-destructive">{form.formState.errors.image4.message}</p>}
+        </div>
+      </div>
+       <div className="space-y-2">
+        <Label htmlFor="colors">Colors</Label>
+        <Input id="colors" placeholder="e.g. Red, Blue, Green" {...form.register("colors")} />
+        {form.formState.errors.colors && <p className="text-sm text-destructive">{form.formState.errors.colors.message}</p>}
+      </div>
+       <div className="space-y-2">
+        <Label htmlFor="sizes">Sizes</Label>
+        <Input id="sizes" placeholder="e.g. S, M, L" {...form.register("sizes")} />
+        {form.formState.errors.sizes && <p className="text-sm text-destructive">{form.formState.errors.sizes.message}</p>}
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="price">Price</Label>
           <Input id="price" type="number" step="0.01" {...form.register("price")} />
-          {form.formState.errors.price && (
-            <p className="text-sm text-destructive">{form.formState.errors.price.message}</p>
-          )}
+          {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="quantity">Quantity</Label>
           <Input id="quantity" type="number" {...form.register("quantity")} />
-          {form.formState.errors.quantity && (
-            <p className="text-sm text-destructive">{form.formState.errors.quantity.message}</p>
-          )}
+          {form.formState.errors.quantity && <p className="text-sm text-destructive">{form.formState.errors.quantity.message}</p>}
         </div>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <Textarea id="description" {...form.register("description")} />
       </div>
       <SheetFooter>
         <SheetClose asChild>
@@ -160,14 +231,20 @@ export default function InventoryPage() {
   const { toast } = useToast();
 
   const handleAddProduct = (data: z.infer<typeof productSchema>) => {
+    const images = [data.image1, data.image2, data.image3, data.image4].filter((url): url is string => !!url);
     const newProduct: Product = {
       id: `prod-${(Math.random() * 1000).toFixed(0)}`,
       name: data.name,
+      brand: data.brand,
+      description: data.description,
+      category: data.category,
+      images: images.length > 0 ? images : ["https://picsum.photos/seed/new/400/400"],
+      imageHints: images.length > 0 ? images.map(i => 'new product') : ["new product"],
+      colors: data.colors.split(',').map(s => s.trim()),
+      sizes: data.sizes.split(',').map(s => s.trim()),
       price: data.price,
       quantity: data.quantity,
       status: data.quantity > 0 ? "In Stock" : "Out of Stock",
-      imageUrl: "https://picsum.photos/seed/new/400/400",
-      imageHint: "new product",
     };
     setProducts((prev) => [newProduct, ...prev]);
     setIsSheetOpen(false);
@@ -202,14 +279,14 @@ export default function InventoryPage() {
               </span>
             </Button>
           </SheetTrigger>
-          <SheetContent>
+          <SheetContent className="sm:max-w-2xl">
             <SheetHeader>
               <SheetTitle>Add a New Product</SheetTitle>
               <SheetDescription>
                 Fill in the details below to add a new product to your inventory.
               </SheetDescription>
             </SheetHeader>
-            <div className="py-4">
+            <div className="py-4 overflow-y-auto max-h-[calc(100vh-8rem)] pr-4">
               <ProductForm onSave={handleAddProduct} />
             </div>
           </SheetContent>
@@ -240,6 +317,7 @@ export default function InventoryPage() {
                 <TableHead className="hidden w-[100px] sm:table-cell">
                   <span className="sr-only">Image</span>
                 </TableHead>
+                <TableHead>Product ID</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="hidden md:table-cell">Price</TableHead>
@@ -259,11 +337,12 @@ export default function InventoryPage() {
                       alt="Product image"
                       className="aspect-square rounded-md object-cover"
                       height="64"
-                      src={product.imageUrl}
+                      src={product.images[0]}
                       width="64"
-                      data-ai-hint={product.imageHint}
+                      data-ai-hint={product.imageHints[0]}
                     />
                   </TableCell>
+                  <TableCell className="font-medium">{product.id}</TableCell>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>
                     <StockStatusToggle product={product} />

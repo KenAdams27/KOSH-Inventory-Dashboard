@@ -1,11 +1,16 @@
 export type Product = {
   id: string;
   name: string;
+  brand: string;
+  description?: string;
+  category: "Ethnic wear" | "bedsheets";
+  images: string[];
+  imageHints: string[];
+  colors: string[];
+  sizes: string[];
   price: number;
   quantity: number;
   status: "In Stock" | "Out of Stock" | "Low Stock";
-  imageUrl: string;
-  imageHint: string;
 };
 
 export type Order = {
