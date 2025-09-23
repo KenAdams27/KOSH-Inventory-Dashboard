@@ -1,63 +1,29 @@
-import {
-  Activity,
-  Boxes,
-  DollarSign,
-  ShoppingCart,
-  Truck,
-} from "lucide-react";
-import Image from "next/image";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Boxes, DollarSign, ShoppingCart, Truck } from 'lucide-react';
 
-import { customers, orders, products } from "@/lib/data";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { customers, orders, products } from '@/lib/data';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { PageHeader } from "@/components/page-header";
-
-const chartData = [
-  { month: "Jan", total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: "Feb", total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: "Mar", total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: "Apr", total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: "May", total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: "Jun", total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: "Jul", total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: "Aug", total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: "Sep", total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: "Oct", total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: "Nov", total: Math.floor(Math.random() * 5000) + 1000 },
-  { month: "Dec", total: Math.floor(Math.random() * 5000) + 1000 },
-];
+} from '@/components/ui/card';
+import { PageHeader } from '@/components/page-header';
+import { RevenueChart } from '@/components/dashboard/revenue-chart';
 
 export default function DashboardHomePage() {
   const totalRevenue = orders.reduce((acc, order) => acc + order.total, 0);
   const totalOrders = orders.length;
   const totalInventory = products.reduce((acc, p) => acc + p.quantity, 0);
-  const pendingOrders = orders.filter((o) => o.status === "Pending").length;
-  
+  const pendingOrders = orders.filter((o) => o.status === 'Pending').length;
+
   return (
     <>
-    <PageHeader title="Dashboard" description="Here's a summary of your store's performance." />
+      <PageHeader
+        title="Dashboard"
+        description="Here's a summary of your store's performance."
+      />
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -116,26 +82,7 @@ export default function DashboardHomePage() {
             <CardTitle>Revenue Overview</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis
-                  dataKey="month"
-                  stroke="#888888"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  stroke="#888888"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `$${value}`}
-                />
-                <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <RevenueChart />
           </CardContent>
         </Card>
         <Card>
@@ -148,12 +95,22 @@ export default function DashboardHomePage() {
           <CardContent>
             <div className="space-y-8">
               {orders.slice(0, 5).map((order) => {
-                const customer = customers.find(c => c.name === order.customer.name);
+                const customer = customers.find(
+                  (c) => c.name === order.customer.name
+                );
                 return (
                   <div key={order.id} className="flex items-center">
                     <Avatar className="h-9 w-9">
-                      {customer && <AvatarImage src={customer.avatarUrl} alt="Avatar" data-ai-hint={customer.avatarHint}/>}
-                      <AvatarFallback>{order.customer.name.charAt(0)}</AvatarFallback>
+                      {customer && (
+                        <AvatarImage
+                          src={customer.avatarUrl}
+                          alt="Avatar"
+                          data-ai-hint={customer.avatarHint}
+                        />
+                      )}
+                      <AvatarFallback>
+                        {order.customer.name.charAt(0)}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="ml-4 space-y-1">
                       <p className="text-sm font-medium leading-none">
@@ -167,7 +124,7 @@ export default function DashboardHomePage() {
                       +${order.total.toFixed(2)}
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
           </CardContent>
