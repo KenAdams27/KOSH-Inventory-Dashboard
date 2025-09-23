@@ -1,5 +1,4 @@
 import { Boxes, PanelLeft } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { user } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DashboardNav } from "@/components/dashboard/nav";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { ModeToggle } from "@/components/mode-toggle";
 
 export default function DashboardLayout({
   children,
@@ -22,13 +21,12 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider>
       <div className="flex min-h-screen w-full flex-col bg-muted/40">
         <div className="flex flex-col sm:gap-4 sm:py-4">
           <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
             <Sheet>
               <SheetTrigger asChild>
-                <Button size="icon" variant="outline">
+                <Button size="icon" variant="outline" className="sm:hidden">
                   <PanelLeft className="h-5 w-5" />
                   <span className="sr-only">Toggle Menu</span>
                 </Button>
@@ -50,7 +48,9 @@ export default function DashboardLayout({
                 </nav>
               </SheetContent>
             </Sheet>
-            <div className="relative ml-auto flex-1 md:grow-0" />
+            <div className="relative ml-auto flex-1 md:grow-0">
+              <ModeToggle />
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -81,6 +81,5 @@ export default function DashboardLayout({
           </main>
         </div>
       </div>
-    </SidebarProvider>
   );
 }
