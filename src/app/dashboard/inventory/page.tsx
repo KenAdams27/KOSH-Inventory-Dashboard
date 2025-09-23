@@ -292,7 +292,7 @@ export default function InventoryPage() {
               </span>
             </Button>
           </SheetTrigger>
-          <SheetContent className="sm:max-w-2xl">
+          <SheetContent className="sm:max-w-2xl mr-5">
             <SheetHeader>
               <SheetTitle>Add a New Product</SheetTitle>
               <SheetDescription>
