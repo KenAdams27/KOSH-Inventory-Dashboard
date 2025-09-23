@@ -9,7 +9,7 @@ import {
   YAxis,
 } from 'recharts';
 
-const chartData = [
+const allMonthsData = [
   { month: 'Jan', total: Math.floor(Math.random() * 5000) + 1000 },
   { month: 'Feb', total: Math.floor(Math.random() * 5000) + 1000 },
   { month: 'Mar', total: Math.floor(Math.random() * 5000) + 1000 },
@@ -25,6 +25,7 @@ const chartData = [
 ];
 
 export function RevenueChart() {
+  const chartData = allMonthsData.slice(-4);
   return (
     <ResponsiveContainer width="100%" height={350}>
       <BarChart data={chartData}>
