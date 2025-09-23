@@ -1,0 +1,46 @@
+import { customers } from "@/lib/data";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { PageHeader } from "@/components/page-header";
+
+export default function CustomersPage() {
+  return (
+    <>
+      <PageHeader
+        title="Customers"
+        description="Here is a list of all your customers."
+      />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {customers.map((customer) => (
+          <Card key={customer.id}>
+            <CardHeader className="flex flex-row items-center gap-4">
+              <Avatar className="h-12 w-12">
+                <AvatarImage src={customer.avatarUrl} alt={customer.name} data-ai-hint={customer.avatarHint} />
+                <AvatarFallback>{customer.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div>
+                <CardTitle>{customer.name}</CardTitle>
+                <CardDescription>{customer.email}</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground">
+                Total Spent:
+                <span className="font-semibold text-foreground">
+                  {" "}
+                  ${customer.totalSpent.toLocaleString()}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </>
+  );
+}
