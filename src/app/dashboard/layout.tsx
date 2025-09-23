@@ -39,7 +39,7 @@ export default function DashboardLayout({
                       className="group flex items-center gap-2 text-lg font-semibold"
                     >
                       <Boxes className="h-6 w-6 text-primary" />
-                      <span>Kunal Enterprises</span>
+                      <span>KUNAL ENTERPRISES</span>
                     </Link>
                   </SheetTitle>
                 </SheetHeader>
@@ -54,7 +54,7 @@ export default function DashboardLayout({
                 className="hidden items-center gap-2 text-lg font-semibold sm:flex"
               >
                 <Boxes className="h-6 w-6 text-primary" />
-                <span>Kunal Enterprises</span>
+                <span>KUNAL ENTERPRISES</span>
               </Link>
             </div>
             <div className="relative ml-auto flex-1 md:grow-0">
