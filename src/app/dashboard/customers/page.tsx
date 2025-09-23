@@ -1,4 +1,5 @@
-import { customers } from "@/lib/data";
+import clientPromise from "@/lib/mongodb";
+import type { Customer } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Card,
@@ -11,7 +12,32 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 
-export default function CustomersPage() {
+async function getCustomers(): Promise<Customer[]> {
+  try {
+    const client = await clientPromise;
+    const db = client.db();
+    const customers = await db
+      .collection("customers")
+      .find({})
+      .limit(10)
+      .toArray();
+
+    return customers.map((customer) => ({
+      id: customer._id.toString(),
+      name: customer.name,
+      email: customer.email,
+      totalSpent: customer.totalSpent,
+      avatarUrl: customer.avatarUrl,
+      avatarHint: customer.avatarHint,
+    }));
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
+
+export default async function CustomersPage() {
+  const customers = await getCustomers();
   return (
     <>
       <PageHeader
