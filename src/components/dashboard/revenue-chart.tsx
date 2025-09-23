@@ -39,7 +39,7 @@ export function RevenueChart() {
   return (
     <ResponsiveContainer width="100%" height={350}>
       <LineChart data={chartData}>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <CartesianGrid vertical={false} strokeOpacity={0} />
         <XAxis
           dataKey="month"
           stroke="#888888"
