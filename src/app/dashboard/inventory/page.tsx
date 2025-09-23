@@ -60,6 +60,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/page-header";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const MAX_FILE_SIZE = 5000000; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -430,9 +431,11 @@ export default function InventoryPage() {
                 Fill in the details below to add a new product to your inventory.
               </SheetDescription>
             </SheetHeader>
-            <div className="py-4 overflow-y-auto max-h-[calc(100vh-8rem)] pr-6">
-              <ProductForm onSave={handleAddProduct} />
-            </div>
+            <ScrollArea className="h-[calc(100vh-8rem)]">
+              <div className="p-6 pt-4">
+                <ProductForm onSave={handleAddProduct} />
+              </div>
+            </ScrollArea>
           </SheetContent>
         </Sheet>
       </PageHeader>
@@ -448,9 +451,11 @@ export default function InventoryPage() {
                       Update the details for &quot;{editingProduct?.name}&quot;.
                   </SheetDescription>
               </SheetHeader>
-              <div className="py-4 overflow-y-auto max-h-[calc(100vh-8rem)] pr-6">
-                  <ProductForm onSave={handleEditProduct} product={editingProduct} />
-              </div>
+              <ScrollArea className="h-[calc(100vh-8rem)]">
+                <div className="p-6 pt-4">
+                    <ProductForm onSave={handleEditProduct} product={editingProduct} />
+                </div>
+              </ScrollArea>
           </SheetContent>
       </Sheet>
 
