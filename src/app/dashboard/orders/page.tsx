@@ -74,7 +74,7 @@ function OrdersTable({ status }: { status: "All" | OrderStatus }) {
                   </Badge>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">{order.date}</TableCell>
-                <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
+                <TableCell className="text-right">₹{order.total.toFixed(2)}</TableCell>
                 <TableCell className="text-right">
                 <DropdownMenu>
                       <DropdownMenuTrigger asChild>

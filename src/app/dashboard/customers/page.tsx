@@ -34,7 +34,7 @@ export default function CustomersPage() {
                 Total Spent:
                 <span className="font-semibold text-foreground">
                   {" "}
-                  ${customer.totalSpent.toLocaleString()}
+                  ₹{customer.totalSpent.toLocaleString()}
                 </span>
               </div>
             </CardContent>

@@ -254,7 +254,7 @@ export default function InventoryPage() {
                     <StockStatusToggle product={product} />
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
-                    ${product.price.toFixed(2)}
+                    ₹{product.price.toFixed(2)}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     {product.quantity}

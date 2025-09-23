@@ -1,4 +1,4 @@
-import { Boxes, DollarSign, ShoppingCart, Truck } from 'lucide-react';
+import { Boxes, IndianRupee, ShoppingCart, Truck } from 'lucide-react';
 
 import { customers, orders, products } from '@/lib/data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -28,11 +28,11 @@ export default function DashboardHomePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <IndianRupee className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${totalRevenue.toLocaleString()}
+              ₹{totalRevenue.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
               +20.1% from last month
@@ -121,7 +121,7 @@ export default function DashboardHomePage() {
                       </p>
                     </div>
                     <div className="ml-auto font-medium">
-                      +${order.total.toFixed(2)}
+                      +₹{order.total.toFixed(2)}
                     </div>
                   </div>
                 );
