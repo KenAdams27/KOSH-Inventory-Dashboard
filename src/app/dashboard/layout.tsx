@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DashboardNav } from "@/components/dashboard/nav";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
@@ -34,14 +34,18 @@ export default function DashboardLayout({
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="sm:max-w-xs">
-                <nav className="grid gap-6 text-lg font-medium">
-                  <Link
-                    href="/dashboard"
-                    className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
-                  >
-                    <Boxes className="h-5 w-5 transition-all group-hover:scale-110" />
-                    <span className="sr-only">KOSH Inventory</span>
-                  </Link>
+                <SheetHeader>
+                  <SheetTitle>
+                     <Link
+                      href="/dashboard"
+                      className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
+                    >
+                      <Boxes className="h-5 w-5 transition-all group-hover:scale-110" />
+                      <span className="sr-only">KOSH Inventory</span>
+                    </Link>
+                  </SheetTitle>
+                </SheetHeader>
+                <nav className="grid gap-6 text-lg font-medium mt-4">
                   <DashboardNav />
                 </nav>
               </SheetContent>
