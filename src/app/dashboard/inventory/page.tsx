@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { MoreHorizontal, PlusCircle } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Search } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -156,6 +156,7 @@ function StockStatusToggle({ product }: { product: Product }) {
 export default function InventoryPage() {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
   const handleAddProduct = (data: z.infer<typeof productSchema>) => {
@@ -184,6 +185,10 @@ export default function InventoryPage() {
       description: "The product has been removed from your inventory.",
     });
   }
+
+  const filteredProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <>
@@ -217,6 +222,16 @@ export default function InventoryPage() {
           <CardDescription>
             A list of all products in your inventory.
           </CardDescription>
+          <div className="relative mt-4">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search products..."
+              className="w-full rounded-lg bg-background pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -237,7 +252,7 @@ export default function InventoryPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {products.map((product) => (
+              {filteredProducts.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell className="hidden sm:table-cell">
                     <Image
@@ -285,7 +300,7 @@ export default function InventoryPage() {
         </CardContent>
         <CardFooter>
           <div className="text-xs text-muted-foreground">
-            Showing <strong>1-{products.length}</strong> of <strong>{products.length}</strong>{" "}
+            Showing <strong>1-{filteredProducts.length}</strong> of <strong>{products.length}</strong>{" "}
             products
           </div>
         </CardFooter>
