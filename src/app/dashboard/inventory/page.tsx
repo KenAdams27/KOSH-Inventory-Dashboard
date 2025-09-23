@@ -95,21 +95,25 @@ function ProductForm({
   }
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">Product Name</Label>
-        <Input id="name" {...form.register("name")} />
-        {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>}
+    <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label htmlFor="name">Product Name</Label>
+          <Input id="name" {...form.register("name")} />
+          {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="brand">Brand</Label>
+          <Input id="brand" {...form.register("brand")} />
+          {form.formState.errors.brand && <p className="text-sm text-destructive">{form.formState.errors.brand.message}</p>}
+        </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="brand">Brand</Label>
-        <Input id="brand" {...form.register("brand")} />
-        {form.formState.errors.brand && <p className="text-sm text-destructive">{form.formState.errors.brand.message}</p>}
-      </div>
+
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
         <Textarea id="description" {...form.register("description")} />
       </div>
+
       <div className="space-y-2">
         <Label htmlFor="category">Category</Label>
         <Controller
@@ -128,37 +132,45 @@ function ProductForm({
           )}
         />
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="image1">Image 1</Label>
-          <Input id="image1" type="file" {...form.register("image1")} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="image2">Image 2</Label>
-          <Input id="image2" type="file" {...form.register("image2")} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="image3">Image 3</Label>
-          <Input id="image3" type="file" {...form.register("image3")} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="image4">Image 4</Label>
-          <Input id="image4" type="file" {...form.register("image4")} />
+
+      <div className="space-y-2">
+        <Label>Product Images</Label>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="image1" className="text-sm font-normal text-muted-foreground">Image 1</Label>
+            <Input id="image1" type="file" {...form.register("image1")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="image2" className="text-sm font-normal text-muted-foreground">Image 2</Label>
+            <Input id="image2" type="file" {...form.register("image2")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="image3" className="text-sm font-normal text-muted-foreground">Image 3</Label>
+            <Input id="image3" type="file" {...form.register("image3")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="image4" className="text-sm font-normal text-muted-foreground">Image 4</Label>
+            <Input id="image4" type="file" {...form.register("image4")} />
+          </div>
         </div>
       </div>
-       <div className="space-y-2">
-        <Label htmlFor="colors">Colors</Label>
-        <Input id="colors" placeholder="e.g. Red, Blue, Green" {...form.register("colors")} />
-        {form.formState.errors.colors && <p className="text-sm text-destructive">{form.formState.errors.colors.message}</p>}
-      </div>
-       <div className="space-y-2">
-        <Label htmlFor="sizes">Sizes</Label>
-        <Input id="sizes" placeholder="e.g. S, M, L" {...form.register("sizes")} />
-        {form.formState.errors.sizes && <p className="text-sm text-destructive">{form.formState.errors.sizes.message}</p>}
-      </div>
-      <div className="grid grid-cols-2 gap-4">
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label htmlFor="price">Price</Label>
+          <Label htmlFor="colors">Colors</Label>
+          <Input id="colors" placeholder="e.g. Red, Blue, Green" {...form.register("colors")} />
+          {form.formState.errors.colors && <p className="text-sm text-destructive">{form.formState.errors.colors.message}</p>}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="sizes">Sizes</Label>
+          <Input id="sizes" placeholder="e.g. S, M, L" {...form.register("sizes")} />
+          {form.formState.errors.sizes && <p className="text-sm text-destructive">{form.formState.errors.sizes.message}</p>}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label htmlFor="price">Price (₹)</Label>
           <Input id="price" type="number" step="0.01" {...form.register("price")} />
           {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message}</p>}
         </div>
@@ -168,7 +180,8 @@ function ProductForm({
           {form.formState.errors.quantity && <p className="text-sm text-destructive">{form.formState.errors.quantity.message}</p>}
         </div>
       </div>
-      <SheetFooter>
+
+      <SheetFooter className="mt-6">
         <SheetClose asChild>
           <Button type="submit">Save Product</Button>
         </SheetClose>
@@ -387,3 +400,5 @@ export default function InventoryPage() {
     </>
   );
 }
+
+    
