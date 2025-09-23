@@ -8,6 +8,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
+import { PlusCircle } from "lucide-react";
 
 export default function CustomersPage() {
   return (
@@ -15,7 +17,14 @@ export default function CustomersPage() {
       <PageHeader
         title="Customers"
         description="Here is a list of all your customers."
-      />
+      >
+        <Button size="sm" className="gap-1">
+          <PlusCircle className="h-3.5 w-3.5" />
+          <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+            Add Customer
+          </span>
+        </Button>
+      </PageHeader>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {customers.map((customer) => (
           <Card key={customer.id}>

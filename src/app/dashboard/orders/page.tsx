@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, PlusCircle } from "lucide-react";
 import { orders } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -106,7 +106,14 @@ function OrdersTable({ status }: { status: "All" | OrderStatus }) {
 export default function OrdersPage() {
   return (
     <>
-      <PageHeader title="Orders" description="View and manage all customer orders." />
+      <PageHeader title="Orders" description="View and manage all customer orders.">
+        <Button size="sm" className="gap-1">
+          <PlusCircle className="h-3.5 w-3.5" />
+          <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+            Add Order
+          </span>
+        </Button>
+      </PageHeader>
       <Tabs defaultValue="all">
         <div className="flex items-center">
           <TabsList>
