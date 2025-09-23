@@ -36,10 +36,10 @@ export default function DashboardLayout({
                   <SheetTitle>
                      <Link
                       href="/dashboard"
-                      className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
+                      className="group flex items-center gap-2 text-lg font-semibold"
                     >
-                      <Boxes className="h-5 w-5 transition-all group-hover:scale-110" />
-                      <span className="sr-only">KOSH Inventory</span>
+                      <Boxes className="h-6 w-6 text-primary" />
+                      <span>Kunal Enterprises</span>
                     </Link>
                   </SheetTitle>
                 </SheetHeader>
@@ -48,6 +48,15 @@ export default function DashboardLayout({
                 </nav>
               </SheetContent>
             </Sheet>
+            <div className="flex items-center gap-4">
+               <Link
+                href="/dashboard"
+                className="hidden items-center gap-2 text-lg font-semibold sm:flex"
+              >
+                <Boxes className="h-6 w-6 text-primary" />
+                <span>Kunal Enterprises</span>
+              </Link>
+            </div>
             <div className="relative ml-auto flex-1 md:grow-0">
               <ModeToggle />
             </div>
