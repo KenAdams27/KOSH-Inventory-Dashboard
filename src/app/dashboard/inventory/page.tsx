@@ -53,15 +53,18 @@ import { PageHeader } from "@/components/page-header";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+const MAX_FILE_SIZE = 5000000; // 5MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
 const productSchema = z.object({
   name: z.string().min(1, "Name is required"),
   brand: z.string().min(1, "Brand is required"),
   description: z.string().optional(),
   category: z.enum(["Ethnic wear", "bedsheets"]),
-  image1: z.string().url("Please enter a valid image URL").optional(),
-  image2: z.string().url("Please enter a valid image URL").optional(),
-  image3: z.string().url("Please enter a valid image URL").optional(),
-  image4: z.string().url("Please enter a valid image URL").optional(),
+  image1: z.any().optional(),
+  image2: z.any().optional(),
+  image3: z.any().optional(),
+  image4: z.any().optional(),
   colors: z.string().min(1, "Please enter at least one color"),
   sizes: z.string().min(1, "Please enter at least one size"),
   price: z.coerce.number().min(0, "Price must be a positive number"),
@@ -80,10 +83,6 @@ function ProductForm({
       brand: "",
       description: "",
       category: "Ethnic wear",
-      image1: "",
-      image2: "",
-      image3: "",
-      image4: "",
       colors: "",
       sizes: "",
       price: 0,
@@ -131,24 +130,20 @@ function ProductForm({
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="image1">Image 1 URL</Label>
-          <Input id="image1" placeholder="https://..." {...form.register("image1")} />
-          {form.formState.errors.image1 && <p className="text-sm text-destructive">{form.formState.errors.image1.message}</p>}
+          <Label htmlFor="image1">Image 1</Label>
+          <Input id="image1" type="file" {...form.register("image1")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="image2">Image 2 URL</Label>
-          <Input id="image2" placeholder="https://..." {...form.register("image2")} />
-          {form.formState.errors.image2 && <p className="text-sm text-destructive">{form.formState.errors.image2.message}</p>}
+          <Label htmlFor="image2">Image 2</Label>
+          <Input id="image2" type="file" {...form.register("image2")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="image3">Image 3 URL</Label>
-          <Input id="image3" placeholder="https://..." {...form.register("image3")} />
-          {form.formState.errors.image3 && <p className="text-sm text-destructive">{form.formState.errors.image3.message}</p>}
+          <Label htmlFor="image3">Image 3</Label>
+          <Input id="image3" type="file" {...form.register("image3")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="image4">Image 4 URL</Label>
-          <Input id="image4" placeholder="https://..." {...form.register("image4")} />
-          {form.formState.errors.image4 && <p className="text-sm text-destructive">{form.formState.errors.image4.message}</p>}
+          <Label htmlFor="image4">Image 4</Label>
+          <Input id="image4" type="file" {...form.register("image4")} />
         </div>
       </div>
        <div className="space-y-2">
@@ -231,15 +226,20 @@ export default function InventoryPage() {
   const { toast } = useToast();
 
   const handleAddProduct = (data: z.infer<typeof productSchema>) => {
-    const images = [data.image1, data.image2, data.image3, data.image4].filter((url): url is string => !!url);
+    const uploadedImages = [data.image1, data.image2, data.image3, data.image4]
+      .map(field => field && field.length > 0 ? URL.createObjectURL(field[0]) : null)
+      .filter((url): url is string => !!url);
+
+    const images = uploadedImages.length > 0 ? uploadedImages : ["https://picsum.photos/seed/new/400/400"];
+    
     const newProduct: Product = {
       id: `prod-${(Math.random() * 1000).toFixed(0)}`,
       name: data.name,
       brand: data.brand,
       description: data.description,
       category: data.category,
-      images: images.length > 0 ? images : ["https://picsum.photos/seed/new/400/400"],
-      imageHints: images.length > 0 ? images.map(i => 'new product') : ["new product"],
+      images: images,
+      imageHints: images.map(i => 'new product'),
       colors: data.colors.split(',').map(s => s.trim()),
       sizes: data.sizes.split(',').map(s => s.trim()),
       price: data.price,
