@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, User } from "lucide-react";
+import { MoreHorizontal, PlusCircle, User, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +29,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import {
   Table,
@@ -56,6 +57,17 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Textarea } from "@/components/ui/textarea";
+import { addCustomerAction, updateCustomerAction, deleteCustomerAction } from "./actions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const customerSchema = z.object({
     name: z.string().min(1, "Name is required"),
@@ -65,7 +77,7 @@ const customerSchema = z.object({
 });
 
 
-function CustomerForm({ onSave, customer }: { onSave: (data: z.infer<typeof customerSchema>) => void; customer?: Customer | null }) {
+function CustomerForm({ onSave, customer, onSheetOpenChange }: { onSave: (data: z.infer<typeof customerSchema>) => Promise<void>; customer?: Customer | null, onSheetOpenChange: (isOpen: boolean) => void }) {
   const form = useForm<z.infer<typeof customerSchema>>({
     resolver: zodResolver(customerSchema),
     defaultValues: customer || {
@@ -76,9 +88,10 @@ function CustomerForm({ onSave, customer }: { onSave: (data: z.infer<typeof cust
     },
   });
 
-  function onSubmit(data: z.infer<typeof customerSchema>) {
-    onSave(data);
+  async function onSubmit(data: z.infer<typeof customerSchema>) {
+    await onSave(data);
     form.reset();
+    onSheetOpenChange(false);
   }
 
   return (
@@ -102,9 +115,7 @@ function CustomerForm({ onSave, customer }: { onSave: (data: z.infer<typeof cust
         <Textarea id="address" {...form.register("address")} />
       </div>
       <SheetFooter className="mt-6">
-        <SheetClose asChild>
           <Button type="submit">Save Customer</Button>
-        </SheetClose>
       </SheetFooter>
     </form>
   );
@@ -195,6 +206,7 @@ export function CustomersClientPage({ customers: initialCustomers }: { customers
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const { toast } = useToast();
@@ -203,45 +215,69 @@ export function CustomersClientPage({ customers: initialCustomers }: { customers
     setCustomers(initialCustomers);
   }, [initialCustomers]);
 
-  const handleAddCustomer = (data: z.infer<typeof customerSchema>) => {
-    const newCustomer: Customer = {
-        id: `cust-${(Math.random() * 1000).toFixed(0)}`,
-        name: data.name,
-        email: data.email,
-        phoneNumber: data.phoneNumber,
-        address: data.address,
-        avatarUrl: `https://picsum.photos/seed/${data.name.split(' ')[0]}/100/100`,
-        avatarHint: 'person',
-    }
-    // Note: This only adds to local state. You'll need to implement a server action to persist to DB.
-    setCustomers(prev => [newCustomer, ...prev]);
-    setIsAddSheetOpen(false);
-    toast({
+  const handleAddCustomer = async (data: z.infer<typeof customerSchema>) => {
+    const result = await addCustomerAction(data);
+    if (result.success) {
+      toast({
         title: "Customer Added",
-        description: `${data.name} has been added to your customers.`
-    })
-  }
+        description: result.message,
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: result.message,
+      });
+    }
+  };
 
   const handleEditClick = (customer: Customer) => {
     setEditingCustomer(customer);
     setIsEditSheetOpen(true);
   };
   
-  const handleEditCustomer = (data: z.infer<typeof customerSchema>) => {
+  const handleEditCustomer = async (data: z.infer<typeof customerSchema>) => {
     if (!editingCustomer) return;
 
-    // Note: This only updates local state. You'll need to implement a server action to persist to DB.
-    setCustomers(prev => prev.map(c => 
-        c.id === editingCustomer.id ? { ...c, ...data } : c
-    ));
-    setIsEditSheetOpen(false);
+    const result = await updateCustomerAction(editingCustomer.id, data);
+    if (result.success) {
+        toast({
+            title: "Customer Updated",
+            description: result.message,
+        });
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: result.message,
+        });
+    }
     setEditingCustomer(null);
-    toast({
-        title: "Customer Updated",
-        description: `${data.name}'s information has been updated.`
-    });
-  }
+  };
   
+  const handleDeleteClick = (customer: Customer) => {
+    setDeletingCustomer(customer);
+  };
+
+  const handleDeleteCustomer = async () => {
+    if (!deletingCustomer) return;
+
+    const result = await deleteCustomerAction(deletingCustomer.id);
+    if (result.success) {
+      toast({
+        title: "Customer Deleted",
+        description: result.message,
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: result.message,
+      });
+    }
+    setDeletingCustomer(null);
+  };
+
   if (customers.length === 0) {
       return (
          <>
@@ -265,7 +301,7 @@ export function CustomersClientPage({ customers: initialCustomers }: { customers
                                 Fill in the details below to add a new customer.
                             </SheetDescription>
                         </SheetHeader>
-                        <CustomerForm onSave={handleAddCustomer} />
+                        <CustomerForm onSave={handleAddCustomer} onSheetOpenChange={setIsAddSheetOpen} />
                     </SheetContent>
                 </Sheet>
             </PageHeader>
@@ -288,7 +324,7 @@ export function CustomersClientPage({ customers: initialCustomers }: { customers
                                     Fill in the details below to add a new customer.
                                 </SheetDescription>
                             </SheetHeader>
-                            <CustomerForm onSave={handleAddCustomer} />
+                            <CustomerForm onSave={handleAddCustomer} onSheetOpenChange={setIsAddSheetOpen} />
                         </SheetContent>
                     </Sheet>
                 </div>
@@ -319,7 +355,7 @@ export function CustomersClientPage({ customers: initialCustomers }: { customers
                         Fill in the details below to add a new customer.
                     </SheetDescription>
                 </SheetHeader>
-                <CustomerForm onSave={handleAddCustomer} />
+                <CustomerForm onSave={handleAddCustomer} onSheetOpenChange={setIsAddSheetOpen} />
             </SheetContent>
         </Sheet>
       </PageHeader>
@@ -335,10 +371,25 @@ export function CustomersClientPage({ customers: initialCustomers }: { customers
                         Update the details for &quot;{editingCustomer?.name}&quot;.
                     </SheetDescription>
                 </SheetHeader>
-                <CustomerForm onSave={handleEditCustomer} customer={editingCustomer} />
+                <CustomerForm onSave={handleEditCustomer} customer={editingCustomer} onSheetOpenChange={setIsEditSheetOpen} />
             </SheetContent>
         </Sheet>
-
+        
+        <AlertDialog open={!!deletingCustomer} onOpenChange={(isOpen) => !isOpen && setDeletingCustomer(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the customer
+                    &quot;{deletingCustomer?.name}&quot; and remove their data from our servers.
+                </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteCustomer}>Delete</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
 
       <Dialog onOpenChange={(isOpen) => !isOpen && setSelectedCustomer(null)}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -375,6 +426,11 @@ export function CustomersClientPage({ customers: initialCustomers }: { customers
                                 <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setSelectedCustomer(customer); }}>Details</DropdownMenuItem>
                            </DialogTrigger>
                           <DropdownMenuItem onSelect={() => handleEditClick(customer)}>Edit</DropdownMenuItem>
+                           <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive" onSelect={() => handleDeleteClick(customer)}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                 </CardHeader>
