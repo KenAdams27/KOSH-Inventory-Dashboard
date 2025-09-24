@@ -17,6 +17,7 @@ import { Terminal } from "lucide-react";
 
 async function getCustomers(): Promise<Customer[]> {
   if (!process.env.MONGODB_URI) {
+    console.log("MONGODB_URI not found, using mock data for customers.");
     return mockCustomers;
   }
 
@@ -42,7 +43,7 @@ async function getCustomers(): Promise<Customer[]> {
       avatarHint: customer.avatarHint,
     }));
   } catch (e) {
-    console.error(e);
+    console.error("Failed to fetch customers, falling back to mock data.", e);
     // Fallback to mock data on error
     return mockCustomers;
   }
@@ -71,7 +72,7 @@ export default async function CustomersPage() {
           <Terminal className="h-4 w-4" />
           <AlertTitle>Developer Notice</AlertTitle>
           <AlertDescription>
-            You are currently viewing mock data. To connect to your database, please add your `MONGODB_URI` to your environment variables.
+            You are currently viewing mock data. To connect to your database, please add your `MONGODB_URI` to an environment file.
           </AlertDescription>
         </Alert>
       )}
