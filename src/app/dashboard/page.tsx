@@ -18,6 +18,14 @@ export default function DashboardHomePage() {
   const totalOrders = initialOrders.length;
   const totalInventory = products.reduce((acc, p) => acc + p.quantity, 0);
   const pendingOrders = initialOrders.filter((o) => o.status === 'Pending').length;
+  
+  // Note: Since there is no historical data, the percentage change is currently 0.
+  // This logic should be updated to compare with data from the previous month.
+  const revenuePercentageChange = 0;
+  const ordersPercentageChange = 0;
+  const inventoryPercentageChange = 0;
+  const pendingPercentageChange = 0;
+
 
   return (
     <>
@@ -36,7 +44,7 @@ export default function DashboardHomePage() {
               ₹{totalRevenue.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
-              +20.1% from last month
+              +{revenuePercentageChange.toFixed(1)}% from last month
             </p>
           </CardContent>
         </Card>
@@ -48,7 +56,7 @@ export default function DashboardHomePage() {
           <CardContent>
             <div className="text-2xl font-bold">+{totalOrders}</div>
             <p className="text-xs text-muted-foreground">
-              +180.1% from last month
+              +{ordersPercentageChange.toFixed(1)}% from last month
             </p>
           </CardContent>
         </Card>
@@ -61,7 +69,9 @@ export default function DashboardHomePage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalInventory}</div>
-            <p className="text-xs text-muted-foreground">+19% from last month</p>
+            <p className="text-xs text-muted-foreground">
+                +{inventoryPercentageChange.toFixed(1)}% from last month
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -72,7 +82,7 @@ export default function DashboardHomePage() {
           <CardContent>
             <div className="text-2xl font-bold">+{pendingOrders}</div>
             <p className="text-xs text-muted-foreground">
-              +2 from last hour
+              +{pendingPercentageChange.toFixed(1)}% from last month
             </p>
           </CardContent>
         </Card>
