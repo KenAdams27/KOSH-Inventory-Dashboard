@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, User, Trash2 } from "lucide-react";
+import { MoreHorizontal, PlusCircle, User } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +29,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import {
   Table,
@@ -57,17 +56,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Textarea } from "@/components/ui/textarea";
-import { addCustomerAction, updateCustomerAction, deleteCustomerAction } from "./actions";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { addCustomerAction, updateCustomerAction } from "./actions";
 
 const customerSchema = z.object({
     name: z.string().min(1, "Name is required"),
@@ -206,7 +195,6 @@ export function CustomersClientPage({ customers: initialCustomers }: { customers
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const { toast } = useToast();
@@ -253,29 +241,6 @@ export function CustomersClientPage({ customers: initialCustomers }: { customers
         });
     }
     setEditingCustomer(null);
-  };
-  
-  const handleDeleteClick = (customer: Customer) => {
-    setDeletingCustomer(customer);
-  };
-
-  const handleDeleteCustomer = async () => {
-    if (!deletingCustomer) return;
-
-    const result = await deleteCustomerAction(deletingCustomer.id);
-    if (result.success) {
-      toast({
-        title: "Customer Deleted",
-        description: result.message,
-      });
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: result.message,
-      });
-    }
-    setDeletingCustomer(null);
   };
 
   if (customers.length === 0) {
@@ -375,22 +340,6 @@ export function CustomersClientPage({ customers: initialCustomers }: { customers
             </SheetContent>
         </Sheet>
         
-        <AlertDialog open={!!deletingCustomer} onOpenChange={(isOpen) => !isOpen && setDeletingCustomer(null)}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the customer
-                    &quot;{deletingCustomer?.name}&quot; and remove their data from our servers.
-                </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteCustomer}>Delete</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-
       <Dialog onOpenChange={(isOpen) => !isOpen && setSelectedCustomer(null)}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {customers.map((customer) => (
@@ -426,11 +375,6 @@ export function CustomersClientPage({ customers: initialCustomers }: { customers
                                 <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setSelectedCustomer(customer); }}>Details</DropdownMenuItem>
                            </DialogTrigger>
                           <DropdownMenuItem onSelect={() => handleEditClick(customer)}>Edit</DropdownMenuItem>
-                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive" onSelect={() => handleDeleteClick(customer)}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                 </CardHeader>
@@ -447,3 +391,5 @@ export function CustomersClientPage({ customers: initialCustomers }: { customers
     </>
   );
 }
+
+    

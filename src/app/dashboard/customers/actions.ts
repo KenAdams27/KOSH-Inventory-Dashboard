@@ -79,25 +79,4 @@ export async function updateCustomerAction(customerId: string, formData: Omit<Cu
     }
 }
 
-export async function deleteCustomerAction(customerId: string) {
-    try {
-        if (!clientPromise) {
-            throw new Error('MongoDB client is not available.');
-        }
-        const client = await clientPromise;
-        const db = client.db('kosh');
-
-        const result = await db.collection('customers').deleteOne({ _id: new ObjectId(customerId) });
-
-        if (result.deletedCount > 0) {
-            revalidatePath('/dashboard/customers');
-            return { success: true, message: 'Customer deleted successfully.' };
-        } else {
-            return { success: false, message: 'Failed to delete customer.' };
-        }
-    } catch (error) {
-        console.error('Error deleting customer:', error);
-        const message = error instanceof Error ? error.message : 'An unknown error occurred.';
-        return { success: false, message: `Database Error: ${message}` };
-    }
-}
+    
