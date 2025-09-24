@@ -273,7 +273,30 @@ export default function CustomersPage() {
                     </SheetContent>
                 </Sheet>
             </PageHeader>
-            <p>Loading customers...</p>
+            <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm">
+                <div className="flex flex-col items-center gap-1 text-center">
+                    <h3 className="text-2xl font-bold tracking-tight">
+                        You have no customers
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                        You can start selling as soon as you add your first product.
+                    </p>
+                    <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
+                        <SheetTrigger asChild>
+                            <Button className="mt-4">Add Customer</Button>
+                        </SheetTrigger>
+                        <SheetContent>
+                            <SheetHeader>
+                                <SheetTitle>Add a New Customer</SheetTitle>
+                                <SheetDescription>
+                                    Fill in the details below to add a new customer.
+                                </SheetDescription>
+                            </SheetHeader>
+                            <CustomerForm onSave={handleAddCustomer} />
+                        </SheetContent>
+                    </Sheet>
+                </div>
+            </div>
         </>
       )
   }
@@ -370,3 +393,5 @@ export default function CustomersPage() {
     </>
   );
 }
+
+    
