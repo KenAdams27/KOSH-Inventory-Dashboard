@@ -125,7 +125,7 @@ function CustomerDetailsDialog({ customer }: { customer: Customer }) {
   );
 
   return (
-    <DialogContent className="sm:max-w-2xl">
+    <DialogContent className="sm:max-w-lg">
       <DialogHeader>
         <div className="flex items-center gap-4">
            <Avatar className="h-16 w-16">
@@ -134,25 +134,29 @@ function CustomerDetailsDialog({ customer }: { customer: Customer }) {
           </Avatar>
           <div>
             <DialogTitle className="text-2xl">{customer.name}</DialogTitle>
-            <DialogDescription>{customer.email} &middot; {customer.id}</DialogDescription>
+            <DialogDescription>{customer.email}</DialogDescription>
           </div>
         </div>
       </DialogHeader>
       <div className="grid gap-6 py-4">
+         <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+            <Label className="text-right sm:text-left">Customer ID</Label>
+            <div className="col-span-2 sm:col-span-3">{customer.id}</div>
+        </div>
         {customer.phoneNumber && (
-             <div className="text-lg">
-                Phone:{" "}
-                <span className="font-semibold">
+             <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+                <Label className="text-right sm:text-left">Phone</Label>
+                <div className="col-span-2 sm:col-span-3">
                     {customer.phoneNumber}
-                </span>
+                </div>
             </div>
         )}
         {customer.address && (
-              <div className="text-lg">
-                Address:{" "}
-                <span className="font-semibold">
+              <div className="grid grid-cols-3 sm:grid-cols-4 items-start gap-4">
+                <Label className="text-right sm:text-left mt-1">Address</Label>
+                <div className="col-span-2 sm:col-span-3">
                     {customer.address}
-                </span>
+                </div>
             </div>
         )}
         <div>
@@ -163,8 +167,8 @@ function CustomerDetailsDialog({ customer }: { customer: Customer }) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Order ID</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="hidden sm:table-cell">Date</TableHead>
+                    <TableHead className="hidden sm:table-cell">Status</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -172,8 +176,8 @@ function CustomerDetailsDialog({ customer }: { customer: Customer }) {
                   {customerOrders.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell className="font-medium">{order.id}</TableCell>
-                      <TableCell>{order.date}</TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">{order.date}</TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <Badge variant={order.status === 'Delivered' ? 'secondary' : order.status === 'Cancelled' ? 'destructive' : 'default'}>
                           {order.status}
                         </Badge>
@@ -346,8 +350,8 @@ export default function CustomersPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                           <DialogTrigger asChild onSelect={() => setSelectedCustomer(customer)} onClick={() => setSelectedCustomer(customer)}>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Details</DropdownMenuItem>
+                           <DialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setSelectedCustomer(customer); }}>Details</DropdownMenuItem>
                            </DialogTrigger>
                           <DropdownMenuItem onSelect={() => handleEditClick(customer)}>Edit</DropdownMenuItem>
                         </DropdownMenuContent>

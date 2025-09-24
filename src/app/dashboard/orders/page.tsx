@@ -138,7 +138,7 @@ function OrderForm({ onSave }: { onSave: (data: z.infer<typeof orderSchema>) => 
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="customerName">Customer Name</Label>
           <Input id="customerName" {...form.register("customerName")} />
@@ -151,7 +151,7 @@ function OrderForm({ onSave }: { onSave: (data: z.infer<typeof orderSchema>) => 
         </div>
       </div>
 
-       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
             <Label htmlFor="customerContact">Customer Contact No.</Label>
             <Input id="customerContact" {...form.register("customerContact")} />
@@ -194,7 +194,7 @@ function OrderForm({ onSave }: { onSave: (data: z.infer<typeof orderSchema>) => 
         <Textarea id="customerAddress" {...form.register("customerAddress")} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="item">Item Ordered</Label>
           <Controller
@@ -224,7 +224,7 @@ function OrderForm({ onSave }: { onSave: (data: z.infer<typeof orderSchema>) => 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
          <div className="space-y-2">
           <Label htmlFor="amount">Amount (₹)</Label>
           <Input id="amount" type="number" step="0.01" {...form.register("amount")} />
@@ -257,7 +257,7 @@ function OrderForm({ onSave }: { onSave: (data: z.infer<typeof orderSchema>) => 
 
 function OrderDetailsDialog({ order }: { order: Order }) {
   return (
-    <DialogContent className="sm:max-w-xl">
+    <DialogContent className="sm:max-w-lg">
       <DialogHeader>
         <DialogTitle>Order Details</DialogTitle>
         <DialogDescription>
@@ -265,47 +265,47 @@ function OrderDetailsDialog({ order }: { order: Order }) {
         </DialogDescription>
       </DialogHeader>
       <div className="grid gap-4 py-4">
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label className="text-right">Customer</Label>
-          <div className="col-span-3">{order.customer.name} ({order.customer.email})</div>
+        <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+          <Label className="text-right sm:text-left">Customer</Label>
+          <div className="col-span-2 sm:col-span-3">{order.customer.name} ({order.customer.email})</div>
         </div>
         {order.customer.contactNumber && (
-            <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Contact</Label>
-                <div className="col-span-3">{order.customer.contactNumber}</div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+                <Label className="text-right sm:text-left">Contact</Label>
+                <div className="col-span-2 sm:col-span-3">{order.customer.contactNumber}</div>
             </div>
         )}
         {order.customer.address && (
-            <div className="grid grid-cols-4 items-start gap-4">
-                <Label className="text-right mt-1">Address</Label>
-                <div className="col-span-3 whitespace-pre-wrap">{order.customer.address}</div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 items-start gap-4">
+                <Label className="text-right sm:text-left mt-1">Address</Label>
+                <div className="col-span-2 sm:col-span-3 whitespace-pre-wrap">{order.customer.address}</div>
             </div>
         )}
-        <div className="grid grid-cols-4 items-start gap-4">
-          <Label className="text-right mt-1">Items</Label>
-          <div className="col-span-3">
+        <div className="grid grid-cols-3 sm:grid-cols-4 items-start gap-4">
+          <Label className="text-right sm:text-left mt-1">Items</Label>
+          <div className="col-span-2 sm:col-span-3">
             {order.items.map(item => (
               <div key={item.productId}>{item.productName} (x{item.quantity})</div>
             ))}
           </div>
         </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label className="text-right">Total</Label>
-          <div className="col-span-3">₹{order.total.toFixed(2)}</div>
+        <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+          <Label className="text-right sm:text-left">Total</Label>
+          <div className="col-span-2 sm:col-span-3">₹{order.total.toFixed(2)}</div>
         </div>
-         <div className="grid grid-cols-4 items-center gap-4">
-          <Label className="text-right">Date</Label>
-          <div className="col-span-3">{order.date}</div>
+         <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+          <Label className="text-right sm:text-left">Date</Label>
+          <div className="col-span-2 sm:col-span-3">{order.date}</div>
         </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label className="text-right">Status</Label>
-          <div className="col-span-3"> <Badge className={`border-none ${statusStyles[order.status]}`} variant="secondary">
+        <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+          <Label className="text-right sm:text-left">Status</Label>
+          <div className="col-span-2 sm:col-span-3"> <Badge className={`border-none ${statusStyles[order.status]}`} variant="secondary">
             {order.status}
           </Badge></div>
         </div>
-         <div className="grid grid-cols-4 items-center gap-4">
-          <Label className="text-right">Payment</Label>
-          <div className="col-span-3">{order.paid ? "Paid" : "Unpaid"}</div>
+         <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+          <Label className="text-right sm:text-left">Payment</Label>
+          <div className="col-span-2 sm:col-span-3">{order.paid ? "Paid" : "Unpaid"}</div>
         </div>
       </div>
     </DialogContent>
@@ -333,8 +333,8 @@ function OrdersTable({
             <TableRow>
               <TableHead>Customer</TableHead>
               <TableHead className="hidden sm:table-cell">Status</TableHead>
-              <TableHead className="hidden sm:table-cell">Date</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="hidden md:table-cell">Date</TableHead>
+              <TableHead className="hidden sm:table-cell text-right">Amount</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -352,8 +352,8 @@ function OrdersTable({
                     {order.status}
                   </Badge>
                 </TableCell>
-                <TableCell className="hidden sm:table-cell">{order.date}</TableCell>
-                <TableCell className="text-right">₹{order.total.toFixed(2)}</TableCell>
+                <TableCell className="hidden md:table-cell">{order.date}</TableCell>
+                <TableCell className="hidden sm:table-cell text-right">₹{order.total.toFixed(2)}</TableCell>
                 <TableCell className="text-right">
                 <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -469,7 +469,7 @@ export default function OrdersPage() {
               </span>
             </Button>
           </SheetTrigger>
-          <SheetContent className="sm:max-w-2xl">
+          <SheetContent className="sm:max-w-xl w-full">
             <SheetHeader>
                 <SheetTitle>Add a New Order</SheetTitle>
                 <SheetDescription>
@@ -487,19 +487,19 @@ export default function OrdersPage() {
       
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <Tabs defaultValue="all">
-          <div className="flex items-center justify-between gap-4">
-            <TabsList>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="Delivered">Delivered</TabsTrigger>
               <TabsTrigger value="Pending">Pending</TabsTrigger>
               <TabsTrigger value="Cancelled">Cancelled</TabsTrigger>
             </TabsList>
-             <div className="relative">
+             <div className="relative w-full sm:w-auto">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Search by customer..."
-                className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
+                className="w-full rounded-lg bg-background pl-8"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />

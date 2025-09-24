@@ -111,7 +111,7 @@ function ProductForm({
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="name">Product Name</Label>
           <Input id="name" {...form.register("name")} />
@@ -150,7 +150,7 @@ function ProductForm({
 
       <div className="space-y-2">
         <Label>Product Images</Label>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="image1" className="text-sm font-normal text-muted-foreground">Image 1</Label>
             <Input id="image1" type="file" {...form.register("image1")} />
@@ -170,7 +170,7 @@ function ProductForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="colors">Colors</Label>
           <Input id="colors" placeholder="e.g. Red, Blue, Green" {...form.register("colors")} />
@@ -183,7 +183,7 @@ function ProductForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="price">Price (₹)</Label>
           <Input id="price" type="number" step="0.01" {...form.register("price")} />
@@ -249,7 +249,7 @@ function StockStatusToggle({ product }: { product: Product }) {
 
 function ProductDetailsDialog({ product }: { product: Product }) {
   return (
-    <DialogContent className="sm:max-w-2xl">
+    <DialogContent className="sm:max-w-lg">
       <DialogHeader>
         <DialogTitle>{product.name}</DialogTitle>
         <DialogDescription>
@@ -257,21 +257,21 @@ function ProductDetailsDialog({ product }: { product: Product }) {
         </DialogDescription>
       </DialogHeader>
       <div className="grid gap-6 py-4">
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label className="text-right">Brand</Label>
-          <div className="col-span-3">{product.brand}</div>
+        <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+          <Label className="text-right sm:text-left">Brand</Label>
+          <div className="col-span-2 sm:col-span-3">{product.brand}</div>
         </div>
-        <div className="grid grid-cols-4 items-start gap-4">
-          <Label className="text-right mt-1">Description</Label>
-          <div className="col-span-3">{product.description || 'N/A'}</div>
+        <div className="grid grid-cols-3 sm:grid-cols-4 items-start gap-4">
+          <Label className="text-right sm:text-left mt-1">Description</Label>
+          <div className="col-span-2 sm:col-span-3">{product.description || 'N/A'}</div>
         </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label className="text-right">Category</Label>
-          <div className="col-span-3">{product.category}</div>
+        <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+          <Label className="text-right sm:text-left">Category</Label>
+          <div className="col-span-2 sm:col-span-3">{product.category}</div>
         </div>
-        <div className="grid grid-cols-4 items-start gap-4">
-          <Label className="text-right mt-1">Images</Label>
-          <div className="col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-3 sm:grid-cols-4 items-start gap-4">
+          <Label className="text-right sm:text-left mt-1">Images</Label>
+          <div className="col-span-2 sm:col-span-3 grid grid-cols-2 gap-4">
             {product.images.map((img, index) => (
               <Image
                 key={index}
@@ -285,25 +285,25 @@ function ProductDetailsDialog({ product }: { product: Product }) {
             ))}
           </div>
         </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label className="text-right">Colors</Label>
-          <div className="col-span-3 flex flex-wrap gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+          <Label className="text-right sm:text-left">Colors</Label>
+          <div className="col-span-2 sm:col-span-3 flex flex-wrap gap-2">
             {product.colors.map(color => <Badge key={color} variant="secondary">{color}</Badge>)}
           </div>
         </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label className="text-right">Sizes</Label>
-          <div className="col-span-3 flex flex-wrap gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+          <Label className="text-right sm:text-left">Sizes</Label>
+          <div className="col-span-2 sm:col-span-3 flex flex-wrap gap-2">
             {product.sizes.map(size => <Badge key={size} variant="outline">{size}</Badge>)}
           </div>
         </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label className="text-right">Price</Label>
-          <div className="col-span-3">₹{product.price.toFixed(2)}</div>
+        <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+          <Label className="text-right sm:text-left">Price</Label>
+          <div className="col-span-2 sm:col-span-3">₹{product.price.toFixed(2)}</div>
         </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label className="text-right">Quantity</Label>
-          <div className="col-span-3">{product.quantity}</div>
+        <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+          <Label className="text-right sm:text-left">Quantity</Label>
+          <div className="col-span-2 sm:col-span-3">{product.quantity}</div>
         </div>
       </div>
     </DialogContent>
@@ -424,7 +424,7 @@ export default function InventoryPage() {
               </span>
             </Button>
           </SheetTrigger>
-          <SheetContent className="sm:max-w-2xl">
+          <SheetContent className="sm:max-w-xl w-full">
             <SheetHeader>
               <SheetTitle>Add a New Product</SheetTitle>
               <SheetDescription>
@@ -444,7 +444,7 @@ export default function InventoryPage() {
           setIsEditSheetOpen(isOpen);
           if (!isOpen) setEditingProduct(null);
       }}>
-          <SheetContent className="sm:max-w-2xl">
+          <SheetContent className="sm:max-w-xl w-full">
               <SheetHeader>
                   <SheetTitle>Edit Product</SheetTitle>
                   <SheetDescription>
@@ -462,19 +462,23 @@ export default function InventoryPage() {
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <Card>
           <CardHeader>
-            <CardTitle>Products</CardTitle>
-            <CardDescription>
-              A list of all products in your inventory.
-            </CardDescription>
-            <div className="relative mt-4">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search products..."
-                className="w-full rounded-lg bg-background pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <CardTitle>Products</CardTitle>
+                    <CardDescription>
+                    A list of all products in your inventory.
+                    </CardDescription>
+                </div>
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Search products..."
+                        className="w-full sm:w-64 rounded-lg bg-background pl-8"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -484,12 +488,11 @@ export default function InventoryPage() {
                   <TableHead className="hidden w-[100px] sm:table-cell">
                     <span className="sr-only">Image</span>
                   </TableHead>
-                  <TableHead>Product ID</TableHead>
                   <TableHead>Name</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden sm:table-cell">Status</TableHead>
                   <TableHead className="hidden md:table-cell">Price</TableHead>
                   <TableHead className="hidden md:table-cell">
-                    Quantity
+                    Qty
                   </TableHead>
                   <TableHead>
                     <span className="sr-only">Actions</span>
@@ -509,9 +512,8 @@ export default function InventoryPage() {
                         data-ai-hint={product.imageHints[0]}
                       />
                     </TableCell>
-                    <TableCell className="font-medium">{product.id}</TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <StockStatusToggle product={product} />
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
