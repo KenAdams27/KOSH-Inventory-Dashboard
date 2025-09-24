@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { MoreHorizontal, PlusCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -66,10 +73,10 @@ const customerSchema = z.object({
 });
 
 
-function CustomerForm({ onSave }: { onSave: (data: z.infer<typeof customerSchema>) => void; }) {
+function CustomerForm({ onSave, customer }: { onSave: (data: z.infer<typeof customerSchema>) => void; customer?: Customer | null }) {
   const form = useForm<z.infer<typeof customerSchema>>({
     resolver: zodResolver(customerSchema),
-    defaultValues: {
+    defaultValues: customer || {
       name: "",
       email: "",
       phoneNumber: "",
@@ -189,7 +196,9 @@ function CustomerDetailsDialog({ customer }: { customer: Customer }) {
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -207,11 +216,30 @@ export default function CustomersPage() {
         avatarHint: 'person',
     }
     setCustomers(prev => [newCustomer, ...prev]);
-    setIsSheetOpen(false);
+    setIsAddSheetOpen(false);
     toast({
         title: "Customer Added",
         description: `${data.name} has been added to your customers.`
     })
+  }
+
+  const handleEditClick = (customer: Customer) => {
+    setEditingCustomer(customer);
+    setIsEditSheetOpen(true);
+  };
+  
+  const handleEditCustomer = (data: z.infer<typeof customerSchema>) => {
+    if (!editingCustomer) return;
+
+    setCustomers(prev => prev.map(c => 
+        c.id === editingCustomer.id ? { ...c, ...data } : c
+    ));
+    setIsEditSheetOpen(false);
+    setEditingCustomer(null);
+    toast({
+        title: "Customer Updated",
+        description: `${data.name}'s information has been updated.`
+    });
   }
   
   if (customers.length === 0) {
@@ -221,7 +249,7 @@ export default function CustomersPage() {
                 title="Customers"
                 description="Here is a list of all your customers."
             >
-                <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
                     <SheetTrigger asChild>
                         <Button size="sm" className="gap-1">
                             <PlusCircle className="h-3.5 w-3.5" />
@@ -252,7 +280,7 @@ export default function CustomersPage() {
         title="Customers"
         description="Here is a list of all your customers."
       >
-        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
             <SheetTrigger asChild>
                 <Button size="sm" className="gap-1">
                 <PlusCircle className="h-3.5 w-3.5" />
@@ -273,20 +301,57 @@ export default function CustomersPage() {
         </Sheet>
       </PageHeader>
 
+        <Sheet open={isEditSheetOpen} onOpenChange={(isOpen) => {
+            setIsEditSheetOpen(isOpen);
+            if (!isOpen) setEditingCustomer(null);
+        }}>
+            <SheetContent>
+                <SheetHeader>
+                    <SheetTitle>Edit Customer</SheetTitle>
+                    <SheetDescription>
+                        Update the details for &quot;{editingCustomer?.name}&quot;.
+                    </SheetDescription>
+                </SheetHeader>
+                <CustomerForm onSave={handleEditCustomer} customer={editingCustomer} />
+            </SheetContent>
+        </Sheet>
+
+
       <Dialog onOpenChange={(isOpen) => !isOpen && setSelectedCustomer(null)}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {customers.map((customer) => (
-            <DialogTrigger key={customer.id} asChild onSelect={() => setSelectedCustomer(customer)} onClick={() => setSelectedCustomer(customer)}>
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-                <CardHeader className="flex flex-row items-center gap-4">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={customer.avatarUrl} alt={customer.name} data-ai-hint={customer.avatarHint} />
-                    <AvatarFallback>{customer.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <CardTitle>{customer.name}</CardTitle>
-                    <CardDescription>{customer.email}</CardDescription>
-                  </div>
+              <Card key={customer.id} className="group">
+                <CardHeader className="flex flex-row items-start justify-between gap-4">
+                    <div className="flex flex-row items-center gap-4">
+                        <Avatar className="h-12 w-12">
+                            <AvatarImage src={customer.avatarUrl} alt={customer.name} data-ai-hint={customer.avatarHint} />
+                            <AvatarFallback>{customer.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                            <CardTitle>{customer.name}</CardTitle>
+                            <CardDescription>{customer.email}</CardDescription>
+                        </div>
+                    </div>
+                     <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            aria-haspopup="true"
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                           <DialogTrigger asChild onSelect={() => setSelectedCustomer(customer)} onClick={() => setSelectedCustomer(customer)}>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Details</DropdownMenuItem>
+                           </DialogTrigger>
+                          <DropdownMenuItem onSelect={() => handleEditClick(customer)}>Edit</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                 </CardHeader>
                 <CardContent>
                   <div className="text-sm text-muted-foreground">
@@ -294,7 +359,6 @@ export default function CustomersPage() {
                   </div>
                 </CardContent>
               </Card>
-            </DialogTrigger>
           ))}
         </div>
         {selectedCustomer && <CustomerDetailsDialog customer={selectedCustomer} />}
