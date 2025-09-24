@@ -13,6 +13,14 @@ const customerSchema = z.object({
   address: z.string().optional(),
 });
 
+function getDbName() {
+    const dbName = process.env.DB_NAME;
+    if (!dbName) {
+        throw new Error('DB_NAME environment variable is not set.');
+    }
+    return dbName;
+}
+
 export async function addCustomerAction(formData: Omit<Customer, 'id' | 'avatarUrl' | 'avatarHint'>) {
   try {
     const validation = customerSchema.safeParse(formData);
@@ -24,7 +32,7 @@ export async function addCustomerAction(formData: Omit<Customer, 'id' | 'avatarU
       throw new Error('MongoDB client is not available.');
     }
     const client = await clientPromise;
-    const db = client.db('kosh');
+    const db = client.db(getDbName());
     
     const newCustomer: Omit<Customer, 'id'> = {
         ...validation.data,
@@ -59,7 +67,7 @@ export async function updateCustomerAction(customerId: string, formData: Omit<Cu
             throw new Error('MongoDB client is not available.');
         }
         const client = await clientPromise;
-        const db = client.db('kosh');
+        const db = client.db(getDbName());
 
         const result = await db.collection('customers').updateOne(
             { _id: new ObjectId(customerId) },
@@ -78,5 +86,3 @@ export async function updateCustomerAction(customerId: string, formData: Omit<Cu
         return { success: false, message: `Database Error: ${message}` };
     }
 }
-
-    
