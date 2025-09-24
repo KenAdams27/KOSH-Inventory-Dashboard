@@ -35,7 +35,7 @@ export async function addCustomerAction(formData: Omit<Customer, 'id' | 'avatarU
     const client = await clientPromise;
     const db = client.db(getDbName());
     
-    const newCustomer: Omit<Customer, 'id'> = {
+    const newCustomer = {
         ...validation.data,
         avatarUrl: `https://picsum.photos/seed/${validation.data.name.split(' ')[0]}/100/100`,
         avatarHint: 'person',
