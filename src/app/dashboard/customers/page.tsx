@@ -16,7 +16,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 
 async function getCustomers(): Promise<Customer[]> {
-  if (!process.env.MONGODB_URI) {
+  const usingMockData = !process.env.MONGODB_URI || !clientPromise;
+
+  if (usingMockData) {
     console.log("MONGODB_URI not found, using mock data for customers.");
     return mockCustomers;
   }
@@ -31,6 +33,7 @@ async function getCustomers(): Promise<Customer[]> {
       .toArray();
 
     if (customers.length === 0) {
+      // If db is connected but collection is empty, still show mock for demo
       return mockCustomers;
     }
 
@@ -51,7 +54,7 @@ async function getCustomers(): Promise<Customer[]> {
 
 export default async function CustomersPage() {
   const customers = await getCustomers();
-  const usingMockData = !process.env.MONGODB_URI;
+  const usingMockData = !process.env.MONGODB_URI || !clientPromise;
 
   return (
     <>
