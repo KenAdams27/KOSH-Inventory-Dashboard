@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarIcon, MoreHorizontal, PlusCircle } from "lucide-react";
+import { CalendarIcon, MoreHorizontal, PlusCircle, Search } from "lucide-react";
 import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -327,7 +327,7 @@ function OrdersTable({
 
   return (
     <Card>
-      <CardContent>
+      <CardContent className="p-0">
         <Table>
           <TableHeader>
             <TableRow>
@@ -396,6 +396,7 @@ export default function OrdersPage() {
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+    const [searchQuery, setSearchQuery] = useState("");
 
     const handleAddOrder = (data: z.infer<typeof orderSchema>) => {
         const product = products.find(p => p.id === data.item);
@@ -452,6 +453,10 @@ export default function OrdersPage() {
       });
     };
 
+    const searchFilteredOrders = orders.filter(order =>
+      order.customer.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
   return (
     <>
       <PageHeader title="Orders" description="View and manage all customer orders.">
@@ -482,25 +487,35 @@ export default function OrdersPage() {
       
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <Tabs defaultValue="all">
-          <div className="flex items-center">
+          <div className="flex items-center justify-between gap-4">
             <TabsList>
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="Delivered">Delivered</TabsTrigger>
               <TabsTrigger value="Pending">Pending</TabsTrigger>
               <TabsTrigger value="Cancelled">Cancelled</TabsTrigger>
             </TabsList>
+             <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search by customer..."
+                className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
           <TabsContent value="all">
-            <OrdersTable status="All" orders={orders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} />
+            <OrdersTable status="All" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} />
           </TabsContent>
           <TabsContent value="Delivered">
-            <OrdersTable status="Delivered" orders={orders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} />
+            <OrdersTable status="Delivered" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} />
           </TabsContent>
           <TabsContent value="Pending">
-            <OrdersTable status="Pending" orders={orders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} />
+            <OrdersTable status="Pending" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} />
           </TabsContent>
           <TabsContent value="Cancelled">
-            <OrdersTable status="Cancelled" orders={orders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} />
+            <OrdersTable status="Cancelled" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} />
           </TabsContent>
         </Tabs>
         {selectedOrder && <OrderDetailsDialog order={selectedOrder} />}
