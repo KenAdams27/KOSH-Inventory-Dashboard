@@ -23,20 +23,12 @@ async function getCustomers(): Promise<Customer[]> {
       .sort({ name: 1 })
       .toArray();
 
-    // Manually construct plain objects to pass to the client component.
-    const customers = customersFromDb.map(customer => {
-      const plainCustomer: Customer = {
-        id: customer._id.toString(),
-        name: customer.name,
-        email: customer.email,
-        phone: customer.phone,
-        address: customer.address, // this is now an array
-        cart: customer.cart,
-        wishlist: customer.wishlist,
-        orders: customer.orders,
-      };
-      return plainCustomer;
-    });
+    // Deep serialization using JSON.stringify and JSON.parse to ensure all nested
+    // properties (like ObjectIDs in arrays) are converted to plain values.
+    const customers = JSON.parse(JSON.stringify(customersFromDb)).map((customer: any) => ({
+      ...customer,
+      id: customer._id.toString(), // Ensure top-level id is a string
+    }));
 
     return customers;
 
