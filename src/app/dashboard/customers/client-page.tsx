@@ -56,7 +56,19 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Textarea } from "@/components/ui/textarea";
-import { addCustomerAction, updateCustomerAction } from "./actions";
+import { addCustomerAction, updateCustomerAction, deleteCustomerAction } from "./actions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 
 const customerSchema = z.object({
     name: z.string().min(1, "Name is required"),
@@ -242,6 +254,22 @@ export function CustomersClientPage({ customers: initialCustomers }: { customers
     }
     setEditingCustomer(null);
   };
+  
+  const handleDeleteCustomer = async (customerId: string) => {
+    const result = await deleteCustomerAction(customerId);
+    if (result.success) {
+      toast({
+        title: "Customer Deleted",
+        description: result.message,
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: result.message,
+      });
+    }
+  };
 
   if (customers.length === 0) {
       return (
@@ -375,6 +403,25 @@ export function CustomersClientPage({ customers: initialCustomers }: { customers
                                 <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setSelectedCustomer(customer); }}>Details</DropdownMenuItem>
                            </DialogTrigger>
                           <DropdownMenuItem onSelect={() => handleEditClick(customer)}>Edit</DropdownMenuItem>
+                           <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Delete</DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete the customer &quot;{customer.name}&quot;.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteCustomer(customer.id)}>
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                         </DropdownMenuContent>
                       </DropdownMenu>
                 </CardHeader>
@@ -391,5 +438,3 @@ export function CustomersClientPage({ customers: initialCustomers }: { customers
     </>
   );
 }
-
-    
