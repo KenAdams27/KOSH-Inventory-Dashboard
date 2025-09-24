@@ -48,6 +48,7 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Textarea } from "@/components/ui/textarea";
 
 
 // This function can be extracted to a separate file if needed
@@ -61,6 +62,7 @@ const customerSchema = z.object({
     name: z.string().min(1, "Name is required"),
     email: z.string().email("Invalid email address"),
     phoneNumber: z.string().optional(),
+    address: z.string().optional(),
 });
 
 
@@ -71,6 +73,7 @@ function CustomerForm({ onSave }: { onSave: (data: z.infer<typeof customerSchema
       name: "",
       email: "",
       phoneNumber: "",
+      address: "",
     },
   });
 
@@ -94,6 +97,10 @@ function CustomerForm({ onSave }: { onSave: (data: z.infer<typeof customerSchema
        <div className="space-y-2">
         <Label htmlFor="phoneNumber">Phone Number</Label>
         <Input id="phoneNumber" {...form.register("phoneNumber")} />
+      </div>
+       <div className="space-y-2">
+        <Label htmlFor="address">Address</Label>
+        <Textarea id="address" {...form.register("address")} />
       </div>
       <SheetFooter className="mt-6">
         <SheetClose asChild>
@@ -130,6 +137,14 @@ function CustomerDetailsDialog({ customer }: { customer: Customer }) {
                 Phone:{" "}
                 <span className="font-semibold">
                     {customer.phoneNumber}
+                </span>
+            </div>
+        )}
+        {customer.address && (
+              <div className="text-lg">
+                Address:{" "}
+                <span className="font-semibold">
+                    {customer.address}
                 </span>
             </div>
         )}
@@ -187,6 +202,7 @@ export default function CustomersPage() {
         name: data.name,
         email: data.email,
         phoneNumber: data.phoneNumber,
+        address: data.address,
         avatarUrl: `https://picsum.photos/seed/${data.name.split(' ')[0]}/100/100`,
         avatarHint: 'person',
     }
