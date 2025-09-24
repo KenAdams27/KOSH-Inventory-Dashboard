@@ -14,14 +14,6 @@ const customerSchema = z.object({
   address: z.string().optional(),
 });
 
-function getDbName() {
-    const dbName = process.env.DB_NAME;
-    if (!dbName) {
-        throw new Error('DB_NAME environment variable is not set.');
-    }
-    return dbName;
-}
-
 export async function addCustomerAction(formData: Omit<Customer, 'id' | 'avatarUrl' | 'avatarHint'>) {
   try {
     const validation = customerSchema.safeParse(formData);
@@ -33,7 +25,11 @@ export async function addCustomerAction(formData: Omit<Customer, 'id' | 'avatarU
       throw new Error('MongoDB client is not available.');
     }
     const client = await clientPromise;
-    const db = client.db(getDbName());
+    const dbName = process.env.DB_NAME;
+    if (!dbName) {
+        throw new Error('DB_NAME environment variable is not set.');
+    }
+    const db = client.db(dbName);
     
     const newCustomer = {
         ...validation.data,
@@ -68,7 +64,11 @@ export async function updateCustomerAction(customerId: string, formData: Omit<Cu
             throw new Error('MongoDB client is not available.');
         }
         const client = await clientPromise;
-        const db = client.db(getDbName());
+        const dbName = process.env.DB_NAME;
+        if (!dbName) {
+            throw new Error('DB_NAME environment variable is not set.');
+        }
+        const db = client.db(dbName);
 
         const result = await db.collection('users').updateOne(
             { _id: new ObjectId(customerId) },
@@ -94,7 +94,11 @@ export async function deleteCustomerAction(customerId: string) {
             throw new Error('MongoDB client is not available.');
         }
         const client = await clientPromise;
-        const db = client.db(getDbName());
+        const dbName = process.env.DB_NAME;
+        if (!dbName) {
+            throw new Error('DB_NAME environment variable is not set.');
+        }
+        const db = client.db(dbName);
 
         const result = await db.collection('users').deleteOne({ _id: new ObjectId(customerId) });
 
