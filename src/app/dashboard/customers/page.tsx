@@ -17,18 +17,28 @@ async function getCustomers(): Promise<Customer[]> {
     }
 
     const db = client.db(dbName);
-    const customers = await db
+    const customersFromDb = await db
       .collection("users")
       .find({})
       .sort({ name: 1 })
       .toArray();
 
-    // Map MongoDB _id to id and convert to plain objects
-    return customers.map(customer => ({
-      ...customer,
-      id: customer._id.toString(),
-      _id: undefined, // ensure _id is not passed to client
-    })) as unknown as Customer[];
+    // Manually construct plain objects to pass to the client component.
+    const customers = customersFromDb.map(customer => {
+      const plainCustomer: Customer = {
+        id: customer._id.toString(),
+        name: customer.name,
+        email: customer.email,
+        phoneNumber: customer.phoneNumber,
+        address: customer.address,
+        avatarUrl: customer.avatarUrl || `https://picsum.photos/seed/${customer.name.split(' ')[0]}/100/100`,
+        avatarHint: customer.avatarHint || 'person',
+      };
+      return plainCustomer;
+    });
+
+    return customers;
+
   } catch (error) {
     console.error("Failed to fetch customers:", error);
     // In case of an error, return an empty array to prevent the page from crashing.
