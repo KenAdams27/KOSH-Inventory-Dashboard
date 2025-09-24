@@ -12,8 +12,6 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal } from "lucide-react";
 
 async function getCustomers(): Promise<Customer[]> {
   const usingMockData = !process.env.MONGODB_URI || !clientPromise;
@@ -54,8 +52,7 @@ async function getCustomers(): Promise<Customer[]> {
 
 export default async function CustomersPage() {
   const customers = await getCustomers();
-  const usingMockData = !process.env.MONGODB_URI || !clientPromise;
-
+  
   return (
     <>
       <PageHeader
@@ -69,16 +66,6 @@ export default async function CustomersPage() {
           </span>
         </Button>
       </PageHeader>
-
-      {usingMockData && (
-        <Alert className="mb-4">
-          <Terminal className="h-4 w-4" />
-          <AlertTitle>Developer Notice</AlertTitle>
-          <AlertDescription>
-            You are currently viewing mock data. To connect to your database, please add your `MONGODB_URI` to an environment file.
-          </AlertDescription>
-        </Alert>
-      )}
       
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {customers.map((customer) => (
