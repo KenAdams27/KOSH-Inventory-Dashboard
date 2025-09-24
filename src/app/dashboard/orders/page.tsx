@@ -34,6 +34,10 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,10 +83,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
-type OrderStatus = "Pending" | "Fulfilled" | "Cancelled";
+type OrderStatus = "Pending" | "Delivered" | "Cancelled";
 
 const statusStyles: Record<OrderStatus, string> = {
-    Fulfilled: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
+    Delivered: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
     Pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300",
     Cancelled: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300",
 };
@@ -308,8 +312,17 @@ function OrderDetailsDialog({ order }: { order: Order }) {
   );
 }
 
-function OrdersTable({ status, onViewDetails }: { status: "All" | OrderStatus, onViewDetails: (order: Order) => void }) {
-  const [orders, setOrders] = useState<Order[]>(initialOrders);
+function OrdersTable({ 
+  status, 
+  orders,
+  onViewDetails,
+  onStatusChange
+}: { 
+  status: "All" | OrderStatus, 
+  orders: Order[],
+  onViewDetails: (order: Order) => void,
+  onStatusChange: (orderId: string, newStatus: OrderStatus) => void 
+}) {
   const filteredOrders = status === "All" ? orders : orders.filter(order => order.status === status);
 
   return (
@@ -356,7 +369,15 @@ function OrdersTable({ status, onViewDetails }: { status: "All" | OrderStatus, o
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem onSelect={() => onViewDetails(order)}>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Mark as Fulfilled</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuSub>
+                           <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
+                           <DropdownMenuSubContent>
+                                <DropdownMenuItem onClick={() => onStatusChange(order.id, 'Delivered')}>Delivered</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onStatusChange(order.id, 'Pending')}>Pending</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onStatusChange(order.id, 'Cancelled')}>Cancelled</DropdownMenuItem>
+                           </DropdownMenuSubContent>
+                        </DropdownMenuSub>
                       </DropdownMenuContent>
                     </DropdownMenu>
                 </TableCell>
@@ -419,6 +440,18 @@ export default function OrdersPage() {
         setIsDetailsOpen(true);
     };
 
+    const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId ? { ...order, status: newStatus } : order
+        )
+      );
+      toast({
+        title: "Order Status Updated",
+        description: `Order #${orderId.slice(-4)} is now ${newStatus}.`,
+      });
+    };
+
   return (
     <>
       <PageHeader title="Orders" description="View and manage all customer orders.">
@@ -452,22 +485,22 @@ export default function OrdersPage() {
           <div className="flex items-center">
             <TabsList>
               <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="Fulfilled">Fulfilled</TabsTrigger>
+              <TabsTrigger value="Delivered">Delivered</TabsTrigger>
               <TabsTrigger value="Pending">Pending</TabsTrigger>
               <TabsTrigger value="Cancelled">Cancelled</TabsTrigger>
             </TabsList>
           </div>
           <TabsContent value="all">
-            <OrdersTable status="All" onViewDetails={handleViewDetails} />
+            <OrdersTable status="All" orders={orders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} />
           </TabsContent>
-          <TabsContent value="Fulfilled">
-            <OrdersTable status="Fulfilled" onViewDetails={handleViewDetails} />
+          <TabsContent value="Delivered">
+            <OrdersTable status="Delivered" orders={orders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} />
           </TabsContent>
           <TabsContent value="Pending">
-            <OrdersTable status="Pending" onViewDetails={handleViewDetails} />
+            <OrdersTable status="Pending" orders={orders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} />
           </TabsContent>
           <TabsContent value="Cancelled">
-            <OrdersTable status="Cancelled" onViewDetails={handleViewDetails} />
+            <OrdersTable status="Cancelled" orders={orders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} />
           </TabsContent>
         </Tabs>
         {selectedOrder && <OrderDetailsDialog order={selectedOrder} />}

@@ -28,7 +28,7 @@ export type Order = {
   }[];
   paid: boolean;
   date: string;
-  status: "Pending" | "Fulfilled" | "Cancelled";
+  status: "Pending" | "Delivered" | "Cancelled";
   total: number;
 };
 
