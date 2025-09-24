@@ -32,13 +32,35 @@ export type Order = {
   total: number;
 };
 
+export type Address = {
+  fullName: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  isDefault: boolean;
+};
+
+export type CartItem = {
+  itemId: string; // Assuming ObjectId is stored as a string
+  size: string;
+  quantity: number;
+  color: string;
+};
+
 export type Customer = {
   id: string;
   name: string;
   email: string;
-  phoneNumber?: string;
-  address?: string;
+  password?: string; // Should be handled securely, not sent to client
+  phone: string;
+  wishlist?: CartItem[];
+  cart?: CartItem[];
+  orders?: string[]; // Array of Order IDs
+  address?: Address[];
 };
+
 
 export type User = {
   name: string;

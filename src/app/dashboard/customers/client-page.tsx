@@ -71,25 +71,47 @@ import {
 
 
 const customerSchema = z.object({
-    name: z.string().min(1, "Name is required"),
-    email: z.string().email("Invalid email address"),
-    phoneNumber: z.string().optional(),
-    address: z.string().optional(),
+  name: z.string().min(2, 'Name must be at least 2 characters long'),
+  email: z.string().email('Please provide a valid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters long')
+    .refine(value => /^(?=.*[A-Z])/.test(value), {
+      message: 'Password must include at least one capital letter.'
+    })
+    .refine(value => /^(?=.*[!@#$%^&*])/.test(value), {
+      message: 'Password must include at least one special character (!@#$%^&*).'
+    }),
+  phone: z.string().regex(/^[0-9]{10}$/, 'Phone number must be exactly 10 digits'),
+  // Address is handled separately in a real app, simplified here
+});
+
+const updateCustomerSchema = customerSchema.omit({ password: true }).extend({
+    password: z.string().optional(),
 });
 
 
-function CustomerForm({ onSave, customer, onSheetOpenChange }: { onSave: (data: z.infer<typeof customerSchema>) => Promise<void>; customer?: Customer | null, onSheetOpenChange: (isOpen: boolean) => void }) {
-  const form = useForm<z.infer<typeof customerSchema>>({
-    resolver: zodResolver(customerSchema),
-    defaultValues: customer || {
+function CustomerForm({ onSave, customer, onSheetOpenChange }: { onSave: (data: any) => Promise<void>; customer?: Customer | null, onSheetOpenChange: (isOpen: boolean) => void }) {
+  const isEditing = !!customer;
+  
+  const form = useForm({
+    resolver: zodResolver(isEditing ? updateCustomerSchema : customerSchema),
+    defaultValues: customer ? {
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+      password: "",
+    } : {
       name: "",
       email: "",
-      phoneNumber: "",
-      address: "",
+      phone: "",
+      password: "",
     },
   });
 
-  async function onSubmit(data: z.infer<typeof customerSchema>) {
+  async function onSubmit(data: any) {
+    // Don't submit empty password on edit
+    if (isEditing && !data.password) {
+      delete data.password;
+    }
     await onSave(data);
     form.reset();
     onSheetOpenChange(false);
@@ -100,20 +122,23 @@ function CustomerForm({ onSave, customer, onSheetOpenChange }: { onSave: (data: 
       <div className="space-y-2">
         <Label htmlFor="name">Name</Label>
         <Input id="name" {...form.register("name")} />
-        {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>}
+        {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message as string}</p>}
       </div>
       <div className="space-y-2">
         <Label htmlFor="email">Email Address</Label>
         <Input id="email" type="email" {...form.register("email")} />
-        {form.formState.errors.email && <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>}
+        {form.formState.errors.email && <p className="text-sm text-destructive">{form.formState.errors.email.message as string}</p>}
       </div>
-       <div className="space-y-2">
-        <Label htmlFor="phoneNumber">Phone Number</Label>
-        <Input id="phoneNumber" {...form.register("phoneNumber")} />
+      <div className="space-y-2">
+        <Label htmlFor="phone">Phone Number</Label>
+        <Input id="phone" {...form.register("phone")} />
+         {form.formState.errors.phone && <p className="text-sm text-destructive">{form.formState.errors.phone.message as string}</p>}
       </div>
-       <div className="space-y-2">
-        <Label htmlFor="address">Address</Label>
-        <Textarea id="address" {...form.register("address")} />
+      <div className="space-y-2">
+        <Label htmlFor="password">{isEditing ? "New Password" : "Password"}</Label>
+        <Input id="password" type="password" {...form.register("password")} />
+        {form.formState.errors.password && <p className="text-sm text-destructive">{form.formState.errors.password.message as string}</p>}
+        {isEditing && <p className="text-xs text-muted-foreground">Leave blank to keep current password.</p>}
       </div>
       <SheetFooter className="mt-6">
           <Button type="submit">Save Customer</Button>
@@ -148,19 +173,17 @@ function CustomerDetailsDialog({ customer }: { customer: Customer }) {
             <Label className="text-right sm:text-left">Customer ID</Label>
             <div className="col-span-2 sm:col-span-3">{customer.id}</div>
         </div>
-        {customer.phoneNumber && (
-             <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
-                <Label className="text-right sm:text-left">Phone</Label>
-                <div className="col-span-2 sm:col-span-3">
-                    {customer.phoneNumber}
-                </div>
+         <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+            <Label className="text-right sm:text-left">Phone</Label>
+            <div className="col-span-2 sm:col-span-3">
+                {customer.phone}
             </div>
-        )}
-        {customer.address && (
+        </div>
+        {customer.address && customer.address.length > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-4 items-start gap-4">
                 <Label className="text-right sm:text-left mt-1">Address</Label>
                 <div className="col-span-2 sm:col-span-3">
-                    {customer.address}
+                    {customer.address[0].address}, {customer.address[0].city}, {customer.address[0].state} - {customer.address[0].pincode}
                 </div>
             </div>
         )}
@@ -214,7 +237,7 @@ export function CustomersClientPage({ customers: initialCustomers }: { customers
     setCustomers(initialCustomers);
   }, [initialCustomers]);
 
-  const handleAddCustomer = async (data: z.infer<typeof customerSchema>) => {
+  const handleAddCustomer = async (data: any) => {
     const result = await addCustomerAction(data);
     if (result.success) {
       toast({
@@ -235,7 +258,7 @@ export function CustomersClientPage({ customers: initialCustomers }: { customers
     setIsEditSheetOpen(true);
   };
   
-  const handleEditCustomer = async (data: z.infer<typeof customerSchema>) => {
+  const handleEditCustomer = async (data: any) => {
     if (!editingCustomer) return;
 
     const result = await updateCustomerAction(editingCustomer.id, data);

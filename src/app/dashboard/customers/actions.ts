@@ -7,12 +7,39 @@ import { ObjectId } from 'mongodb';
 import clientPromise from '@/lib/mongodb';
 import type { Customer } from '@/lib/types';
 
-const customerSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  email: z.string().email('Invalid email address'),
-  phoneNumber: z.string().optional(),
-  address: z.string().optional(),
+const addressSchema = z.object({
+  fullName: z.string().min(1, 'Full name is required'),
+  phone: z.string().min(1, 'Phone number is required'),
+  address: z.string().min(1, 'Address is required'),
+  city: z.string().min(1, 'City is required'),
+  state: z.string().min(1, 'State is required'),
+  pincode: z.string().min(1, 'Pincode is required'),
+  isDefault: z.boolean().default(false),
 });
+
+const cartItemSchema = z.object({
+  itemId: z.string(), // Assuming ObjectId is string
+  size: z.string(),
+  quantity: z.number().default(1).min(1),
+  color: z.string(),
+});
+
+const customerSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters long').trim(),
+  email: z.string().email('Please provide a valid email address').toLowerCase(),
+  password: z.string().min(8, 'Password must be at least 8 characters long')
+    .refine(value => /^(?=.*[A-Z])(?=.*[!@#$%^&*])/.test(value), {
+      message: 'Password must include at least one capital letter and one special character (!@#$%^&*)'
+    }).optional(), // Making it optional as we might not always update/require it
+  phone: z.string().regex(/^[0-9]{10}$/, 'Phone number must be exactly 10 digits'),
+  wishlist: z.array(cartItemSchema).optional(),
+  cart: z.array(cartItemSchema).optional(),
+  orders: z.array(z.string()).optional(),
+  address: z.array(addressSchema).optional(),
+});
+
+// For update, we don't require the password
+const updateCustomerSchema = customerSchema.omit({ password: true });
 
 export async function addCustomerAction(formData: Omit<Customer, 'id'>) {
   try {
@@ -31,6 +58,7 @@ export async function addCustomerAction(formData: Omit<Customer, 'id'>) {
     }
     const db = client.db(dbName);
     
+    // In a real app, you would hash the password before saving
     const newCustomer = {
         ...validation.data,
     }
@@ -51,9 +79,9 @@ export async function addCustomerAction(formData: Omit<Customer, 'id'>) {
   }
 }
 
-export async function updateCustomerAction(customerId: string, formData: Omit<Customer, 'id'>) {
+export async function updateCustomerAction(customerId: string, formData: Omit<Customer, 'id' | 'password'>) {
     try {
-        const validation = customerSchema.safeParse(formData);
+        const validation = updateCustomerSchema.safeParse(formData);
         if (!validation.success) {
             return { success: false, message: 'Invalid data.', errors: validation.error.flatten().fieldErrors };
         }

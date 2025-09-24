@@ -29,8 +29,11 @@ async function getCustomers(): Promise<Customer[]> {
         id: customer._id.toString(),
         name: customer.name,
         email: customer.email,
-        phoneNumber: customer.phoneNumber,
-        address: customer.address,
+        phone: customer.phone,
+        address: customer.address, // this is now an array
+        cart: customer.cart,
+        wishlist: customer.wishlist,
+        orders: customer.orders,
       };
       return plainCustomer;
     });
