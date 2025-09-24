@@ -29,7 +29,6 @@ export async function addCustomerAction(formData: Omit<Customer, 'id' | 'avatarU
     if (!dbName) {
         throw new Error('DB_NAME environment variable is not set.');
     }
-    console.log(`[addCustomerAction] Attempting to write to database: ${dbName}`);
     const db = client.db(dbName);
     
     const newCustomer = {
@@ -39,7 +38,6 @@ export async function addCustomerAction(formData: Omit<Customer, 'id' | 'avatarU
     }
 
     const result = await db.collection('users').insertOne(newCustomer);
-    console.log('[addCustomerAction] MongoDB insert result:', result);
 
     if (result.acknowledged) {
         revalidatePath('/dashboard/customers');
@@ -70,14 +68,12 @@ export async function updateCustomerAction(customerId: string, formData: Omit<Cu
         if (!dbName) {
             throw new Error('DB_NAME environment variable is not set.');
         }
-        console.log(`[updateCustomerAction] Attempting to update in database: ${dbName}`);
         const db = client.db(dbName);
 
         const result = await db.collection('users').updateOne(
             { _id: new ObjectId(customerId) },
             { $set: validation.data }
         );
-        console.log('[updateCustomerAction] MongoDB update result:', result);
 
         if (result.modifiedCount > 0) {
             revalidatePath('/dashboard/customers');
@@ -102,11 +98,9 @@ export async function deleteCustomerAction(customerId: string) {
         if (!dbName) {
             throw new Error('DB_NAME environment variable is not set.');
         }
-        console.log(`[deleteCustomerAction] Attempting to delete from database: ${dbName}`);
         const db = client.db(dbName);
 
         const result = await db.collection('users').deleteOne({ _id: new ObjectId(customerId) });
-        console.log('[deleteCustomerAction] MongoDB delete result:', result);
 
         if (result.deletedCount > 0) {
             revalidatePath('/dashboard/customers');
