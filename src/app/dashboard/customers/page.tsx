@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import type { Customer, Order } from "@/lib/types";
-import { customers as mockCustomers, initialOrders } from "@/lib/data";
+import { initialOrders } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Card,
@@ -56,13 +56,31 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Textarea } from "@/components/ui/textarea";
+import clientPromise from "@/lib/mongodb";
 
 
-// This function can be extracted to a separate file if needed
 async function getCustomers(): Promise<Customer[]> {
-    // For the purpose of this component, we will use mock data.
-    // The database connection logic has been moved to a server-side context.
-    return mockCustomers;
+  if (!clientPromise) {
+    return [];
+  }
+  try {
+    const client = await clientPromise;
+    const db = client.db("kosh"); // Replace with your database name
+    const customers = await db
+      .collection("customers")
+      .find({})
+      .sort({ name: 1 })
+      .toArray();
+
+    // Map MongoDB _id to id and convert to plain objects
+    return customers.map(customer => ({
+      ...customer,
+      id: customer._id.toString(),
+    })) as unknown as Customer[];
+  } catch (error) {
+    console.error("Failed to fetch customers:", error);
+    return [];
+  }
 }
 
 const customerSchema = z.object({
