@@ -20,7 +20,7 @@ const addressSchema = z.object({
 const cartItemSchema = z.object({
   itemId: z.string(), // Assuming ObjectId is string
   size: z.string(),
-  quantity: z.number().default(1).min(1),
+  quantity: z.number().min(1).default(1),
   color: z.string(),
 });
 
@@ -30,7 +30,7 @@ const customerSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters long')
     .refine(value => /^(?=.*[A-Z])(?=.*[!@#$%^&*])/.test(value), {
       message: 'Password must include at least one capital letter and one special character (!@#$%^&*)'
-    }).optional(), // Making it optional as we might not always update/require it
+    }),
   phone: z.string().regex(/^[0-9]{10}$/, 'Phone number must be exactly 10 digits'),
   wishlist: z.array(cartItemSchema).optional(),
   cart: z.array(cartItemSchema).optional(),
@@ -39,7 +39,10 @@ const customerSchema = z.object({
 });
 
 // For update, we don't require the password
-const updateCustomerSchema = customerSchema.omit({ password: true });
+const updateCustomerSchema = customerSchema.extend({
+  password: z.string().optional(),
+});
+
 
 export async function addCustomerAction(formData: Omit<Customer, 'id'>) {
   try {
@@ -58,7 +61,6 @@ export async function addCustomerAction(formData: Omit<Customer, 'id'>) {
     }
     const db = client.db(dbName);
     
-    // In a real app, you would hash the password before saving
     const newCustomer = {
         ...validation.data,
     }
@@ -79,7 +81,7 @@ export async function addCustomerAction(formData: Omit<Customer, 'id'>) {
   }
 }
 
-export async function updateCustomerAction(customerId: string, formData: Omit<Customer, 'id' | 'password'>) {
+export async function updateCustomerAction(customerId: string, formData: Partial<Omit<Customer, 'id'>>) {
     try {
         const validation = updateCustomerSchema.safeParse(formData);
         if (!validation.success) {
