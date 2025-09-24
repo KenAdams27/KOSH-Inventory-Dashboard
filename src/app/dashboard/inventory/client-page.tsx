@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { MoreHorizontal, PlusCircle, Search } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Search, ImageIcon } from "lucide-react";
 import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -77,13 +78,14 @@ const productSchema = z.object({
   quantity: z.coerce.number().int().min(0, "Quantity must be a positive integer"),
   rating: z.coerce.number().min(0).max(5).default(0),
 }).refine(data => {
-    if (data.category === 'ethnicWear') {
-        return ["sarees", "kurtas & suits", "dupattas"].includes(data.subCategory || "");
+    if (data.category === 'ethnicWear' && data.subCategory) {
+        return ["sarees", "kurtas & suits", "dupattas"].includes(data.subCategory);
     }
-    if (data.category === 'bedsheet') {
-        return ["pure cotton", "cotton blend"].includes(data.subCategory || "");
+    if (data.category === 'bedsheet' && data.subCategory) {
+        return ["pure cotton", "cotton blend"].includes(data.subCategory);
     }
-    return false;
+    // Allow if subCategory is not defined
+    return true;
 }, {
     message: "Sub-category is not valid for the selected category",
     path: ["subCategory"],
@@ -106,8 +108,9 @@ function ProductForm({
     resolver: zodResolver(productSchema),
     defaultValues: product ? {
       ...product,
-      colors: product.colors.join(', '),
-      sizes: product.sizes.join(', '),
+      description: product.desc,
+      colors: product.colors?.join(', ') || '',
+      sizes: product.sizes?.join(', ') || '',
     } : {
       name: "",
       brand: "",
@@ -125,7 +128,9 @@ function ProductForm({
   const selectedCategory = form.watch("category");
 
   useEffect(() => {
-    form.setValue("subCategory", subCategoryOptions[selectedCategory][0]);
+    if (selectedCategory) {
+        form.setValue("subCategory", subCategoryOptions[selectedCategory][0]);
+    }
   }, [selectedCategory, form]);
 
 
@@ -139,12 +144,12 @@ function ProductForm({
         <div className="space-y-2">
           <Label htmlFor="name">Product Name</Label>
           <Input id="name" {...form.register("name")} />
-          {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>}
+          {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message as string}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="brand">Brand</Label>
           <Input id="brand" {...form.register("brand")} />
-          {form.formState.errors.brand && <p className="text-sm text-destructive">{form.formState.errors.brand.message}</p>}
+          {form.formState.errors.brand && <p className="text-sm text-destructive">{form.formState.errors.brand.message as string}</p>}
         </div>
       </div>
 
@@ -183,14 +188,14 @@ function ProductForm({
                         <SelectValue placeholder="Select a sub-category" />
                     </SelectTrigger>
                     <SelectContent>
-                        {subCategoryOptions[selectedCategory].map(sub => (
+                        {selectedCategory && subCategoryOptions[selectedCategory].map(sub => (
                             <SelectItem key={sub} value={sub}>{sub}</SelectItem>
                         ))}
                     </SelectContent>
                     </Select>
                 )}
             />
-            {form.formState.errors.subCategory && <p className="text-sm text-destructive">{form.formState.errors.subCategory.message}</p>}
+            {form.formState.errors.subCategory && <p className="text-sm text-destructive">{form.formState.errors.subCategory.message as string}</p>}
         </div>
       </div>
 
@@ -220,12 +225,12 @@ function ProductForm({
         <div className="space-y-2">
           <Label htmlFor="colors">Colors</Label>
           <Input id="colors" placeholder="e.g. Red, Blue, Green" {...form.register("colors")} />
-          {form.formState.errors.colors && <p className="text-sm text-destructive">{form.formState.errors.colors.message}</p>}
+          {form.formState.errors.colors && <p className="text-sm text-destructive">{form.formState.errors.colors.message as string}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="sizes">Sizes</Label>
           <Input id="sizes" placeholder="e.g. S, M, L" {...form.register("sizes")} />
-          {form.formState.errors.sizes && <p className="text-sm text-destructive">{form.formState.errors.sizes.message}</p>}
+          {form.formState.errors.sizes && <p className="text-sm text-destructive">{form.formState.errors.sizes.message as string}</p>}
         </div>
       </div>
 
@@ -233,18 +238,18 @@ function ProductForm({
         <div className="space-y-2">
           <Label htmlFor="price">Price (₹)</Label>
           <Input id="price" type="number" step="0.01" {...form.register("price")} />
-          {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message}</p>}
+          {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message as string}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="quantity">Quantity</Label>
           <Input id="quantity" type="number" {...form.register("quantity")} />
-          {form.formState.errors.quantity && <p className="text-sm text-destructive">{form.formState.errors.quantity.message}</p>}
+          {form.formState.errors.quantity && <p className="text-sm text-destructive">{form.formState.errors.quantity.message as string}</p>}
         </div>
       </div>
        <div className="space-y-2">
           <Label htmlFor="rating">Rating (0-5)</Label>
           <Input id="rating" type="number" step="0.1" {...form.register("rating")} />
-          {form.formState.errors.rating && <p className="text-sm text-destructive">{form.formState.errors.rating.message}</p>}
+          {form.formState.errors.rating && <p className="text-sm text-destructive">{form.formState.errors.rating.message as string}</p>}
         </div>
 
       <SheetFooter className="mt-6">
@@ -314,7 +319,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-4 items-start gap-4">
           <Label className="text-right sm:text-left mt-1">Description</Label>
-          <div className="col-span-2 sm:col-span-3">{product.description || 'N/A'}</div>
+          <div className="col-span-2 sm:col-span-3">{product.desc || 'N/A'}</div>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
           <Label className="text-right sm:text-left">Category</Label>
@@ -329,7 +334,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
         <div className="grid grid-cols-3 sm:grid-cols-4 items-start gap-4">
           <Label className="text-right sm:text-left mt-1">Images</Label>
           <div className="col-span-2 sm:col-span-3 grid grid-cols-2 gap-4">
-            {product.images.map((img, index) => (
+            {product.images?.map((img, index) => (
               <Image
                 key={index}
                 alt={`Product image ${index + 1}`}
@@ -337,7 +342,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
                 height="100"
                 src={img}
                 width="100"
-                data-ai-hint={product.imageHints[index]}
+                data-ai-hint={product.imageHints?.[index]}
               />
             ))}
           </div>
@@ -345,13 +350,13 @@ function ProductDetailsDialog({ product }: { product: Product }) {
         <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
           <Label className="text-right sm:text-left">Colors</Label>
           <div className="col-span-2 sm:col-span-3 flex flex-wrap gap-2">
-            {product.colors.map(color => <Badge key={color} variant="secondary">{color}</Badge>)}
+            {product.colors?.map(color => <Badge key={color} variant="secondary">{color}</Badge>)}
           </div>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
           <Label className="text-right sm:text-left">Sizes</Label>
           <div className="col-span-2 sm:col-span-3 flex flex-wrap gap-2">
-            {product.sizes.map(size => <Badge key={size} variant="outline">{size}</Badge>)}
+            {product.sizes?.map(size => <Badge key={size} variant="outline">{size}</Badge>)}
           </div>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
@@ -393,7 +398,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
       id: `prod-${(Math.random() * 1000).toFixed(0)}`,
       name: data.name,
       brand: data.brand,
-      description: data.description,
+      desc: data.description,
       category: data.category,
       subCategory: data.subCategory,
       images: images,
@@ -433,6 +438,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
         return {
           ...p,
           ...data,
+          desc: data.description,
           images: newImages,
           imageHints: newImages.map(i => 'updated product'),
           colors: data.colors.split(',').map(s => s.trim()),
@@ -575,14 +581,20 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                 {filteredProducts.map((product) => (
                   <TableRow key={product.id}>
                     <TableCell className="hidden sm:table-cell">
-                      <Image
-                        alt="Product image"
-                        className="aspect-square rounded-md object-cover"
-                        height="64"
-                        src={product.images[0]}
-                        width="64"
-                        data-ai-hint={product.imageHints[0]}
-                      />
+                      {product.images && product.images.length > 0 ? (
+                        <Image
+                          alt="Product image"
+                          className="aspect-square rounded-md object-cover"
+                          height="64"
+                          src={product.images[0]}
+                          width="64"
+                          data-ai-hint={product.imageHints?.[0]}
+                        />
+                      ) : (
+                        <div className="flex h-16 w-16 items-center justify-center rounded-md bg-muted">
+                            <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell className="hidden sm:table-cell">
@@ -634,3 +646,5 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
+
+    
