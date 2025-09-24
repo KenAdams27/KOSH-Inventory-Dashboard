@@ -40,7 +40,7 @@ export async function addCustomerAction(formData: Omit<Customer, 'id' | 'avatarU
         avatarHint: 'person',
     }
 
-    const result = await db.collection('customers').insertOne(newCustomer);
+    const result = await db.collection('users').insertOne(newCustomer);
 
     if (result.acknowledged) {
         revalidatePath('/dashboard/customers');
@@ -69,7 +69,7 @@ export async function updateCustomerAction(customerId: string, formData: Omit<Cu
         const client = await clientPromise;
         const db = client.db(getDbName());
 
-        const result = await db.collection('customers').updateOne(
+        const result = await db.collection('users').updateOne(
             { _id: new ObjectId(customerId) },
             { $set: validation.data }
         );

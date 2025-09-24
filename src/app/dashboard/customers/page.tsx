@@ -18,7 +18,7 @@ async function getCustomers(): Promise<Customer[]> {
 
     const db = client.db(dbName);
     const customers = await db
-      .collection("customers")
+      .collection("users")
       .find({})
       .sort({ name: 1 })
       .toArray();
