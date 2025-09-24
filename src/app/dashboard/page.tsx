@@ -1,3 +1,4 @@
+
 import { Boxes, IndianRupee, ShoppingCart, Truck } from 'lucide-react';
 
 import { initialOrders, products } from '@/lib/data';
@@ -82,7 +83,7 @@ export default function DashboardHomePage() {
             <CardTitle>Revenue Overview</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
-            <RevenueChart />
+            <RevenueChart data={initialOrders} />
           </CardContent>
         </Card>
         <Card>
@@ -93,42 +94,48 @@ export default function DashboardHomePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {initialOrders.slice(0, 5).map((order) => {
-                const product = products.find(
-                  (p) => p.price === order.total
-                );
-                return (
-                  <div key={order.id} className="flex items-center gap-4">
-                    {product ? (
-                      <div className="h-12 w-12 flex-shrink-0">
-                        <Image
-                          src={product.images[0]}
-                          alt={product.name}
-                          width={48}
-                          height={48}
-                          className="h-full w-full rounded-md object-cover"
-                          data-ai-hint={product.imageHints[0]}
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-12 w-12 flex-shrink-0 rounded-md bg-muted" />
-                    )}
-                    <div className="flex-1">
-                      <p className="text-sm font-medium leading-none truncate">
-                        {product ? product.name : "Unknown Item"}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {order.customer.name}
-                      </p>
+             {initialOrders.length > 0 ? (
+                <div className="space-y-4">
+                {initialOrders.slice(0, 5).map((order) => {
+                    const product = products.find(
+                    (p) => p.id === order.items[0]?.productId
+                    );
+                    return (
+                    <div key={order.id} className="flex items-center gap-4">
+                        {product ? (
+                        <div className="h-12 w-12 flex-shrink-0">
+                            <Image
+                            src={product.images[0]}
+                            alt={product.name}
+                            width={48}
+                            height={48}
+                            className="h-full w-full rounded-md object-cover"
+                            data-ai-hint={product.imageHints[0]}
+                            />
+                        </div>
+                        ) : (
+                        <div className="h-12 w-12 flex-shrink-0 rounded-md bg-muted" />
+                        )}
+                        <div className="flex-1">
+                        <p className="text-sm font-medium leading-none truncate">
+                            {order.items[0]?.productName || "Unknown Item"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                            {order.customer.name}
+                        </p>
+                        </div>
+                        <div className="ml-auto font-medium">
+                        +₹{order.total.toFixed(2)}
+                        </div>
                     </div>
-                    <div className="ml-auto font-medium">
-                      +₹{order.total.toFixed(2)}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    );
+                })}
+                </div>
+            ) : (
+                <div className="text-center text-muted-foreground py-8">
+                    No recent sales.
+                </div>
+            )}
           </CardContent>
         </Card>
       </div>

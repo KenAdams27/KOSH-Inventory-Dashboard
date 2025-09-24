@@ -1,5 +1,7 @@
+
 'use client';
 
+import type { Order } from '@/lib/types';
 import {
   Line,
   LineChart,
@@ -9,31 +11,55 @@ import {
   YAxis,
   Tooltip,
 } from 'recharts';
-import { useState, useEffect } from 'react';
 
 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-export function RevenueChart() {
-  const [chartData, setChartData] = useState<{ month: string; total: number }[]>([]);
+export function RevenueChart({ data: orders }: { data: Order[] }) {
 
-  useEffect(() => {
-    const generateChartData = () => {
+  const getRevenueData = () => {
+    if (!orders || orders.length === 0) {
       const today = new Date();
-      const data = [];
-      for (let i = 3; i >= 0; i--) {
-        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        data.push({
-          month: monthNames[d.getMonth()],
-          total: Math.floor(Math.random() * 2000) + 500,
-        });
+      return Array.from({ length: 4 }, (_, i) => {
+        const d = new Date(today.getFullYear(), today.getMonth() - (3 - i), 1);
+        return { month: monthNames[d.getMonth()], total: 0 };
+      });
+    }
+
+    const monthlyRevenue: { [key: string]: number } = {};
+
+    orders.forEach(order => {
+      if (order.status === 'Delivered') {
+        const date = new Date(order.date);
+        const monthYear = `${monthNames[date.getMonth()]}`;
+        if (!monthlyRevenue[monthYear]) {
+          monthlyRevenue[monthYear] = 0;
+        }
+        monthlyRevenue[monthYear] += order.total;
       }
-      setChartData(data);
-    };
-    generateChartData();
-  }, []);
+    });
+
+    const today = new Date();
+    const chartData = [];
+    for (let i = 3; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const monthKey = monthNames[d.getMonth()];
+        chartData.push({
+            month: monthKey,
+            total: monthlyRevenue[monthKey] || 0,
+        });
+    }
+
+    return chartData;
+  }
+
+  const chartData = getRevenueData();
 
   if (chartData.length === 0) {
-    return <div>Loading...</div>;
+    return (
+        <div className="flex h-[350px] w-full items-center justify-center">
+            <p className="text-muted-foreground">No data to display.</p>
+        </div>
+    );
   }
 
   return (
