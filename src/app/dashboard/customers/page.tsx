@@ -1,8 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
-import clientPromise from "@/lib/mongodb";
+import { useState, useEffect } from "react";
 import type { Customer, Order } from "@/lib/types";
 import { customers as mockCustomers, initialOrders } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,40 +35,9 @@ import { Badge } from "@/components/ui/badge";
 
 // This function can be extracted to a separate file if needed
 async function getCustomers(): Promise<Customer[]> {
-  const usingMockData = !process.env.MONGODB_URI || !clientPromise;
-
-  if (usingMockData) {
+    // For the purpose of this component, we will use mock data.
+    // The database connection logic has been moved to a server-side context.
     return mockCustomers;
-  }
-
-  try {
-    const client = await clientPromise;
-    if (!client) {
-      return mockCustomers;
-    }
-    const db = client.db();
-    const customers = await db
-      .collection("customers")
-      .find({})
-      .limit(10)
-      .toArray();
-
-    if (customers.length === 0) {
-      return mockCustomers;
-    }
-
-    return customers.map((customer) => ({
-      id: customer._id.toString(),
-      name: customer.name,
-      email: customer.email,
-      totalSpent: customer.totalSpent,
-      avatarUrl: customer.avatarUrl,
-      avatarHint: customer.avatarHint,
-    }));
-  } catch (e) {
-    console.error("Failed to fetch customers, falling back to mock data.", e);
-    return mockCustomers;
-  }
 }
 
 function CustomerDetailsDialog({ customer }: { customer: Customer }) {
@@ -140,7 +108,7 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
-  useState(() => {
+  useEffect(() => {
     getCustomers().then(setCustomers);
   }, []);
   
