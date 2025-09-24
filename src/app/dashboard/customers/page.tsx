@@ -32,6 +32,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+  SheetClose,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 
 // This function can be extracted to a separate file if needed
 async function getCustomers(): Promise<Customer[]> {
@@ -39,6 +56,54 @@ async function getCustomers(): Promise<Customer[]> {
     // The database connection logic has been moved to a server-side context.
     return mockCustomers;
 }
+
+const customerSchema = z.object({
+    name: z.string().min(1, "Name is required"),
+    email: z.string().email("Invalid email address"),
+    phoneNumber: z.string().optional(),
+});
+
+
+function CustomerForm({ onSave }: { onSave: (data: z.infer<typeof customerSchema>) => void; }) {
+  const form = useForm<z.infer<typeof customerSchema>>({
+    resolver: zodResolver(customerSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phoneNumber: "",
+    },
+  });
+
+  function onSubmit(data: z.infer<typeof customerSchema>) {
+    onSave(data);
+    form.reset();
+  }
+
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6 p-6">
+      <div className="space-y-2">
+        <Label htmlFor="name">Name</Label>
+        <Input id="name" {...form.register("name")} />
+        {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="email">Email Address</Label>
+        <Input id="email" type="email" {...form.register("email")} />
+        {form.formState.errors.email && <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>}
+      </div>
+       <div className="space-y-2">
+        <Label htmlFor="phoneNumber">Phone Number</Label>
+        <Input id="phoneNumber" {...form.register("phoneNumber")} />
+      </div>
+      <SheetFooter className="mt-6">
+        <SheetClose asChild>
+          <Button type="submit">Save Customer</Button>
+        </SheetClose>
+      </SheetFooter>
+    </form>
+  );
+}
+
 
 function CustomerDetailsDialog({ customer }: { customer: Customer }) {
   const customerOrders = initialOrders.filter(
@@ -55,17 +120,19 @@ function CustomerDetailsDialog({ customer }: { customer: Customer }) {
           </Avatar>
           <div>
             <DialogTitle className="text-2xl">{customer.name}</DialogTitle>
-            <DialogDescription>{customer.email}</DialogDescription>
+            <DialogDescription>{customer.email} &middot; {customer.id}</DialogDescription>
           </div>
         </div>
       </DialogHeader>
       <div className="grid gap-6 py-4">
-        <div className="text-lg">
-          Total Spent:{" "}
-          <span className="font-semibold">
-            ₹{customer.totalSpent.toLocaleString()}
-          </span>
-        </div>
+        {customer.phoneNumber && (
+             <div className="text-lg">
+                Phone:{" "}
+                <span className="font-semibold">
+                    {customer.phoneNumber}
+                </span>
+            </div>
+        )}
         <div>
           <h3 className="text-lg font-semibold mb-2">Order History</h3>
           {customerOrders.length > 0 ? (
@@ -107,10 +174,29 @@ function CustomerDetailsDialog({ customer }: { customer: Customer }) {
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     getCustomers().then(setCustomers);
   }, []);
+
+  const handleAddCustomer = (data: z.infer<typeof customerSchema>) => {
+    const newCustomer: Customer = {
+        id: `cust-${(Math.random() * 1000).toFixed(0)}`,
+        name: data.name,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+        avatarUrl: `https://picsum.photos/seed/${data.name.split(' ')[0]}/100/100`,
+        avatarHint: 'person',
+    }
+    setCustomers(prev => [newCustomer, ...prev]);
+    setIsSheetOpen(false);
+    toast({
+        title: "Customer Added",
+        description: `${data.name} has been added to your customers.`
+    })
+  }
   
   if (customers.length === 0) {
       return (
@@ -119,12 +205,25 @@ export default function CustomersPage() {
                 title="Customers"
                 description="Here is a list of all your customers."
             >
-                <Button size="sm" className="gap-1">
-                <PlusCircle className="h-3.5 w-3.5" />
-                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                    Add Customer
-                </span>
-                </Button>
+                <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                    <SheetTrigger asChild>
+                        <Button size="sm" className="gap-1">
+                            <PlusCircle className="h-3.5 w-3.5" />
+                            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                                Add Customer
+                            </span>
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent>
+                        <SheetHeader>
+                            <SheetTitle>Add a New Customer</SheetTitle>
+                            <SheetDescription>
+                                Fill in the details below to add a new customer.
+                            </SheetDescription>
+                        </SheetHeader>
+                        <CustomerForm onSave={handleAddCustomer} />
+                    </SheetContent>
+                </Sheet>
             </PageHeader>
             <p>Loading customers...</p>
         </>
@@ -137,12 +236,25 @@ export default function CustomersPage() {
         title="Customers"
         description="Here is a list of all your customers."
       >
-        <Button size="sm" className="gap-1">
-          <PlusCircle className="h-3.5 w-3.5" />
-          <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-            Add Customer
-          </span>
-        </Button>
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+            <SheetTrigger asChild>
+                <Button size="sm" className="gap-1">
+                <PlusCircle className="h-3.5 w-3.5" />
+                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                    Add Customer
+                </span>
+                </Button>
+            </SheetTrigger>
+             <SheetContent>
+                <SheetHeader>
+                    <SheetTitle>Add a New Customer</SheetTitle>
+                    <SheetDescription>
+                        Fill in the details below to add a new customer.
+                    </SheetDescription>
+                </SheetHeader>
+                <CustomerForm onSave={handleAddCustomer} />
+            </SheetContent>
+        </Sheet>
       </PageHeader>
 
       <Dialog onOpenChange={(isOpen) => !isOpen && setSelectedCustomer(null)}>
@@ -162,11 +274,7 @@ export default function CustomersPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-sm text-muted-foreground">
-                    Total Spent:
-                    <span className="font-semibold text-foreground">
-                      {" "}
-                      ₹{customer.totalSpent.toLocaleString()}
-                    </span>
+                    Customer ID: {customer.id}
                   </div>
                 </CardContent>
               </Card>

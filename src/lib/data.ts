@@ -17,11 +17,11 @@ export const initialOrders: Order[] = [
 ];
 
 export const customers: Customer[] = [
-  { id: 'cust-001', name: 'Olivia Martin', email: 'olivia.martin@email.com', totalSpent: 2500, avatarUrl: 'https://picsum.photos/seed/avatar1/100/100', avatarHint: 'woman portrait' },
-  { id: 'cust-002', name: 'Jackson Lee', email: 'jackson.lee@email.com', totalSpent: 1750, avatarUrl: 'https://picsum.photos/seed/avatar2/100/100', avatarHint: 'man portrait' },
-  { id: 'cust-003', name: 'Isabella Nguyen', email: 'isabella.nguyen@email.com', totalSpent: 3200, avatarUrl: 'https://picsum.photos/seed/avatar3/100/100', avatarHint: 'woman sunglasses' },
-  { id: 'cust-004', name: 'William Kim', email: 'will@email.com', totalSpent: 800, avatarUrl: 'https://picsum.photos/seed/avatar4/100/100', avatarHint: 'man glasses' },
-  { id: 'cust-005', name: 'Sofia Davis', email: 'sofia.davis@email.com', totalSpent: 4500, avatarUrl: 'https://picsum.photos/seed/avatar5/100/100', avatarHint: 'woman smiling' },
+  { id: 'cust-001', name: 'Olivia Martin', email: 'olivia.martin@email.com', phoneNumber: '123-456-7890', avatarUrl: 'https://picsum.photos/seed/avatar1/100/100', avatarHint: 'woman portrait' },
+  { id: 'cust-002', name: 'Jackson Lee', email: 'jackson.lee@email.com', phoneNumber: '234-567-8901', avatarUrl: 'https://picsum.photos/seed/avatar2/100/100', avatarHint: 'man portrait' },
+  { id: 'cust-003', name: 'Isabella Nguyen', email: 'isabella.nguyen@email.com', phoneNumber: '345-678-9012', avatarUrl: 'https://picsum.photos/seed/avatar3/100/100', avatarHint: 'woman sunglasses' },
+  { id: 'cust-004', name: 'William Kim', email: 'will@email.com', phoneNumber: '456-789-0123', avatarUrl: 'https://picsum.photos/seed/avatar4/100/100', avatarHint: 'man glasses' },
+  { id: 'cust-005', name: 'Sofia Davis', email: 'sofia.davis@email.com', phoneNumber: '567-890-1234', avatarUrl: 'https://picsum.photos/seed/avatar5/100/100', avatarHint: 'woman smiling' },
 ];
 
 export const user: User = {
