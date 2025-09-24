@@ -29,6 +29,7 @@ export async function addCustomerAction(formData: Omit<Customer, 'id' | 'avatarU
     if (!dbName) {
         throw new Error('DB_NAME environment variable is not set.');
     }
+    console.log(`[addCustomerAction] Attempting to write to database: ${dbName}`);
     const db = client.db(dbName);
     
     const newCustomer = {
@@ -38,6 +39,7 @@ export async function addCustomerAction(formData: Omit<Customer, 'id' | 'avatarU
     }
 
     const result = await db.collection('users').insertOne(newCustomer);
+    console.log('[addCustomerAction] MongoDB insert result:', result);
 
     if (result.acknowledged) {
         revalidatePath('/dashboard/customers');
@@ -47,7 +49,7 @@ export async function addCustomerAction(formData: Omit<Customer, 'id' | 'avatarU
     }
 
   } catch (error) {
-    console.error('Error adding customer:', error);
+    console.error('[addCustomerAction] Error adding customer:', error);
     const message = error instanceof Error ? error.message : 'An unknown error occurred.';
     return { success: false, message: `Database Error: ${message}` };
   }
@@ -68,12 +70,14 @@ export async function updateCustomerAction(customerId: string, formData: Omit<Cu
         if (!dbName) {
             throw new Error('DB_NAME environment variable is not set.');
         }
+        console.log(`[updateCustomerAction] Attempting to update in database: ${dbName}`);
         const db = client.db(dbName);
 
         const result = await db.collection('users').updateOne(
             { _id: new ObjectId(customerId) },
             { $set: validation.data }
         );
+        console.log('[updateCustomerAction] MongoDB update result:', result);
 
         if (result.modifiedCount > 0) {
             revalidatePath('/dashboard/customers');
@@ -82,7 +86,7 @@ export async function updateCustomerAction(customerId: string, formData: Omit<Cu
             return { success: false, message: 'Failed to update customer or no changes were made.' };
         }
     } catch (error) {
-        console.error('Error updating customer:', error);
+        console.error('[updateCustomerAction] Error updating customer:', error);
         const message = error instanceof Error ? error.message : 'An unknown error occurred.';
         return { success: false, message: `Database Error: ${message}` };
     }
@@ -98,9 +102,11 @@ export async function deleteCustomerAction(customerId: string) {
         if (!dbName) {
             throw new Error('DB_NAME environment variable is not set.');
         }
+        console.log(`[deleteCustomerAction] Attempting to delete from database: ${dbName}`);
         const db = client.db(dbName);
 
         const result = await db.collection('users').deleteOne({ _id: new ObjectId(customerId) });
+        console.log('[deleteCustomerAction] MongoDB delete result:', result);
 
         if (result.deletedCount > 0) {
             revalidatePath('/dashboard/customers');
@@ -109,7 +115,7 @@ export async function deleteCustomerAction(customerId: string) {
             return { success: false, message: 'Failed to delete customer.' };
         }
     } catch (error) {
-        console.error('Error deleting customer:', error);
+        console.error('[deleteCustomerAction] Error deleting customer:', error);
         const message = error instanceof Error ? error.message : 'An unknown error occurred.';
         return { success: false, message: `Database Error: ${message}` };
     }

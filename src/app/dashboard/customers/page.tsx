@@ -15,6 +15,7 @@ async function getCustomers(): Promise<Customer[]> {
     if (!dbName) {
         throw new Error('DB_NAME environment variable is not set.');
     }
+    console.log(`[getCustomers] Fetching from database: ${dbName}`);
 
     const db = client.db(dbName);
     const customersFromDb = await db
@@ -22,6 +23,8 @@ async function getCustomers(): Promise<Customer[]> {
       .find({})
       .sort({ name: 1 })
       .toArray();
+
+    console.log(`[getCustomers] Found ${customersFromDb.length} customers in the database.`);
 
     // Manually construct plain objects to pass to the client component.
     const customers = customersFromDb.map(customer => {
@@ -40,7 +43,7 @@ async function getCustomers(): Promise<Customer[]> {
     return customers;
 
   } catch (error) {
-    console.error("Failed to fetch customers:", error);
+    console.error("[getCustomers] Failed to fetch customers:", error);
     // In case of an error, return an empty array to prevent the page from crashing.
     return [];
   }
