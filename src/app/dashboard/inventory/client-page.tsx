@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { MoreHorizontal, PlusCircle, Search } from "lucide-react";
 import { z } from "zod";
@@ -61,14 +61,12 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-const MAX_FILE_SIZE = 5000000; // 5MB
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-
 const productSchema = z.object({
   name: z.string().min(1, "Name is required"),
   brand: z.string().min(1, "Brand is required"),
   description: z.string().optional(),
-  category: z.enum(["Ethnic wear", "bedsheets"]),
+  category: z.enum(["ethnicWear", "bedsheet"]),
+  subCategory: z.string().optional(),
   image1: z.any().optional(),
   image2: z.any().optional(),
   image3: z.any().optional(),
@@ -77,7 +75,25 @@ const productSchema = z.object({
   sizes: z.string().min(1, "Please enter at least one size"),
   price: z.coerce.number().min(0, "Price must be a positive number"),
   quantity: z.coerce.number().int().min(0, "Quantity must be a positive integer"),
+  rating: z.coerce.number().min(0).max(5).default(0),
+}).refine(data => {
+    if (data.category === 'ethnicWear') {
+        return ["sarees", "kurtas & suits", "dupattas"].includes(data.subCategory || "");
+    }
+    if (data.category === 'bedsheet') {
+        return ["pure cotton", "cotton blend"].includes(data.subCategory || "");
+    }
+    return false;
+}, {
+    message: "Sub-category is not valid for the selected category",
+    path: ["subCategory"],
 });
+
+const subCategoryOptions = {
+    ethnicWear: ["sarees", "kurtas & suits", "dupattas"],
+    bedsheet: ["pure cotton", "cotton blend"],
+};
+
 
 function ProductForm({
   onSave,
@@ -96,13 +112,22 @@ function ProductForm({
       name: "",
       brand: "",
       description: "",
-      category: "Ethnic wear",
+      category: "ethnicWear",
+      subCategory: "sarees",
       colors: "",
       sizes: "",
       price: 0,
       quantity: 0,
+      rating: 0,
     },
   });
+
+  const selectedCategory = form.watch("category");
+
+  useEffect(() => {
+    form.setValue("subCategory", subCategoryOptions[selectedCategory][0]);
+  }, [selectedCategory, form]);
+
 
   function onSubmit(data: z.infer<typeof productSchema>) {
     onSave(data);
@@ -128,23 +153,45 @@ function ProductForm({
         <Textarea id="description" {...form.register("description")} />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="category">Category</Label>
-        <Controller
-          control={form.control}
-          name="category"
-          render={({ field }) => (
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Ethnic wear">Ethnic wear</SelectItem>
-                <SelectItem value="bedsheets">Bedsheets</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="space-y-2">
+            <Label htmlFor="category">Category</Label>
+            <Controller
+            control={form.control}
+            name="category"
+            render={({ field }) => (
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="ethnicWear">Ethnic Wear</SelectItem>
+                    <SelectItem value="bedsheet">Bedsheet</SelectItem>
+                </SelectContent>
+                </Select>
+            )}
+            />
+        </div>
+         <div className="space-y-2">
+            <Label htmlFor="subCategory">Sub-category</Label>
+            <Controller
+                control={form.control}
+                name="subCategory"
+                render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select a sub-category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {subCategoryOptions[selectedCategory].map(sub => (
+                            <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                        ))}
+                    </SelectContent>
+                    </Select>
+                )}
+            />
+            {form.formState.errors.subCategory && <p className="text-sm text-destructive">{form.formState.errors.subCategory.message}</p>}
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -194,6 +241,11 @@ function ProductForm({
           {form.formState.errors.quantity && <p className="text-sm text-destructive">{form.formState.errors.quantity.message}</p>}
         </div>
       </div>
+       <div className="space-y-2">
+          <Label htmlFor="rating">Rating (0-5)</Label>
+          <Input id="rating" type="number" step="0.1" {...form.register("rating")} />
+          {form.formState.errors.rating && <p className="text-sm text-destructive">{form.formState.errors.rating.message}</p>}
+        </div>
 
       <SheetFooter className="mt-6">
         <SheetClose asChild>
@@ -266,8 +318,14 @@ function ProductDetailsDialog({ product }: { product: Product }) {
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
           <Label className="text-right sm:text-left">Category</Label>
-          <div className="col-span-2 sm:col-span-3">{product.category}</div>
+          <div className="col-span-2 sm:col-span-3 capitalize">{product.category}</div>
         </div>
+        {product.subCategory && (
+            <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+                <Label className="text-right sm:text-left">Sub-Category</Label>
+                <div className="col-span-2 sm:col-span-3 capitalize">{product.subCategory}</div>
+            </div>
+        )}
         <div className="grid grid-cols-3 sm:grid-cols-4 items-start gap-4">
           <Label className="text-right sm:text-left mt-1">Images</Label>
           <div className="col-span-2 sm:col-span-3 grid grid-cols-2 gap-4">
@@ -299,6 +357,10 @@ function ProductDetailsDialog({ product }: { product: Product }) {
         <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
           <Label className="text-right sm:text-left">Price</Label>
           <div className="col-span-2 sm:col-span-3">₹{product.price.toFixed(2)}</div>
+        </div>
+         <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+            <Label className="text-right sm:text-left">Rating</Label>
+            <div className="col-span-2 sm:col-span-3">{product.rating}/5</div>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
           <Label className="text-right sm:text-left">Quantity</Label>
@@ -333,12 +395,14 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
       brand: data.brand,
       description: data.description,
       category: data.category,
+      subCategory: data.subCategory,
       images: images,
       imageHints: images.map(i => 'new product'),
       colors: data.colors.split(',').map(s => s.trim()),
       sizes: data.sizes.split(',').map(s => s.trim()),
       price: data.price,
       quantity: data.quantity,
+      rating: data.rating,
       status: data.quantity > 0 ? "In Stock" : "Out of Stock",
     };
     setProducts((prev) => [newProduct, ...prev]);
@@ -499,6 +563,9 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                   <TableHead className="hidden md:table-cell">
                     Qty
                   </TableHead>
+                   <TableHead className="hidden md:table-cell">
+                    Rating
+                  </TableHead>
                   <TableHead>
                     <span className="sr-only">Actions</span>
                   </TableHead>
@@ -526,6 +593,9 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {product.quantity}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {product.rating}/5
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -564,5 +634,3 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
-
-    

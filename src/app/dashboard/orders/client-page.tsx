@@ -523,5 +523,3 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     </>
   );
 }
-
-    

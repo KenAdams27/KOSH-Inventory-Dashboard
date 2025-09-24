@@ -3,12 +3,14 @@ export type Product = {
   name: string;
   brand: string;
   description?: string;
-  category: "Ethnic wear" | "bedsheets";
+  category: "ethnicWear" | "bedsheet";
+  subCategory?: string;
   images: string[];
   imageHints: string[];
   colors: string[];
   sizes: string[];
   price: number;
+  rating: number;
   quantity: number;
   status: "In Stock" | "Out of Stock" | "Low Stock";
 };
@@ -50,7 +52,7 @@ export type CartItem = {
 };
 
 export type Customer = {
-  id: string;
+  id:string;
   name: string;
   email: string;
   password?: string; // Should be handled securely, not sent to client
