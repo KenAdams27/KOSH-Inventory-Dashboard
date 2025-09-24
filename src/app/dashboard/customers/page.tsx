@@ -1,5 +1,6 @@
 import clientPromise from "@/lib/mongodb";
 import type { Customer } from "@/lib/types";
+import { customers as mockCustomers } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Card,
@@ -11,8 +12,14 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Terminal } from "lucide-react";
 
 async function getCustomers(): Promise<Customer[]> {
+  if (!process.env.MONGODB_URI) {
+    return mockCustomers;
+  }
+
   try {
     const client = await clientPromise;
     const db = client.db();
@@ -21,6 +28,10 @@ async function getCustomers(): Promise<Customer[]> {
       .find({})
       .limit(10)
       .toArray();
+
+    if (customers.length === 0) {
+      return mockCustomers;
+    }
 
     return customers.map((customer) => ({
       id: customer._id.toString(),
@@ -32,12 +43,15 @@ async function getCustomers(): Promise<Customer[]> {
     }));
   } catch (e) {
     console.error(e);
-    return [];
+    // Fallback to mock data on error
+    return mockCustomers;
   }
 }
 
 export default async function CustomersPage() {
   const customers = await getCustomers();
+  const usingMockData = !process.env.MONGODB_URI;
+
   return (
     <>
       <PageHeader
@@ -51,6 +65,17 @@ export default async function CustomersPage() {
           </span>
         </Button>
       </PageHeader>
+
+      {usingMockData && (
+        <Alert className="mb-4">
+          <Terminal className="h-4 w-4" />
+          <AlertTitle>Developer Notice</AlertTitle>
+          <AlertDescription>
+            You are currently viewing mock data. To connect to your database, please add your `MONGODB_URI` to your environment variables.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {customers.map((customer) => (
           <Card key={customer.id}>
