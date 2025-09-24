@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle } from "lucide-react";
+import { MoreHorizontal, PlusCircle, User } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -130,7 +130,9 @@ function CustomerDetailsDialog({ customer }: { customer: Customer }) {
         <div className="flex items-center gap-4">
            <Avatar className="h-16 w-16">
             <AvatarImage src={customer.avatarUrl} alt={customer.name} data-ai-hint={customer.avatarHint} />
-            <AvatarFallback>{customer.name.charAt(0)}</AvatarFallback>
+            <AvatarFallback>
+              <User className="h-8 w-8" />
+            </AvatarFallback>
           </Avatar>
           <div>
             <DialogTitle className="text-2xl">{customer.name}</DialogTitle>
@@ -352,7 +354,9 @@ export default function CustomersPage() {
                     <div className="flex flex-row items-center gap-4">
                         <Avatar className="h-12 w-12">
                             <AvatarImage src={customer.avatarUrl} alt={customer.name} data-ai-hint={customer.avatarHint} />
-                            <AvatarFallback>{customer.name.charAt(0)}</AvatarFallback>
+                            <AvatarFallback>
+                              <User className="h-6 w-6" />
+                            </AvatarFallback>
                         </Avatar>
                         <div>
                             <CardTitle>{customer.name}</CardTitle>
@@ -393,5 +397,3 @@ export default function CustomersPage() {
     </>
   );
 }
-
-    

@@ -1,4 +1,4 @@
-import { Boxes, PanelLeft } from "lucide-react";
+import { Boxes, PanelLeft, User } from "lucide-react";
 import Link from "next/link";
 import { user } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -69,7 +69,9 @@ export default function DashboardLayout({
                 >
                   <Avatar>
                     <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint={user.avatarHint} />
-                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>
+                      <User className="h-5 w-5" />
+                    </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
