@@ -1,6 +1,6 @@
 import { Boxes, IndianRupee, ShoppingCart, Truck } from 'lucide-react';
 
-import { orders, products } from '@/lib/data';
+import { initialOrders, products } from '@/lib/data';
 import Image from "next/image";
 import {
   Card,
@@ -13,10 +13,10 @@ import { PageHeader } from '@/components/page-header';
 import { RevenueChart } from '@/components/dashboard/revenue-chart';
 
 export default function DashboardHomePage() {
-  const totalRevenue = orders.reduce((acc, order) => acc + order.total, 0);
-  const totalOrders = orders.length;
+  const totalRevenue = initialOrders.reduce((acc, order) => acc + order.total, 0);
+  const totalOrders = initialOrders.length;
   const totalInventory = products.reduce((acc, p) => acc + p.quantity, 0);
-  const pendingOrders = orders.filter((o) => o.status === 'Pending').length;
+  const pendingOrders = initialOrders.filter((o) => o.status === 'Pending').length;
 
   return (
     <>
@@ -94,7 +94,7 @@ export default function DashboardHomePage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {orders.slice(0, 5).map((order) => {
+              {initialOrders.slice(0, 5).map((order) => {
                 const product = products.find(
                   (p) => p.price === order.total
                 );

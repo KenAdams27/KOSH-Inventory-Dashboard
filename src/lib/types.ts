@@ -18,7 +18,15 @@ export type Order = {
   customer: {
     name: string;
     email: string;
+    contactNumber?: string;
+    address?: string;
   };
+  items: {
+    productId: string;
+    productName: string;
+    quantity: number;
+  }[];
+  paid: boolean;
   date: string;
   status: "Pending" | "Fulfilled" | "Cancelled";
   total: number;

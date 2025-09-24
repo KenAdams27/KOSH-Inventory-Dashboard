@@ -8,12 +8,12 @@ export const products: Product[] = [
   { id: 'prod-005', name: 'Red Saree', brand: 'Ethnic Styles', description: 'A traditional red saree.', category: 'Ethnic wear', images: ['https://picsum.photos/seed/saree/400/400'], imageHints: ['red saree'], colors: ['Red', 'Gold'], sizes: ['Free Size'], price: 599.99, quantity: 12, status: 'In Stock' },
 ];
 
-export const orders: Order[] = [
-  { id: 'ord-001', customer: { name: 'Olivia Martin', email: 'olivia.martin@email.com' }, date: '2023-11-23', status: 'Fulfilled', total: 299.99 },
-  { id: 'ord-002', customer: { name: 'Jackson Lee', email: 'jackson.lee@email.com' }, date: '2023-11-24', status: 'Pending', total: 449.99 },
-  { id: 'ord-003', customer: { name: 'Isabella Nguyen', email: 'isabella.nguyen@email.com' }, date: '2023-11-25', status: 'Cancelled', total: 79.99 },
-  { id: 'ord-004', customer: { name: 'William Kim', email: 'will@email.com' }, date: '2023-11-26', status: 'Fulfilled', total: 199.99 },
-  { id: 'ord-005', customer: { name: 'Sofia Davis', email: 'sofia.davis@email.com' }, date: '2023-11-27', status: 'Pending', total: 599.99 },
+export const initialOrders: Order[] = [
+  { id: 'ord-001', customer: { name: 'Olivia Martin', email: 'olivia.martin@email.com', contactNumber: '123-456-7890', address: '123 Main St, Anytown USA' }, items: [{ productId: 'prod-001', productName: 'Acoustic Guitar', quantity: 1 }], paid: true, date: '2023-11-23', status: 'Fulfilled', total: 299.99 },
+  { id: 'ord-002', customer: { name: 'Jackson Lee', email: 'jackson.lee@email.com' }, items: [{ productId: 'prod-002', productName: 'Electric Keyboard', quantity: 1 }], paid: false, date: '2023-11-24', status: 'Pending', total: 449.99 },
+  { id: 'ord-003', customer: { name: 'Isabella Nguyen', email: 'isabella.nguyen@email.com' }, items: [{ productId: 'prod-003', productName: 'Blue Bedsheet', quantity: 1 }], paid: true, date: '2023-11-25', status: 'Cancelled', total: 79.99 },
+  { id: 'ord-004', customer: { name: 'William Kim', email: 'will@email.com' }, items: [{ productId: 'prod-004', productName: 'Violin', quantity: 1 }], paid: true, date: '2023-11-26', status: 'Fulfilled', total: 199.99 },
+  { id: 'ord-005', customer: { name: 'Sofia Davis', email: 'sofia.davis@email.com' }, items: [{ productId: 'prod-005', productName: 'Red Saree', quantity: 1 }], paid: false, date: '2023-11-27', status: 'Pending', total: 599.99 },
 ];
 
 export const customers: Customer[] = [
