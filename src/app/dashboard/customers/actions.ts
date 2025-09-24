@@ -14,7 +14,7 @@ const customerSchema = z.object({
   address: z.string().optional(),
 });
 
-export async function addCustomerAction(formData: Omit<Customer, 'id' | 'avatarUrl' | 'avatarHint'>) {
+export async function addCustomerAction(formData: Omit<Customer, 'id'>) {
   try {
     const validation = customerSchema.safeParse(formData);
     if (!validation.success) {
@@ -33,8 +33,6 @@ export async function addCustomerAction(formData: Omit<Customer, 'id' | 'avatarU
     
     const newCustomer = {
         ...validation.data,
-        avatarUrl: `https://picsum.photos/seed/${validation.data.name.split(' ')[0]}/100/100`,
-        avatarHint: 'person',
     }
 
     const result = await db.collection('users').insertOne(newCustomer);
@@ -53,7 +51,7 @@ export async function addCustomerAction(formData: Omit<Customer, 'id' | 'avatarU
   }
 }
 
-export async function updateCustomerAction(customerId: string, formData: Omit<Customer, 'id' | 'avatarUrl' | 'avatarHint'>) {
+export async function updateCustomerAction(customerId: string, formData: Omit<Customer, 'id'>) {
     try {
         const validation = customerSchema.safeParse(formData);
         if (!validation.success) {

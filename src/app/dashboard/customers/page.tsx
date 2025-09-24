@@ -31,8 +31,6 @@ async function getCustomers(): Promise<Customer[]> {
         email: customer.email,
         phoneNumber: customer.phoneNumber,
         address: customer.address,
-        avatarUrl: customer.avatarUrl || `https://picsum.photos/seed/${customer.name.split(' ')[0]}/100/100`,
-        avatarHint: customer.avatarHint || 'person',
       };
       return plainCustomer;
     });

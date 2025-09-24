@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import type { Customer, Order } from "@/lib/types";
 import { initialOrders } from "@/lib/data";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Card,
   CardContent,
@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, User } from "lucide-react";
+import { MoreHorizontal, PlusCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -133,9 +133,8 @@ function CustomerDetailsDialog({ customer }: { customer: Customer }) {
       <DialogHeader>
         <div className="flex items-center gap-4">
            <Avatar className="h-16 w-16">
-            <AvatarImage src={customer.avatarUrl} alt={customer.name} data-ai-hint={customer.avatarHint} />
-            <AvatarFallback>
-              <User className="h-8 w-8" />
+            <AvatarFallback className="text-2xl">
+                {customer.name.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div>
@@ -375,9 +374,8 @@ export function CustomersClientPage({ customers: initialCustomers }: { customers
                 <CardHeader className="flex flex-row items-start justify-between gap-4">
                     <div className="flex flex-row items-center gap-4">
                         <Avatar className="h-12 w-12">
-                            <AvatarImage src={customer.avatarUrl} alt={customer.name} data-ai-hint={customer.avatarHint} />
                             <AvatarFallback>
-                              <User className="h-6 w-6" />
+                                {customer.name.charAt(0).toUpperCase()}
                             </AvatarFallback>
                         </Avatar>
                         <div>

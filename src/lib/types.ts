@@ -38,8 +38,6 @@ export type Customer = {
   email: string;
   phoneNumber?: string;
   address?: string;
-  avatarUrl: string;
-  avatarHint: string;
 };
 
 export type User = {
