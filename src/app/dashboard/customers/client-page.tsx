@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from "react";
 import type { Customer, Order } from "@/lib/types";
-import { initialOrders } from "@/lib/data";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Card,
@@ -68,6 +67,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { format } from "date-fns";
 
 
 const customerSchema = z.object({
@@ -148,9 +148,9 @@ function CustomerForm({ onSave, customer, onSheetOpenChange }: { onSave: (data: 
 }
 
 
-function CustomerDetailsDialog({ customer }: { customer: Customer }) {
-  const customerOrders = initialOrders.filter(
-    (order) => order.customer.email === customer.email
+function CustomerDetailsDialog({ customer, orders }: { customer: Customer, orders: Order[] }) {
+  const customerOrders = orders.filter(
+    (order) => order.user === customer.id
   );
 
   return (
@@ -203,14 +203,14 @@ function CustomerDetailsDialog({ customer }: { customer: Customer }) {
                 <TableBody>
                   {customerOrders.map((order) => (
                     <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.id}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{order.date}</TableCell>
+                      <TableCell className="font-medium">{order.id.slice(-6)}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{format(new Date(order.createdAt), 'PPP')}</TableCell>
                       <TableCell className="hidden sm:table-cell">
-                        <Badge variant={order.status === 'Delivered' ? 'secondary' : order.status === 'Cancelled' ? 'destructive' : 'default'}>
-                          {order.status}
+                        <Badge variant={order.isDelivered ? 'secondary' : 'default'}>
+                            {order.isDelivered ? 'Delivered' : 'Pending'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">₹{order.total.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">₹{order.totalPrice.toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -225,7 +225,7 @@ function CustomerDetailsDialog({ customer }: { customer: Customer }) {
   );
 }
 
-export function CustomersClientPage({ customers: initialCustomers }: { customers: Customer[] }) {
+export function CustomersClientPage({ customers: initialCustomers, orders }: { customers: Customer[], orders: Order[] }) {
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -454,10 +454,8 @@ export function CustomersClientPage({ customers: initialCustomers }: { customers
               </Card>
           ))}
         </div>
-        {selectedCustomer && <CustomerDetailsDialog customer={selectedCustomer} />}
+        {selectedCustomer && <CustomerDetailsDialog customer={selectedCustomer} orders={orders} />}
       </Dialog>
     </>
   );
 }
-
-    

@@ -1,7 +1,7 @@
 
 import { CustomersClientPage } from "./client-page";
 import clientPromise from "@/lib/mongodb";
-import type { Customer } from "@/lib/types";
+import type { Customer, Order } from "@/lib/types";
 
 async function getCustomers(): Promise<Customer[]> {
   if (!clientPromise) {
@@ -39,8 +39,28 @@ async function getCustomers(): Promise<Customer[]> {
   }
 }
 
+async function getOrders(): Promise<Order[]> {
+  if (!clientPromise) {
+    return [];
+  }
+  try {
+    const client = await clientPromise;
+    const dbName = process.env.DB_NAME;
+    if (!dbName) {
+      throw new Error('DB_NAME environment variable is not set.');
+    }
+    const db = client.db(dbName);
+    const ordersFromDb = await db.collection("orders").find({}).sort({ createdAt: -1 }).toArray();
+    return JSON.parse(JSON.stringify(ordersFromDb)).map((o: any) => ({ ...o, id: o._id.toString() }));
+  } catch (error) {
+    console.error("[getOrders customers] Failed to fetch orders:", error);
+    return [];
+  }
+}
+
 
 export default async function CustomersPage() {
     const customers = await getCustomers();
-    return <CustomersClientPage customers={customers} />;
+    const orders = await getOrders();
+    return <CustomersClientPage customers={customers} orders={orders} />;
 }
