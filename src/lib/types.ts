@@ -86,6 +86,3 @@ export type User = {
   avatarUrl: string;
   avatarHint: string;
 };
-
-
-    

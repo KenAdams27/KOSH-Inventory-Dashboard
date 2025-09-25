@@ -59,6 +59,19 @@ import { PageHeader } from "@/components/page-header";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { addProductAction, updateProductAction, deleteProductAction, updateProductPublishedStatus } from "./actions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 
 const productSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -75,7 +88,6 @@ const productSchema = z.object({
   price: z.coerce.number().min(0, "Price must be a positive number"),
   quantity: z.coerce.number().int().min(0, "Quantity must be a positive integer"),
   rating: z.coerce.number().min(0).max(5).default(0),
-  isPublished: z.boolean().default(true),
 }).refine(data => {
     if (data.category === 'ethnicWear' && data.subCategory) {
         return ["sarees", "kurtas & suits", "dupattas"].includes(data.subCategory);
@@ -83,7 +95,6 @@ const productSchema = z.object({
     if (data.category === 'bedsheet' && data.subCategory) {
         return ["pure cotton", "cotton blend"].includes(data.subCategory);
     }
-    // Allow if subCategory is not defined
     return true;
 }, {
     message: "Sub-category is not valid for the selected category",
@@ -99,9 +110,11 @@ const subCategoryOptions = {
 function ProductForm({
   onSave,
   product,
+  onSheetOpenChange,
 }: {
-  onSave: (data: z.infer<typeof productSchema>) => void;
+  onSave: (data: z.infer<typeof productSchema>) => Promise<void>;
   product?: Product | null;
+  onSheetOpenChange: (isOpen: boolean) => void;
 }) {
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -121,7 +134,6 @@ function ProductForm({
       price: 0,
       quantity: 0,
       rating: 0,
-      isPublished: true,
     },
   });
 
@@ -134,8 +146,10 @@ function ProductForm({
   }, [selectedCategory, form]);
 
 
-  function onSubmit(data: z.infer<typeof productSchema>) {
-    onSave(data);
+  async function onSubmit(data: z.infer<typeof productSchema>) {
+    await onSave(data);
+    form.reset();
+    onSheetOpenChange(false);
   }
 
   return (
@@ -234,7 +248,7 @@ function ProductForm({
         </div>
       </div>
 
-      <div className="grid grid-cols.tsx-1 sm:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="price">Price (₹)</Label>
           <Input id="price" type="number" step="0.01" {...form.register("price")} />
@@ -253,37 +267,48 @@ function ProductForm({
         </div>
       
       <SheetFooter className="mt-6">
-        <SheetClose asChild>
           <Button type="submit">Save Product</Button>
-        </SheetClose>
       </SheetFooter>
     </form>
   );
 }
 
-function PublishToggle({ product }: { product: Product }) {
+function PublishToggle({ product, onStatusChange }: { product: Product, onStatusChange: (productId: string, isPublished: boolean) => void }) {
   const { toast } = useToast();
-  const [isPublished, setIsPublished] = useState(product.isPublished);
   
   const handleToggle = async (checked: boolean) => {
-    setIsPublished(checked);
     toast({
       title: "Updating Status...",
-      description: `${product.name} is now ${checked ? 'published' : 'unpublished'}.`,
+      description: `${product.name} is now being ${checked ? 'published' : 'unpublished'}.`,
     });
-    // Here you would typically call an API to update the status in your database
+    
+    const result = await updateProductPublishedStatus(product.id, checked);
+
+    if (result.success) {
+      toast({
+        title: "Status Updated",
+        description: result.message,
+      });
+      onStatusChange(product.id, checked);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: result.message,
+      });
+    }
   }
 
   return (
     <div className="flex items-center gap-2">
       <Switch
         id={`publish-${product.id}`}
-        checked={isPublished}
+        checked={product.isPublished}
         onCheckedChange={handleToggle}
         aria-label="Publish status"
       />
-      <Badge variant={isPublished ? "secondary" : "destructive"}>
-        {isPublished ? "Yes" : "No"}
+      <Badge variant={product.isPublished ? "secondary" : "destructive"}>
+        {product.isPublished ? "Yes" : "No"}
       </Badge>
     </div>
   )
@@ -365,7 +390,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
 
 export function InventoryClientPage({ products: initialProducts }: { products: Product[] }) {
   const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -373,96 +398,79 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const { toast } = useToast();
 
-  const handleAddProduct = (data: z.infer<typeof productSchema>) => {
-    const uploadedImages = [data.image1, data.image2, data.image3, data.image4]
-      .map(field => field && field.length > 0 ? URL.createObjectURL(field[0]) : null)
-      .filter((url): url is string => !!url);
+  useEffect(() => {
+    setProducts(initialProducts);
+  }, [initialProducts]);
 
-    const images = uploadedImages.length > 0 ? uploadedImages : ["https://picsum.photos/seed/new/400/400"];
-    
-    const newProduct: Product = {
-      id: `prod-${(Math.random() * 1000).toFixed(0)}`,
-      name: data.name,
-      brand: data.brand,
-      desc: data.description,
-      category: data.category,
-      subCategory: data.subCategory,
-      images: images,
-      imageHints: images.map(i => 'new product'),
-      colors: data.colors.split(',').map(s => s.trim()),
-      sizes: data.sizes.split(',').map(s => s.trim()),
-      price: data.price,
-      quantity: data.quantity,
-      rating: data.rating,
-      status: data.quantity > 0 ? "In Stock" : "Out of Stock",
-      isPublished: data.isPublished,
-    };
-    setProducts((prev) => [newProduct, ...prev]);
-    setIsSheetOpen(false);
-    toast({
-      title: "Product Added",
-      description: `${data.name} has been added to your inventory.`,
-    });
+
+  const handleAddProduct = async (data: any) => {
+    const result = await addProductAction(data);
+    if (result.success) {
+      toast({
+        title: "Product Added",
+        description: result.message,
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: result.message,
+      });
+    }
   };
 
-  const handleEditProduct = (data: z.infer<typeof productSchema>) => {
+  const handleEditClick = (product: Product) => {
+    setEditingProduct(product);
+    setIsEditSheetOpen(true);
+  };
+
+  const handleEditProduct = async (data: any) => {
     if (!editingProduct) return;
-
-    const uploadedImages = [data.image1, data.image2, data.image3, data.image4]
-    .map(field => {
-        if (field && field.length > 0 && field[0] instanceof File) {
-            return URL.createObjectURL(field[0]);
-        }
-        return null;
-    })
-    .filter((url): url is string => !!url);
-
-    setProducts(prev => prev.map(p => {
-      if (p.id === editingProduct.id) {
-        const existingImages = p.images;
-        const newImages = uploadedImages.length > 0 ? uploadedImages : existingImages;
-
-        return {
-          ...p,
-          ...data,
-          desc: data.description,
-          images: newImages,
-          imageHints: newImages.map(i => 'updated product'),
-          colors: data.colors.split(',').map(s => s.trim()),
-          sizes: data.sizes.split(',').map(s => s.trim()),
-          status: data.quantity > 0 ? "In Stock" : "Out of Stock",
-        };
-      }
-      return p;
-    }));
-    
-    setIsEditSheetOpen(false);
+    const result = await updateProductAction(editingProduct.id, data);
+    if (result.success) {
+        toast({
+            title: "Product Updated",
+            description: result.message,
+        });
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: result.message,
+        });
+    }
     setEditingProduct(null);
-    toast({
-      title: "Product Updated",
-      description: `${data.name} has been updated.`,
-    });
   }
   
-  const handleDeleteProduct = (productId: string) => {
-    setProducts((prev) => prev.filter(p => p.id !== productId));
-    toast({
-      variant: 'destructive',
-      title: "Product Deleted",
-      description: "The product has been removed from your inventory.",
-    });
+  const handleDeleteProduct = async (productId: string) => {
+    const result = await deleteProductAction(productId);
+    if (result.success) {
+      toast({
+        variant: 'default',
+        title: "Product Deleted",
+        description: result.message,
+      });
+    } else {
+        toast({
+            variant: 'destructive',
+            title: "Error",
+            description: result.message,
+        });
+    }
   }
 
   const handleViewDetails = (product: Product) => {
     setSelectedProduct(product);
     setIsDetailsOpen(true);
   };
-  
-  const handleEditClick = (product: Product) => {
-    setEditingProduct(product);
-    setIsEditSheetOpen(true);
-  };
 
+  const handleStatusChange = (productId: string, isPublished: boolean) => {
+    setProducts(prev => 
+      prev.map(p => 
+        p.id === productId ? { ...p, isPublished } : p
+      )
+    );
+  };
 
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -471,7 +479,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   return (
     <>
       <PageHeader title="Inventory" description="Manage your products and stock levels.">
-        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
           <SheetTrigger asChild>
             <Button size="sm" className="gap-1">
               <PlusCircle className="h-3.5 w-3.5" />
@@ -489,7 +497,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
             </SheetHeader>
             <ScrollArea className="h-[calc(100vh-8rem)]">
               <div className="p-6 pt-4">
-                <ProductForm onSave={handleAddProduct} />
+                <ProductForm onSave={handleAddProduct} onSheetOpenChange={setIsAddSheetOpen} />
               </div>
             </ScrollArea>
           </SheetContent>
@@ -509,7 +517,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
               </SheetHeader>
               <ScrollArea className="h-[calc(100vh-8rem)]">
                 <div className="p-6 pt-4">
-                    <ProductForm onSave={handleEditProduct} product={editingProduct} />
+                    <ProductForm onSave={handleEditProduct} product={editingProduct} onSheetOpenChange={setIsEditSheetOpen} />
                 </div>
               </ScrollArea>
           </SheetContent>
@@ -579,7 +587,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                     </TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell className="hidden sm:table-cell">
-                      <PublishToggle product={product} />
+                      <PublishToggle product={product} onStatusChange={handleStatusChange} />
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       ₹{product.price.toFixed(2)}
@@ -606,7 +614,25 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem onSelect={() => handleViewDetails(product)}>Details</DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => handleEditClick(product)}>Edit</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDeleteProduct(product.id)}>Delete</DropdownMenuItem>
+                          <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Delete</DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete the product &quot;{product.name}&quot;.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteProduct(product.id)}>
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -627,6 +653,3 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
-
-    
-    
