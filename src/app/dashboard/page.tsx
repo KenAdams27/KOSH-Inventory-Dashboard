@@ -12,6 +12,7 @@ import {
 import { PageHeader } from '@/components/page-header';
 import { RevenueChart } from '@/components/dashboard/revenue-chart';
 import { RecentSales } from '@/components/dashboard/recent-sales';
+import { DownloadOrders } from '@/components/dashboard/download-orders';
 
 async function getOrders(): Promise<Order[]> {
   if (!clientPromise) {
@@ -169,7 +170,10 @@ export default async function DashboardHomePage() {
             <RevenueChart data={orders} />
           </CardContent>
         </Card>
-        <RecentSales orders={orders} />
+        <div className="grid gap-4 md:gap-8">
+            <RecentSales orders={orders} />
+            <DownloadOrders orders={orders} />
+        </div>
       </div>
     </>
   );
