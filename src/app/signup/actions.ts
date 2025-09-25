@@ -5,16 +5,18 @@ import { z } from 'zod';
 import clientPromise from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
 
+// Corresponds to the schema in dashboard/customers/actions.ts
 const signupSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  password: z.string().min(8),
+  name: z.string().min(2, 'Name must be at least 2 characters long').trim(),
+  email: z.string().email('Please provide a valid email address').toLowerCase(),
+  password: z.string().min(8, 'Password must be at least 8 characters long'),
 });
 
 export async function signupAction(credentials: z.infer<typeof signupSchema>) {
   const validation = signupSchema.safeParse(credentials);
   if (!validation.success) {
-    return { success: false, message: 'Invalid data provided.' };
+    const errorMessages = validation.error.errors.map(e => e.message).join(', ');
+    return { success: false, message: `Invalid data provided: ${errorMessages}` };
   }
 
   const { name, email, password } = validation.data;
@@ -39,11 +41,16 @@ export async function signupAction(credentials: z.infer<typeof signupSchema>) {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert new user
+    // Insert new user conforming to a base Customer structure
     await db.collection('users').insertOne({
       name,
       email,
       password: hashedPassword,
+      phone: '', // Add empty phone to conform to base Customer type
+      wishlist: [],
+      cart: [],
+      orders: [],
+      address: [],
       createdAt: new Date(),
     });
 

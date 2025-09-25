@@ -24,22 +24,19 @@ const cartItemSchema = z.object({
   color: z.string(),
 });
 
+// This is the canonical schema for a customer/user.
 const customerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters long').trim(),
   email: z.string().email('Please provide a valid email address').toLowerCase(),
-  password: z.string().min(8, 'Password must be at least 8 characters long')
-    .refine(value => /^(?=.*[A-Z])(?=.*[!@#$%^&*])/.test(value), {
-      message: 'Password must include at least one capital letter and one special character (!@#$%^&*)'
-    }),
-  phone: z.string().regex(/^[0-9]{10}$/, 'Phone number must be exactly 10 digits'),
+  phone: z.string().regex(/^[0-9]{10}$/, 'Phone number must be exactly 10 digits').or(z.literal('')),
   wishlist: z.array(cartItemSchema).optional(),
   cart: z.array(cartItemSchema).optional(),
   orders: z.array(z.string()).optional(),
   address: z.array(addressSchema).optional(),
 });
 
-// For update, we don't require the password
-const updateCustomerSchema = customerSchema.extend({
+// For update, we can make all fields optional and we don't require the password
+const updateCustomerSchema = customerSchema.partial().extend({
   password: z.string().optional(),
 });
 

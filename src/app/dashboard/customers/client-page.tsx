@@ -67,22 +67,11 @@ import {
 import { format } from "date-fns";
 
 
-const customerSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters long'),
-  email: z.string().email('Please provide a valid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters long')
-    .refine(value => /^(?=.*[A-Z])/.test(value), {
-      message: 'Password must include at least one capital letter.'
-    })
-    .refine(value => /^(?=.*[!@#$%^&*])/.test(value), {
-      message: 'Password must include at least one special character (!@#$%^&*).'
-    }),
-  phone: z.string().regex(/^[0-9]{10}$/, 'Phone number must be exactly 10 digits'),
-  // Address is handled separately in a real app, simplified here
-});
-
-const updateCustomerSchema = customerSchema.omit({ password: true }).extend({
-    password: z.string().optional(),
+const updateCustomerSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters long').trim(),
+  email: z.string().email('Please provide a valid email address').toLowerCase(),
+  phone: z.string().regex(/^[0-9]{10}$/, 'Phone number must be exactly 10 digits').or(z.literal('')),
+  password: z.string().optional(),
 });
 
 
@@ -90,7 +79,7 @@ function CustomerForm({ onSave, customer, onSheetOpenChange }: { onSave: (data: 
   const isEditing = !!customer;
   
   const form = useForm({
-    resolver: zodResolver(isEditing ? updateCustomerSchema : customerSchema),
+    resolver: zodResolver(updateCustomerSchema),
     defaultValues: customer ? {
       name: customer.name,
       email: customer.email,
@@ -175,7 +164,7 @@ function CustomerDetailsDialog({ customer, orders }: { customer: Customer, order
          <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
             <Label className="text-right sm:text-left">Phone</Label>
             <div className="col-span-2 sm:col-span-3">
-                {customer.phone}
+                {customer.phone || 'N/A'}
             </div>
         </div>
         {latestAddress && (
