@@ -277,10 +277,8 @@ function PublishToggle({ product, onStatusChange }: { product: Product, onStatus
   const { toast } = useToast();
   
   const handleToggle = async (checked: boolean) => {
-    toast({
-      title: "Updating Status...",
-      description: `${product.name} is now being ${checked ? 'published' : 'unpublished'}.`,
-    });
+    // Optimistically update the UI
+    onStatusChange(product.id, checked);
     
     const result = await updateProductPublishedStatus(product.id, checked);
 
@@ -289,8 +287,9 @@ function PublishToggle({ product, onStatusChange }: { product: Product, onStatus
         title: "Status Updated",
         description: result.message,
       });
-      onStatusChange(product.id, checked);
     } else {
+      // Revert the change on failure
+      onStatusChange(product.id, !checked);
       toast({
         variant: "destructive",
         title: "Error",
