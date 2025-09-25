@@ -170,9 +170,13 @@ export default async function DashboardHomePage() {
             <RevenueChart data={orders} />
           </CardContent>
         </Card>
-        <div className="grid gap-4 md:gap-8">
-            <RecentSales orders={orders} />
-            <DownloadOrders orders={orders} />
+        <div className="flex flex-col gap-4 md:gap-8">
+            <div className="flex-[3]">
+                <RecentSales orders={orders} />
+            </div>
+            <div className="flex-[1]">
+                <DownloadOrders orders={orders} />
+            </div>
         </div>
       </div>
     </>

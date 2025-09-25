@@ -106,7 +106,7 @@ export function RecentSales({ orders }: { orders: Order[] }) {
 
   return (
     <>
-      <Card>
+      <Card className="h-full">
         <CardHeader>
           <CardTitle>Recent Sales</CardTitle>
           <CardDescription>
