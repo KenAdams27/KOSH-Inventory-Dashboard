@@ -152,6 +152,8 @@ function CustomerDetailsDialog({ customer, orders }: { customer: Customer, order
   const customerOrders = orders.filter(
     (order) => order.user === customer.id
   );
+  
+  const latestAddress = customerOrders.length > 0 ? customerOrders[0].shippingAddress : null;
 
   return (
     <DialogContent className="sm:max-w-lg">
@@ -179,11 +181,11 @@ function CustomerDetailsDialog({ customer, orders }: { customer: Customer, order
                 {customer.phone}
             </div>
         </div>
-        {customer.address && customer.address.length > 0 && (
+        {latestAddress && (
               <div className="grid grid-cols-3 sm:grid-cols-4 items-start gap-4">
                 <Label className="text-right sm:text-left mt-1">Address</Label>
                 <div className="col-span-2 sm:col-span-3">
-                    {customer.address[0].address}, {customer.address[0].city}, {customer.address[0].state} - {customer.address[0].pincode}
+                    {latestAddress.address}, {latestAddress.city}, {latestAddress.pincode}
                 </div>
             </div>
         )}
@@ -459,3 +461,5 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
     </>
   );
 }
+
+    
