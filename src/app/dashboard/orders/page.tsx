@@ -2,6 +2,7 @@
 import clientPromise from "@/lib/mongodb";
 import type { Order, Product } from "@/lib/types";
 import { OrdersClientPage } from "./client-page";
+import { ObjectId } from "mongodb";
 
 async function getOrders(): Promise<Order[]> {
   if (!clientPromise) {
@@ -23,11 +24,25 @@ async function getOrders(): Promise<Order[]> {
       .sort({ createdAt: -1 })
       .toArray();
       
-    // Deep serialization to ensure all nested properties are plain values.
-    const orders = JSON.parse(JSON.stringify(ordersFromDb)).map((order: any) => ({
-      ...order,
-      id: order._id.toString(),
-    }));
+    // Manually map and convert all ObjectIDs to strings, including nested ones.
+    const orders = ordersFromDb.map((order) => {
+      const { _id, user, orderItems, ...rest } = order;
+      return {
+        ...rest,
+        id: _id.toString(),
+        user: user.toString(),
+        orderItems: orderItems.map((item: any) => {
+          // Ensure itemId is converted, even if it's already a string
+          if (item.itemId && !(item.itemId instanceof ObjectId)) {
+             return { ...item, itemId: item.itemId.toString() };
+          }
+          if (item.itemId) {
+             return { ...item, itemId: item.itemId.toString() };
+          }
+          return item;
+        }),
+      } as Order;
+    });
 
     return orders;
 
@@ -58,7 +73,6 @@ async function getProducts(): Promise<Product[]> {
 
 export default async function OrdersPage() {
   const orders = await getOrders();
-  const availableProducts = await getProducts();
-
-  return <OrdersClientPage orders={orders} products={availableProducts} />;
+  // The 'products' prop is not used in OrdersClientPage, so it can be removed.
+  return <OrdersClientPage orders={orders} />;
 }
