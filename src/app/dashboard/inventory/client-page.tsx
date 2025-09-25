@@ -375,7 +375,6 @@ function ProductDetailsDialog({ product }: { product: Product }) {
                   height="100"
                   src={img}
                   width="100"
-                  data-ai-hint={product.imageHints?.[index]}
                 />
               ))}
             </div>
@@ -604,7 +603,6 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                           height="64"
                           src={product.images[0]}
                           width="64"
-                          data-ai-hint={product.imageHints?.[0]}
                         />
                       ) : (
                         <div className="flex h-16 w-16 items-center justify-center rounded-md bg-muted">

@@ -6,51 +6,20 @@ import { z } from 'zod';
 import { ObjectId } from 'mongodb';
 import clientPromise from '@/lib/mongodb';
 
-// Define the ImageKit upload URL as a constant
-const IMAGEKIT_UPLOAD_URL = "https://upload.imagekit.io/api/v1/files/upload";
+// Helper function to convert files to Base64 Data URIs
+async function filesToBase64(files: File[]) {
+  const base64Strings: string[] = [];
 
-// Helper function to upload files to ImageKit
-async function uploadToImageKit(files: File[], name: string, brand: string) {
-    if (!process.env.IMAGEKIT_PRIVATE_KEY) {
-        throw new Error("ImageKit private key is not configured.");
-    }
-    
-    const uploadedUrls: string[] = [];
-    const imageHints: string[] = [];
+  for (const file of files) {
+      if (!file || file.size === 0) continue;
+      const buffer = await file.arrayBuffer();
+      const base64 = Buffer.from(buffer).toString('base64');
+      // Create a Data URI
+      base64Strings.push(`data:${file.type};base64,${base64}`);
+  }
 
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (!file || file.size === 0) continue;
-
-        const uploadFormData = new FormData();
-        const fileBuffer = await file.arrayBuffer();
-        
-        uploadFormData.append("file", new Blob([fileBuffer]), file.name);
-        uploadFormData.append("fileName", `${name} by ${brand} - ${i + 1}.jpg`);
-        uploadFormData.append("folder", "/KOSH Images/");
-
-        const response = await fetch(IMAGEKIT_UPLOAD_URL, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Basic ${Buffer.from((process.env.IMAGEKIT_PRIVATE_KEY || '') + ':').toString('base64')}`
-            },
-            body: uploadFormData,
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error("ImageKit Upload Error:", errorText);
-            throw new Error(`ImageKit upload failed with status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        uploadedUrls.push(result.url);
-        imageHints.push(`${name} ${brand}`);
-    }
-
-    return { uploadedUrls, imageHints };
+  return base64Strings;
 }
-
 
 const baseProductSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -65,7 +34,6 @@ const baseProductSchema = z.object({
   rating: z.coerce.number().min(0).max(5).default(0),
   onWebsite: z.boolean().default(true),
   images: z.array(z.string()).optional(),
-  imageHints: z.array(z.string()).optional(),
 });
 
 const productSchema = baseProductSchema.refine(data => {
@@ -127,14 +95,13 @@ export async function addProductAction(formData: FormData) {
   }
 
   try {
-    const { uploadedUrls, imageHints } = await uploadToImageKit(files, validation.data.name, validation.data.brand);
+    const imageBase64Strings = await filesToBase64(files);
 
     const db = await getDb();
     const result = await db.collection('items').insertOne({ 
         ...validation.data, 
         desc: validation.data.description,
-        images: uploadedUrls,
-        imageHints: imageHints
+        images: imageBase64Strings,
     });
 
     if (result.acknowledged) {
@@ -195,15 +162,13 @@ export async function updateProductAction(productId: string, formData: FormData)
         updateData.desc = updateData.description;
     }
 
-
     try {
         const db = await getDb();
 
-        if (files.length > 0 && validation.data.name && validation.data.brand) {
-          const { uploadedUrls, imageHints } = await uploadToImageKit(files, validation.data.name, validation.data.brand);
-          // This example replaces existing images.
-          updateData.images = uploadedUrls;
-          updateData.imageHints = imageHints;
+        if (files.length > 0) {
+          const imageBase64Strings = await filesToBase64(files);
+          // Replace existing images with the new ones.
+          updateData.images = imageBase64Strings;
         }
 
         const result = await db.collection('items').updateOne(
@@ -222,7 +187,6 @@ export async function updateProductAction(productId: string, formData: FormData)
         return { success: false, message: `Database Error: ${message}` };
     }
 }
-
 
 export async function deleteProductAction(productId: string) {
     try {

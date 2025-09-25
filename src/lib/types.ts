@@ -7,7 +7,6 @@ export type Product = {
   category: "ethnicWear" | "bedsheet";
   subCategory?: string;
   images: string[];
-  imageHints: string[];
   colors: string[];
   sizes: string[][];
   price: number;
