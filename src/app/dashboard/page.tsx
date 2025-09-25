@@ -56,7 +56,6 @@ export default async function DashboardHomePage() {
   const products = await getProducts();
 
   const totalRevenue = orders
-    .filter(order => order.isDelivered)
     .reduce((acc, order) => acc + order.totalPrice, 0);
 
   const totalOrders = orders.length;
