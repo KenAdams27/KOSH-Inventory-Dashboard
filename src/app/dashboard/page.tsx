@@ -161,22 +161,20 @@ export default async function DashboardHomePage() {
           </CardContent>
         </Card>
       </div>
-      <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
-        <Card className="xl:col-span-2">
-          <CardHeader>
-            <CardTitle>Revenue Overview</CardTitle>
-          </CardHeader>
-          <CardContent className="pl-2">
-            <RevenueChart data={orders} />
-          </CardContent>
-        </Card>
-        <div className="flex flex-col gap-4 md:gap-8">
-            <div className="flex-[3]">
-                <RecentSales orders={orders} />
-            </div>
-            <div className="flex-[1]">
-                <DownloadOrders orders={orders} />
-            </div>
+      <div className="grid gap-4 md:gap-8">
+         <div className="grid gap-4 md:gap-8 grid-cols-1 lg:grid-cols-2">
+             <Card>
+              <CardHeader>
+                <CardTitle>Revenue Overview</CardTitle>
+              </CardHeader>
+              <CardContent className="pl-2">
+                <RevenueChart data={orders} />
+              </CardContent>
+            </Card>
+            <RecentSales orders={orders} />
+        </div>
+        <div>
+            <DownloadOrders orders={orders} />
         </div>
       </div>
     </>
