@@ -30,7 +30,7 @@ async function uploadToImageKit(files: File[], name: string, brand: string) {
         const response = await fetch(IMAGEKIT_UPLOAD_URL, {
             method: 'POST',
             headers: {
-                'Authorization': `Basic ${Buffer.from(process.env.IMAGEKIT_PRIVATE_KEY + ':').toString('base64')}`
+                'Authorization': `Basic ${Buffer.from((process.env.IMAGEKIT_PRIVATE_KEY || '') + ':').toString('base64')}`
             },
             body: uploadFormData,
         });
