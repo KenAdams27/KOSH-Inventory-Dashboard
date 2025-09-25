@@ -111,14 +111,6 @@ export default function LoginPage() {
                       <FormControl>
                         <Input placeholder="••••••••" type="password" {...field} disabled={isLoading} />
                       </FormControl>
-                       <div className="text-right">
-                         <Link
-                          href="/forgot-password"
-                          className="inline-block text-sm underline"
-                        >
-                          Forgot your password?
-                        </Link>
-                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
