@@ -125,7 +125,7 @@ export function RecentSales({ orders }: { orders: Order[] }) {
                     onClick={() => handleOrderClick(order)}
                   >
                     <div className="flex-1">
-                      <p className="text-sm font-medium leading-none truncate">
+                      <p className="text-sm font-medium truncate">
                         {firstItem.name}
                       </p>
                       <p className="text-sm text-muted-foreground">
