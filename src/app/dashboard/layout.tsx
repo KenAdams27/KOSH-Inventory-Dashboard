@@ -14,6 +14,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DashboardNav } from "@/components/dashboard/nav";
 import { ModeToggle } from "@/components/mode-toggle";
+import { AnimatedTitle } from "@/components/dashboard/animated-title";
 
 export default function DashboardLayout({
   children,
@@ -39,7 +40,7 @@ export default function DashboardLayout({
                       className="group flex items-center gap-2 text-lg font-semibold"
                     >
                       <Boxes className="h-6 w-6 text-primary" />
-                      <span>KUNAL ENTERPRISES</span>
+                      <AnimatedTitle />
                     </Link>
                   </SheetTitle>
                 </SheetHeader>
@@ -54,7 +55,7 @@ export default function DashboardLayout({
                 className="hidden items-center gap-2 text-lg font-semibold sm:flex"
               >
                 <Boxes className="h-6 w-6 text-primary" />
-                <span>KUNAL ENTERPRISES</span>
+                <AnimatedTitle />
               </Link>
             </div>
             <div className="relative ml-auto flex-1 md:grow-0">
