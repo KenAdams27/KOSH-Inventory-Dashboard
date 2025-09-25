@@ -91,14 +91,14 @@ export function DownloadOrders({ orders }: { orders: Order[] }) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Download Order History</CardTitle>
+      <CardHeader className="pb-4">
+        <CardTitle className="text-xl">Download Orders</CardTitle>
         <CardDescription>
           Export monthly order data as a CSV file.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
             <SelectTrigger>
               <SelectValue placeholder="Select month" />
@@ -124,7 +124,7 @@ export function DownloadOrders({ orders }: { orders: Order[] }) {
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={handleDownload}>
+        <Button onClick={handleDownload} size="sm">
           <Download className="mr-2 h-4 w-4" />
           Download CSV
         </Button>
