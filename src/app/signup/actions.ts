@@ -5,7 +5,6 @@ import { z } from 'zod';
 import clientPromise from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
 
-// Corresponds to the schema in dashboard/customers/actions.ts
 const signupSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters long').trim(),
   email: z.string().email('Please provide a valid email address').toLowerCase(),
