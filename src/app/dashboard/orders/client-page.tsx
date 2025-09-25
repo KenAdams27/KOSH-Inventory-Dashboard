@@ -309,9 +309,13 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
         }
     };
 
-    const searchFilteredOrders = orders.filter(order =>
-      order.shippingAddress.fullName.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const searchFilteredOrders = orders.filter(order => {
+      const query = searchQuery.toLowerCase();
+      return (
+        order.shippingAddress.fullName.toLowerCase().includes(query) ||
+        order.id.toLowerCase().includes(query)
+      );
+    });
 
   return (
     <>
@@ -329,7 +333,7 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search by customer..."
+                placeholder="Search by customer or ID..."
                 className="w-full rounded-lg bg-background pl-8 sm:w-64"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

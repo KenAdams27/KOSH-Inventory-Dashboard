@@ -509,9 +509,13 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     }
   };
 
-  const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProducts = products.filter((product) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      product.name.toLowerCase().includes(query) ||
+      product.id.toLowerCase().includes(query)
+    );
+  });
 
   return (
     <>
@@ -542,7 +546,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                 />
               </div>
             </ScrollArea>
-             <SheetFooter className="mt-auto p-6 pt-0">
+             <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
                 <Button 
                   type="button" 
                   onClick={() => addFormRef.current && (addFormRef.current as any).triggerSubmit()}
@@ -576,7 +580,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                     />
                 </div>
               </ScrollArea>
-              <SheetFooter className="mt-auto p-6 pt-0">
+              <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
                 <Button 
                   type="button"
                   onClick={() => editFormRef.current && (editFormRef.current as any).triggerSubmit()}
@@ -601,7 +605,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         type="search"
-                        placeholder="Search products..."
+                        placeholder="Search by name or ID..."
                         className="w-full sm:w-64 rounded-lg bg-background pl-8"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -710,15 +714,3 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
-
-    
-
-    
-
-
-
-    
-
-    
-
-    
