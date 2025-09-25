@@ -277,18 +277,20 @@ function PublishToggle({ product, onStatusChange }: { product: Product, onStatus
   const { toast } = useToast();
   
   const handleToggle = async (checked: boolean) => {
-    // Optimistically update the UI
+    // Optimistically update the UI before calling the server action
     onStatusChange(product.id, checked);
     
     const result = await updateProductPublishedStatus(product.id, checked);
 
     if (result.success) {
-      toast({
-        title: "Status Updated",
-        description: result.message,
-      });
+      if (result.message !== 'No change in product status.') {
+          toast({
+              title: "Status Updated",
+              description: result.message,
+          });
+      }
     } else {
-      // Revert the change on failure
+      // Revert the change in the UI on failure
       onStatusChange(product.id, !checked);
       toast({
         variant: "destructive",
@@ -306,7 +308,7 @@ function PublishToggle({ product, onStatusChange }: { product: Product, onStatus
         onCheckedChange={handleToggle}
         aria-label="Publish status"
       />
-      <Badge variant={product.isPublished ? "secondary" : "destructive"}>
+      <Badge variant={product.isPublished ? "secondary" : "outline"}>
         {product.isPublished ? "Yes" : "No"}
       </Badge>
     </div>

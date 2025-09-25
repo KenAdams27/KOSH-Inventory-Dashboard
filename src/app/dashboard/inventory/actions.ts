@@ -147,7 +147,9 @@ export async function updateProductPublishedStatus(productId: string, isPublishe
             revalidatePath('/dashboard/inventory');
             return { success: true, message: `Product is now ${isPublished ? 'published' : 'unpublished'}.` };
         } else {
-            return { success: false, message: 'Failed to update product status.' };
+            // This can happen if the status was already what the user clicked.
+            // It's not a failure, but no change was made.
+            return { success: true, message: 'No change in product status.' };
         }
     } catch (error) {
         const message = error instanceof Error ? error.message : 'An unknown error occurred.';
