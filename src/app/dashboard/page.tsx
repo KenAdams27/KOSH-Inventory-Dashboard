@@ -45,7 +45,12 @@ async function getProducts(): Promise<Product[]> {
     }
     const db = client.db(dbName);
     const productsFromDb = await db.collection("items").find({}).toArray();
-    return JSON.parse(JSON.stringify(productsFromDb)).map((p: any) => ({ ...p, id: p._id.toString() }));
+    // Manually map and convert all ObjectIDs to strings to ensure serializable data.
+    const products = productsFromDb.map((product: any) => ({
+      ...product,
+      id: product._id.toString(),
+    }));
+    return products;
   } catch (error) {
     console.error("[getProducts dashboard] Failed to fetch products:", error);
     return [];
