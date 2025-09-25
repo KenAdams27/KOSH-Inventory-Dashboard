@@ -9,9 +9,12 @@ export function AnimatedTitle() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [loopNum, setLoopNum] = useState(0);
   const [typingSpeed, setTypingSpeed] = useState(150);
+  const [isAnimationComplete, setIsAnimationComplete] = useState(false);
   const toRotate = ["KOSH", "KUNAL ENTERPRISES"];
 
   useEffect(() => {
+    if (isAnimationComplete) return;
+
     const tick = () => {
       const i = loopNum % toRotate.length;
       const fullText = toRotate[i];
@@ -32,27 +35,23 @@ export function AnimatedTitle() {
       // Finished deleting "OSH" down to "K"
       else if (isDeleting && updatedText === 'K') {
         setIsDeleting(false);
-        setLoopNum(1); // Move to "KUNAL ENTERPRISES"
+        setLoopNum(1);
       }
       // Finished typing "KUNAL ENTERPRISES"
       else if (!isDeleting && updatedText === toRotate[1]) {
-        // Stop the animation
+        setIsAnimationComplete(true);
         return;
       }
     };
 
-    if (loopNum < toRotate.length) {
-        const ticker = setTimeout(tick, typingSpeed);
-        return () => clearTimeout(ticker);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text, isDeleting, loopNum]);
+    const ticker = setTimeout(tick, typingSpeed);
+    return () => clearTimeout(ticker);
+  }, [text, isDeleting, loopNum, isAnimationComplete]);
   
   return (
     <span
       className={cn(
-        "border-r-2 border-primary",
-        loopNum < toRotate.length && "animate-blink-caret"
+        !isAnimationComplete && "border-r-2 border-primary animate-blink-caret"
       )}
     >
       {text}
