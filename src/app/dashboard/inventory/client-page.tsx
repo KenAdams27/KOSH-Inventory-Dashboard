@@ -234,7 +234,7 @@ function ProductForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div className="grid grid-cols.tsx-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="price">Price (₹)</Label>
           <Input id="price" type="number" step="0.01" {...form.register("price")} />
@@ -275,27 +275,29 @@ function ProductForm({
   );
 }
 
-function PublishToggle({ product, onPublishChange }: { product: Product, onPublishChange: (productId: string, isPublished: boolean) => void }) {
+function PublishToggle({ product }: { product: Product }) {
   const { toast } = useToast();
+  const [isPublished, setIsPublished] = useState(product.isPublished);
   
   const handleToggle = async (checked: boolean) => {
-    onPublishChange(product.id, checked);
+    setIsPublished(checked);
     toast({
       title: "Updating Status...",
       description: `${product.name} is now ${checked ? 'published' : 'unpublished'}.`,
     });
+    // Here you would typically call an API to update the status in your database
   }
 
   return (
     <div className="flex items-center gap-2">
       <Switch
         id={`publish-${product.id}`}
-        checked={product.isPublished}
+        checked={isPublished}
         onCheckedChange={handleToggle}
         aria-label="Publish status"
       />
-      <Badge variant={product.isPublished ? "secondary" : "destructive"}>
-        {product.isPublished ? "Yes" : "No"}
+      <Badge variant={isPublished ? "secondary" : "destructive"}>
+        {isPublished ? "Yes" : "No"}
       </Badge>
     </div>
   )
@@ -474,12 +476,6 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     setEditingProduct(product);
     setIsEditSheetOpen(true);
   };
-  
-  const handlePublishChange = (productId: string, isPublished: boolean) => {
-    setProducts(prev => prev.map(p => 
-      p.id === productId ? { ...p, isPublished } : p
-    ));
-  };
 
 
   const filteredProducts = products.filter((product) =>
@@ -597,7 +593,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                     </TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell className="hidden sm:table-cell">
-                      <PublishToggle product={product} onPublishChange={handlePublishChange} />
+                      <PublishToggle product={product} />
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       ₹{product.price.toFixed(2)}
