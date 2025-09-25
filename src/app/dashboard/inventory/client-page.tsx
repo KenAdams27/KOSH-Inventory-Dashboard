@@ -394,6 +394,10 @@ function ProductDetailsDialog({ product }: { product: Product }) {
             <Label className="text-right sm:text-left">Quantity</Label>
             <div className="col-span-2 sm:col-span-3">{product.quantity}</div>
           </div>
+           <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+            <Label className="text-right sm:text-left">Rating</Label>
+            <div className="col-span-2 sm:col-span-3">{product.rating}/5</div>
+          </div>
         </div>
       </ScrollArea>
       <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
@@ -669,6 +673,8 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     
 
 
+
+    
 
     
 
