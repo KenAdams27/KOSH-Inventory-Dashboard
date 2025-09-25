@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, Search } from "lucide-react";
+import { MoreHorizontal, Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -44,7 +44,6 @@ import {
   SheetHeader,
   SheetTitle,
   SheetFooter,
-  SheetClose,
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
@@ -53,7 +52,6 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Textarea } from "@/components/ui/textarea";
 import { updateCustomerAction, deleteCustomerAction } from "./actions";
 import {
   AlertDialog,
@@ -345,15 +343,15 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
           {filteredCustomers.map((customer) => (
               <Card key={customer.id} className="group">
                 <CardHeader className="flex flex-row items-start justify-between gap-4">
-                    <div className="flex flex-row items-center gap-4">
+                    <div className="flex flex-row items-center gap-4 flex-1 min-w-0">
                         <Avatar className="h-12 w-12">
                             <AvatarFallback>
                                 {customer.name.charAt(0).toUpperCase()}
                             </AvatarFallback>
                         </Avatar>
-                        <div>
-                            <CardTitle>{customer.name}</CardTitle>
-                            <CardDescription>{customer.email}</CardDescription>
+                        <div className="min-w-0">
+                            <CardTitle className="truncate">{customer.name}</CardTitle>
+                            <CardDescription className="truncate">{customer.email}</CardDescription>
                         </div>
                     </div>
                      <DropdownMenu>
@@ -362,7 +360,7 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
                             aria-haspopup="true"
                             size="icon"
                             variant="ghost"
-                            className="h-8 w-8"
+                            className="h-8 w-8 flex-shrink-0"
                           >
                             <MoreHorizontal className="h-4 w-4" />
                             <span className="sr-only">Toggle menu</span>
@@ -397,7 +395,7 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
                       </DropdownMenu>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-muted-foreground truncate">
                     Customer ID: {customer.id}
                   </div>
                 </CardContent>
