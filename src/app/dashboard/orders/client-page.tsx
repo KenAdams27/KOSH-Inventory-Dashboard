@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MoreHorizontal, Search } from "lucide-react";
 import { format } from "date-fns";
 
@@ -122,7 +122,7 @@ function OrderDetailsDialog({ order }: { order: Order }) {
           </div>
           <div className="space-y-1">
             <h4 className="font-medium">Status</h4>
-            <Badge className={`border-none ${statusStyles[status]}`} variant="secondary">{status}</Badge>
+            <Badge className={`border-none relative -left-px ${statusStyles[status]}`} variant="secondary">{status}</Badge>
           </div>
            <div className="space-y-1">
             <h4 className="font-medium">Payment</h4>
@@ -187,7 +187,7 @@ function OrdersTable({
                   </div>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
-                  <Badge className={`border-none ${statusStyles[currentStatus]}`} variant="secondary">
+                  <Badge className={`border-none relative -left-px ${statusStyles[currentStatus]}`} variant="secondary">
                     {currentStatus}
                   </Badge>
                 </TableCell>
@@ -255,6 +255,10 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
+
+     useEffect(() => {
+        setOrders(initialOrders);
+    }, [initialOrders]);
 
     const handleViewDetails = (order: Order) => {
         setSelectedOrder(order);
