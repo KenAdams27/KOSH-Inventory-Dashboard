@@ -116,7 +116,7 @@ export function RecentSales({ orders }: { orders: Order[] }) {
         <CardContent>
           {orders.length > 0 ? (
             <div className="space-y-4">
-              {orders.slice(0, 3).map((order) => {
+              {orders.slice(0, 5).map((order) => {
                 const firstItem = order.orderItems[0];
                 return (
                   <div

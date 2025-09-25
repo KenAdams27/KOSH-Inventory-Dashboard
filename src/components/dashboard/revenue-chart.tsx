@@ -19,8 +19,8 @@ export function RevenueChart({ data: orders }: { data: Order[] }) {
   const getRevenueData = () => {
     if (!orders || orders.length === 0) {
       const today = new Date();
-      return Array.from({ length: 4 }, (_, i) => {
-        const d = new Date(today.getFullYear(), today.getMonth() - (3 - i), 1);
+      return Array.from({ length: 3 }, (_, i) => {
+        const d = new Date(today.getFullYear(), today.getMonth() - (2 - i), 1);
         return { month: monthNames[d.getMonth()], total: 0 };
       });
     }
@@ -28,7 +28,6 @@ export function RevenueChart({ data: orders }: { data: Order[] }) {
     const monthlyRevenue: { [key: string]: number } = {};
 
     orders.forEach(order => {
-      // The original code only included delivered orders. This now includes all orders.
       const date = new Date(order.createdAt);
       const monthYear = `${monthNames[date.getMonth()]}`;
       if (!monthlyRevenue[monthYear]) {
@@ -39,7 +38,7 @@ export function RevenueChart({ data: orders }: { data: Order[] }) {
 
     const today = new Date();
     const chartData = [];
-    for (let i = 3; i >= 0; i--) {
+    for (let i = 2; i >= 0; i--) {
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
         const monthKey = monthNames[d.getMonth()];
         chartData.push({
