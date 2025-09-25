@@ -150,7 +150,7 @@ function CustomerDetailsDialog({ customer, orders }: { customer: Customer, order
     (order) => order.user === customer.id
   );
   
-  const latestAddress = customerOrders.length > 0 ? customerOrders[0].shippingAddress : null;
+  const latestAddress = customer.address && customer.address.length > 0 ? customer.address[0] : null;
 
   return (
     <DialogContent className="sm:max-w-lg">
@@ -182,7 +182,7 @@ function CustomerDetailsDialog({ customer, orders }: { customer: Customer, order
               <div className="grid grid-cols-3 sm:grid-cols-4 items-start gap-4">
                 <Label className="text-right sm:text-left mt-1">Address</Label>
                 <div className="col-span-2 sm:col-span-3">
-                    {latestAddress.address}, {latestAddress.city}, {latestAddress.pincode}
+                    {latestAddress.address}, {latestAddress.city}, {latestAddress.state}, {latestAddress.pincode}
                 </div>
             </div>
         )}
@@ -339,7 +339,7 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
         </Sheet>
         
       <Dialog onOpenChange={(isOpen) => !isOpen && setSelectedCustomer(null)}>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredCustomers.map((customer) => (
               <Card key={customer.id} className="group">
                 <CardHeader className="flex flex-row items-start justify-between gap-4">
