@@ -23,8 +23,9 @@ async function uploadToImageKit(files: File[], name: string, brand: string) {
         if (!file || file.size === 0) continue;
 
         const uploadFormData = new FormData();
-        // The fix: explicitly pass the filename as the third argument.
-        uploadFormData.append("file", file, file.name);
+        const fileBuffer = await file.arrayBuffer();
+        
+        uploadFormData.append("file", new Blob([fileBuffer]), file.name);
         uploadFormData.append("fileName", `${name} by ${brand} - ${i + 1}.jpg`);
         uploadFormData.append("folder", "/KOSH Images/");
 
