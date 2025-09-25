@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -233,6 +233,7 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -295,6 +296,10 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
     }
   };
 
+  const filteredCustomers = customers.filter((customer) =>
+    customer.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (customers.length === 0) {
       return (
          <>
@@ -356,25 +361,37 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
         title="Customers"
         description="Here is a list of all your customers."
       >
-        <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
-            <SheetTrigger asChild>
-                <Button size="sm" className="gap-1">
-                <PlusCircle className="h-3.5 w-3.5" />
-                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                    Add Customer
-                </span>
-                </Button>
-            </SheetTrigger>
-             <SheetContent>
-                <SheetHeader>
-                    <SheetTitle>Add a New Customer</SheetTitle>
-                    <SheetDescription>
-                        Fill in the details below to add a new customer.
-                    </SheetDescription>
-                </SheetHeader>
-                <CustomerForm onSave={handleAddCustomer} onSheetOpenChange={setIsAddSheetOpen} />
-            </SheetContent>
-        </Sheet>
+        <div className="flex items-center gap-2">
+            <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Search customers..."
+                    className="w-full sm:w-64 rounded-lg bg-background pl-8"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
+            </div>
+            <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
+                <SheetTrigger asChild>
+                    <Button size="sm" className="gap-1">
+                    <PlusCircle className="h-3.5 w-3.5" />
+                    <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                        Add Customer
+                    </span>
+                    </Button>
+                </SheetTrigger>
+                <SheetContent>
+                    <SheetHeader>
+                        <SheetTitle>Add a New Customer</SheetTitle>
+                        <SheetDescription>
+                            Fill in the details below to add a new customer.
+                        </SheetDescription>
+                    </SheetHeader>
+                    <CustomerForm onSave={handleAddCustomer} onSheetOpenChange={setIsAddSheetOpen} />
+                </SheetContent>
+            </Sheet>
+        </div>
       </PageHeader>
 
         <Sheet open={isEditSheetOpen} onOpenChange={(isOpen) => {
@@ -394,7 +411,7 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
         
       <Dialog onOpenChange={(isOpen) => !isOpen && setSelectedCustomer(null)}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {customers.map((customer) => (
+          {filteredCustomers.map((customer) => (
               <Card key={customer.id} className="group">
                 <CardHeader className="flex flex-row items-start justify-between gap-4">
                     <div className="flex flex-row items-center gap-4">
@@ -461,5 +478,7 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
     </>
   );
 }
+
+    
 
     
