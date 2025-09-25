@@ -2,19 +2,15 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarIcon, MoreHorizontal, PlusCircle, Search } from "lucide-react";
-import { z } from "zod";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { MoreHorizontal, Search } from "lucide-react";
 import { format } from "date-fns";
 
-import type { Order, Product, OrderItem, ShippingAddress } from "@/lib/types";
+import type { Order } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { updateOrderStatusAction, deleteOrderAction } from "./actions";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import {
   Card,
   CardContent,
@@ -41,32 +37,7 @@ import {
   DropdownMenuSubTrigger
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/page-header";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetFooter,
-  SheetClose,
-} from "@/components/ui/sheet";
-import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -81,8 +52,6 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -105,206 +74,6 @@ const statusStyles: Record<OrderStatus, string> = {
     Cancelled: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300",
 };
 
-const orderItemSchema = z.object({
-  item: z.string().min(1, "Please select an item"),
-  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
-  size: z.string().optional(),
-});
-
-const orderSchema = z.object({
-  userId: z.string().min(1, "User ID is required"),
-  // For simplicity, we'll handle single item orders in the form
-  item: z.string().min(1, "Please select an item"),
-  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
-  size: z.string().optional(),
-  
-  fullName: z.string().min(1, "Full name is required"),
-  phone: z.string().min(1, "Phone is required"),
-  address: z.string().min(1, "Address is required"),
-  city: z.string().min(1, "City is required"),
-  pincode: z.string().min(1, "Pincode is required"),
-  
-  paymentMethod: z.enum(["Cash on Delivery", "Card", "UPI"]),
-  isPaid: z.boolean().default(false),
-  createdAt: z.date(),
-});
-
-
-function OrderForm({ onSave, products }: { onSave: (data: any) => void; products: Product[] }) {
-  const form = useForm<z.infer<typeof orderSchema>>({
-    resolver: zodResolver(orderSchema),
-    defaultValues: {
-      userId: "temp-user-id", // In a real app, this would come from auth
-      item: "",
-      quantity: 1,
-      fullName: "",
-      phone: "",
-      address: "",
-      city: "",
-      pincode: "",
-      paymentMethod: "Cash on Delivery",
-      isPaid: false,
-      createdAt: new Date(),
-    },
-  });
-
-  function onSubmit(data: z.infer<typeof orderSchema>) {
-    const product = products.find(p => p.id === data.item);
-    if (!product) {
-      alert("Selected product not found!");
-      return;
-    }
-
-    const orderItem: OrderItem = {
-      itemId: product.id,
-      name: product.name,
-      image: product.images[0],
-      price: product.price,
-      quantity: data.quantity,
-      size: data.size,
-    };
-    
-    const shippingAddress: ShippingAddress = {
-      fullName: data.fullName,
-      phone: data.phone,
-      address: data.address,
-      city: data.city,
-      pincode: data.pincode,
-      country: "India",
-    };
-
-    const finalOrder = {
-      user: data.userId,
-      orderItems: [orderItem],
-      shippingAddress: shippingAddress,
-      paymentMethod: data.paymentMethod,
-      totalPrice: product.price * data.quantity,
-      isPaid: data.isPaid,
-      isDelivered: false,
-      createdAt: data.createdAt.toISOString(),
-    };
-    
-    onSave(finalOrder);
-    form.reset();
-  }
-
-  return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6">
-      <div className="space-y-2">
-        <h4 className="font-semibold text-lg">Customer & Shipping</h4>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor="fullName">Full Name</Label>
-          <Input id="fullName" {...form.register("fullName")} />
-          {form.formState.errors.fullName && <p className="text-sm text-destructive">{form.formState.errors.fullName.message}</p>}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="phone">Phone Number</Label>
-          <Input id="phone" {...form.register("phone")} />
-          {form.formState.errors.phone && <p className="text-sm text-destructive">{form.formState.errors.phone.message}</p>}
-        </div>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="address">Address</Label>
-        <Textarea id="address" {...form.register("address")} />
-        {form.formState.errors.address && <p className="text-sm text-destructive">{form.formState.errors.address.message}</p>}
-      </div>
-       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor="city">City</Label>
-          <Input id="city" {...form.register("city")} />
-           {form.formState.errors.city && <p className="text-sm text-destructive">{form.formState.errors.city.message}</p>}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="pincode">Pincode</Label>
-          <Input id="pincode" {...form.register("pincode")} />
-           {form.formState.errors.pincode && <p className="text-sm text-destructive">{form.formState.errors.pincode.message}</p>}
-        </div>
-      </div>
-
-      <div className="space-y-2 mt-4">
-        <h4 className="font-semibold text-lg">Order Details</h4>
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-        <div className="col-span-2 sm:col-span-3 space-y-2">
-          <Label htmlFor="item">Item Ordered</Label>
-          <Controller
-            control={form.control}
-            name="item"
-            render={({ field }) => (
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an item" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map(product => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {form.formState.errors.item && <p className="text-sm text-destructive">{form.formState.errors.item.message}</p>}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="quantity">Quantity</Label>
-          <Input id="quantity" type="number" {...form.register("quantity")} />
-          {form.formState.errors.quantity && <p className="text-sm text-destructive">{form.formState.errors.quantity.message}</p>}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="size">Size (optional)</Label>
-          <Input id="size" {...form.register("size")} />
-        </div>
-      </div>
-      
-       <div className="space-y-2 mt-4">
-        <h4 className="font-semibold text-lg">Payment</h4>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
-         <div className="space-y-2">
-          <Label htmlFor="paymentMethod">Payment Method</Label>
-           <Controller
-            control={form.control}
-            name="paymentMethod"
-            render={({ field }) => (
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Cash on Delivery">Cash on Delivery</SelectItem>
-                  <SelectItem value="Card">Card</SelectItem>
-                  <SelectItem value="UPI">UPI</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-          />
-        </div>
-        <div className="flex items-center space-x-2 pt-5">
-            <Controller
-                control={form.control}
-                name="isPaid"
-                render={({ field }) => (
-                    <Switch
-                        id="isPaid"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                    />
-                )}
-            />
-            <Label htmlFor="isPaid">Mark as Paid</Label>
-        </div>
-      </div>
-
-      <SheetFooter className="mt-6">
-        <SheetClose asChild>
-          <Button type="submit">Save Order</Button>
-        </SheetClose>
-      </SheetFooter>
-    </form>
-  );
-}
 
 function OrderDetailsDialog({ order }: { order: Order }) {
   const getStatus = (order: Order): OrderStatus => {
@@ -480,27 +249,12 @@ function OrdersTable({
   );
 }
 
-export function OrdersClientPage({ orders: initialOrders, products }: { orders: Order[], products: Product[] }) {
+export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] }) {
     const { toast } = useToast();
     const [orders, setOrders] = useState<Order[]>(initialOrders);
-    const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
-
-    const handleAddOrder = (data: Omit<Order, 'id'>) => {
-        const newOrder: Order = {
-            id: `ord-${(Math.random() * 1000).toFixed(0)}`,
-            ...data
-        };
-
-        setOrders(prev => [newOrder, ...prev]);
-        setIsSheetOpen(false);
-        toast({
-            title: "Order Added",
-            description: `A new order for ${data.shippingAddress.fullName} has been created.`,
-        });
-    };
 
     const handleViewDetails = (order: Order) => {
         setSelectedOrder(order);
@@ -557,31 +311,7 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
 
   return (
     <>
-      <PageHeader title="Orders" description="View and manage all customer orders.">
-        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetTrigger asChild>
-            <Button size="sm" className="gap-1">
-              <PlusCircle className="h-3.5 w-3.5" />
-              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                Add Order
-              </span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent className="sm:max-w-2xl w-full">
-            <SheetHeader>
-                <SheetTitle>Add a New Order</SheetTitle>
-                <SheetDescription>
-                    Fill in the details below to create a new order.
-                </SheetDescription>
-            </SheetHeader>
-             <ScrollArea className="h-[calc(100vh-8rem)]">
-              <div className="p-6 pt-4">
-                <OrderForm onSave={handleAddOrder} products={products} />
-              </div>
-            </ScrollArea>
-          </SheetContent>
-        </Sheet>
-      </PageHeader>
+      <PageHeader title="Orders" description="View and manage all customer orders." />
       
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <Tabs defaultValue="all">
@@ -617,5 +347,3 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     </>
   );
 }
-
-    
