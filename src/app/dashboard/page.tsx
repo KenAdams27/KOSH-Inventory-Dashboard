@@ -1,8 +1,8 @@
 
 import { Boxes, IndianRupee, ShoppingCart, Truck } from 'lucide-react';
-
-import { initialOrders, products } from '@/lib/data';
 import Image from "next/image";
+import clientPromise from "@/lib/mongodb";
+import type { Order, Product } from "@/lib/types";
 import {
   Card,
   CardContent,
@@ -13,11 +13,57 @@ import {
 import { PageHeader } from '@/components/page-header';
 import { RevenueChart } from '@/components/dashboard/revenue-chart';
 
-export default function DashboardHomePage() {
-  const totalRevenue = initialOrders.reduce((acc, order) => acc + order.total, 0);
-  const totalOrders = initialOrders.length;
+async function getOrders(): Promise<Order[]> {
+  if (!clientPromise) {
+    return [];
+  }
+  try {
+    const client = await clientPromise;
+    const dbName = process.env.DB_NAME;
+    if (!dbName) {
+      throw new Error('DB_NAME environment variable is not set.');
+    }
+    const db = client.db(dbName);
+    const ordersFromDb = await db.collection("orders").find({}).sort({ createdAt: -1 }).toArray();
+    return JSON.parse(JSON.stringify(ordersFromDb)).map((o: any) => ({ ...o, id: o._id.toString() }));
+  } catch (error) {
+    console.error("[getOrders dashboard] Failed to fetch orders:", error);
+    return [];
+  }
+}
+
+async function getProducts(): Promise<Product[]> {
+  if (!clientPromise) {
+    return [];
+  }
+  try {
+    const client = await clientPromise;
+    const dbName = process.env.DB_NAME;
+    if (!dbName) {
+      throw new Error('DB_NAME environment variable is not set.');
+    }
+    const db = client.db(dbName);
+    const productsFromDb = await db.collection("items").find({}).toArray();
+    return JSON.parse(JSON.stringify(productsFromDb)).map((p: any) => ({ ...p, id: p._id.toString() }));
+  } catch (error) {
+    console.error("[getProducts dashboard] Failed to fetch products:", error);
+    return [];
+  }
+}
+
+export default async function DashboardHomePage() {
+  const orders = await getOrders();
+  const products = await getProducts();
+
+  const totalRevenue = orders
+    .filter(order => order.isDelivered)
+    .reduce((acc, order) => acc + order.totalPrice, 0);
+
+  const totalOrders = orders.length;
+
   const totalInventory = products.reduce((acc, p) => acc + p.quantity, 0);
-  const pendingOrders = initialOrders.filter((o) => o.status === 'Pending').length;
+
+  const pendingOrders = orders.filter((o) => !o.isDelivered).length;
   
   // Note: Since there is no historical data, the percentage change is currently 0.
   // This logic should be updated to compare with data from the previous month.
@@ -93,7 +139,7 @@ export default function DashboardHomePage() {
             <CardTitle>Revenue Overview</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
-            <RevenueChart data={initialOrders} />
+            <RevenueChart data={orders} />
           </CardContent>
         </Card>
         <Card>
@@ -104,23 +150,20 @@ export default function DashboardHomePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-             {initialOrders.length > 0 ? (
+             {orders.length > 0 ? (
                 <div className="space-y-4">
-                {initialOrders.slice(0, 5).map((order) => {
-                    const product = products.find(
-                    (p) => p.id === order.items[0]?.productId
-                    );
+                {orders.slice(0, 5).map((order) => {
+                    const firstItem = order.orderItems[0];
                     return (
                     <div key={order.id} className="flex items-center gap-4">
-                        {product ? (
+                        {firstItem.image ? (
                         <div className="h-12 w-12 flex-shrink-0">
                             <Image
-                            src={product.images[0]}
-                            alt={product.name}
+                            src={firstItem.image}
+                            alt={firstItem.name}
                             width={48}
                             height={48}
                             className="h-full w-full rounded-md object-cover"
-                            data-ai-hint={product.imageHints[0]}
                             />
                         </div>
                         ) : (
@@ -128,14 +171,14 @@ export default function DashboardHomePage() {
                         )}
                         <div className="flex-1">
                         <p className="text-sm font-medium leading-none truncate">
-                            {order.items[0]?.productName || "Unknown Item"}
+                            {firstItem.name}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                            {order.customer.name}
+                            {order.shippingAddress.fullName}
                         </p>
                         </div>
                         <div className="ml-auto font-medium">
-                        +₹{order.total.toFixed(2)}
+                        +₹{order.totalPrice.toFixed(2)}
                         </div>
                     </div>
                     );

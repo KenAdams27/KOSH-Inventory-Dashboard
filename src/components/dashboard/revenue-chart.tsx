@@ -28,13 +28,13 @@ export function RevenueChart({ data: orders }: { data: Order[] }) {
     const monthlyRevenue: { [key: string]: number } = {};
 
     orders.forEach(order => {
-      if (order.status === 'Delivered') {
-        const date = new Date(order.date);
+      if (order.isDelivered) {
+        const date = new Date(order.createdAt);
         const monthYear = `${monthNames[date.getMonth()]}`;
         if (!monthlyRevenue[monthYear]) {
           monthlyRevenue[monthYear] = 0;
         }
-        monthlyRevenue[monthYear] += order.total;
+        monthlyRevenue[monthYear] += order.totalPrice;
       }
     });
 
@@ -54,10 +54,10 @@ export function RevenueChart({ data: orders }: { data: Order[] }) {
 
   const chartData = getRevenueData();
 
-  if (chartData.length === 0) {
+  if (chartData.every(d => d.total === 0)) {
     return (
         <div className="flex h-[350px] w-full items-center justify-center">
-            <p className="text-muted-foreground">No data to display.</p>
+            <p className="text-muted-foreground">No revenue data to display.</p>
         </div>
     );
   }
