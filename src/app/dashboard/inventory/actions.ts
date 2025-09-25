@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { ObjectId } from 'mongodb';
 import clientPromise from '@/lib/mongodb';
 
-const productSchema = z.object({
+const baseProductSchema = z.object({
   name: z.string().min(1, "Name is required"),
   brand: z.string().min(1, "Brand is required"),
   description: z.string().optional(),
@@ -20,7 +20,9 @@ const productSchema = z.object({
   isPublished: z.boolean().default(true),
   images: z.array(z.string()).optional(),
   imageHints: z.array(z.string()).optional(),
-}).refine(data => {
+});
+
+const productSchema = baseProductSchema.refine(data => {
     if (data.category === 'ethnicWear' && data.subCategory) {
         return ["sarees", "kurtas & suits", "dupattas"].includes(data.subCategory);
     }
@@ -33,7 +35,7 @@ const productSchema = z.object({
     path: ["subCategory"],
 });
 
-const updateProductSchema = productSchema.partial();
+const updateProductSchema = baseProductSchema.partial();
 
 async function getDb() {
     if (!clientPromise) {
