@@ -1,6 +1,6 @@
 
 import clientPromise from "@/lib/mongodb";
-import type { Order, Product } from "@/lib/types";
+import type { Order } from "@/lib/types";
 import { OrdersClientPage } from "./client-page";
 import { ObjectId } from "mongodb";
 
@@ -32,10 +32,6 @@ async function getOrders(): Promise<Order[]> {
         id: _id.toString(),
         user: user.toString(),
         orderItems: orderItems.map((item: any) => {
-          // Ensure itemId is converted, even if it's already a string
-          if (item.itemId && !(item.itemId instanceof ObjectId)) {
-             return { ...item, itemId: item.itemId.toString() };
-          }
           if (item.itemId) {
              return { ...item, itemId: item.itemId.toString() };
           }
@@ -52,27 +48,7 @@ async function getOrders(): Promise<Order[]> {
   }
 }
 
-async function getProducts(): Promise<Product[]> {
-  if (!clientPromise) {
-    return [];
-  }
-  try {
-    const client = await clientPromise;
-    const dbName = process.env.DB_NAME;
-    if (!dbName) {
-        throw new Error('DB_NAME environment variable is not set.');
-    }
-    const db = client.db(dbName);
-    const productsFromDb = await db.collection("items").find({}).toArray();
-    return JSON.parse(JSON.stringify(productsFromDb)).map((p: any) => ({...p, id: p._id.toString()}));
-  } catch (error) {
-    console.error("[getProducts] Failed to fetch products for orders page:", error);
-    return [];
-  }
-}
-
 export default async function OrdersPage() {
   const orders = await getOrders();
-  // The 'products' prop is not used in OrdersClientPage, so it can be removed.
   return <OrdersClientPage orders={orders} />;
 }

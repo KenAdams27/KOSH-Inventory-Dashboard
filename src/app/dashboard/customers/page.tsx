@@ -1,7 +1,7 @@
 
 import { CustomersClientPage } from "./client-page";
 import clientPromise from "@/lib/mongodb";
-import type { Customer, Order, CartItem } from "@/lib/types";
+import type { Customer, Order } from "@/lib/types";
 import { ObjectId } from "mongodb";
 
 async function getCustomers(): Promise<Customer[]> {
@@ -75,9 +75,6 @@ async function getOrders(): Promise<Order[]> {
         id: _id.toString(),
         user: user.toString(),
         orderItems: orderItems.map((item: any) => {
-          if (item.itemId && !(item.itemId instanceof ObjectId)) {
-             return { ...item, itemId: item.itemId.toString() };
-          }
           if (item.itemId) {
              return { ...item, itemId: item.itemId.toString() };
           }
