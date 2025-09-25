@@ -75,7 +75,6 @@ export default function DashboardLayout({
                   className="overflow-hidden rounded-full"
                 >
                   <Avatar>
-                    <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint={user.avatarHint} />
                     <AvatarFallback>
                       <User className="h-5 w-5" />
                     </AvatarFallback>
