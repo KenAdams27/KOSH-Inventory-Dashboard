@@ -322,66 +322,68 @@ function ProductDetailsDialog({ product }: { product: Product }) {
           Viewing details for product ID: {product.id}
         </DialogDescription>
       </DialogHeader>
-      <div className="grid gap-6 py-4">
-        <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
-          <Label className="text-right sm:text-left">Brand</Label>
-          <div className="col-span-2 sm:col-span-3">{product.brand}</div>
-        </div>
-        <div className="grid grid-cols-3 sm:grid-cols-4 items-start gap-4">
-          <Label className="text-right sm:text-left mt-1">Description</Label>
-          <div className="col-span-2 sm:col-span-3">{product.desc || 'N/A'}</div>
-        </div>
-        <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
-          <Label className="text-right sm:text-left">Category</Label>
-          <div className="col-span-2 sm:col-span-3 capitalize">{product.category}</div>
-        </div>
-        {product.subCategory && (
-            <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
-                <Label className="text-right sm:text-left">Sub-Category</Label>
-                <div className="col-span-2 sm:col-span-3 capitalize">{product.subCategory}</div>
+      <ScrollArea className="max-h-[70vh] p-4">
+        <div className="grid gap-6">
+          <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+            <Label className="text-right sm:text-left">Brand</Label>
+            <div className="col-span-2 sm:col-span-3">{product.brand}</div>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 items-start gap-4">
+            <Label className="text-right sm:text-left mt-1">Description</Label>
+            <div className="col-span-2 sm:col-span-3">{product.desc || 'N/A'}</div>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+            <Label className="text-right sm:text-left">Category</Label>
+            <div className="col-span-2 sm:col-span-3 capitalize">{product.category}</div>
+          </div>
+          {product.subCategory && (
+              <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+                  <Label className="text-right sm:text-left">Sub-Category</Label>
+                  <div className="col-span-2 sm:col-span-3 capitalize">{product.subCategory}</div>
+              </div>
+          )}
+          <div className="grid grid-cols-3 sm:grid-cols-4 items-start gap-4">
+            <Label className="text-right sm:text-left mt-1">Images</Label>
+            <div className="col-span-2 sm:col-span-3 grid grid-cols-2 gap-4">
+              {product.images?.map((img, index) => (
+                <Image
+                  key={index}
+                  alt={`Product image ${index + 1}`}
+                  className="aspect-square w-full rounded-md object-cover"
+                  height="100"
+                  src={img}
+                  width="100"
+                  data-ai-hint={product.imageHints?.[index]}
+                />
+              ))}
             </div>
-        )}
-        <div className="grid grid-cols-3 sm:grid-cols-4 items-start gap-4">
-          <Label className="text-right sm:text-left mt-1">Images</Label>
-          <div className="col-span-2 sm:col-span-3 grid grid-cols-2 gap-4">
-            {product.images?.map((img, index) => (
-              <Image
-                key={index}
-                alt={`Product image ${index + 1}`}
-                className="aspect-square w-full rounded-md object-cover"
-                height="100"
-                src={img}
-                width="100"
-                data-ai-hint={product.imageHints?.[index]}
-              />
-            ))}
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+            <Label className="text-right sm:text-left">Colors</Label>
+            <div className="col-span-2 sm:col-span-3 flex flex-wrap gap-2">
+              {product.colors?.map(color => <Badge key={color} variant="secondary">{color}</Badge>)}
+            </div>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+            <Label className="text-right sm:text-left">Sizes</Label>
+            <div className="col-span-2 sm:col-span-3 flex flex-wrap gap-2">
+              {product.sizes?.map(size => <Badge key={size} variant="outline">{size}</Badge>)}
+            </div>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+            <Label className="text-right sm:text-left">Price</Label>
+            <div className="col-span-2 sm:col-span-3">₹{product.price.toFixed(2)}</div>
+          </div>
+           <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+              <Label className="text-right sm:text-left">Rating</Label>
+              <div className="col-span-2 sm:col-span-3">{product.rating}/5</div>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+            <Label className="text-right sm:text-left">Quantity</Label>
+            <div className="col-span-2 sm:col-span-3">{product.quantity}</div>
           </div>
         </div>
-        <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
-          <Label className="text-right sm:text-left">Colors</Label>
-          <div className="col-span-2 sm:col-span-3 flex flex-wrap gap-2">
-            {product.colors?.map(color => <Badge key={color} variant="secondary">{color}</Badge>)}
-          </div>
-        </div>
-        <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
-          <Label className="text-right sm:text-left">Sizes</Label>
-          <div className="col-span-2 sm:col-span-3 flex flex-wrap gap-2">
-            {product.sizes?.map(size => <Badge key={size} variant="outline">{size}</Badge>)}
-          </div>
-        </div>
-        <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
-          <Label className="text-right sm:text-left">Price</Label>
-          <div className="col-span-2 sm:col-span-3">₹{product.price.toFixed(2)}</div>
-        </div>
-         <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
-            <Label className="text-right sm:text-left">Rating</Label>
-            <div className="col-span-2 sm:col-span-3">{product.rating}/5</div>
-        </div>
-        <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
-          <Label className="text-right sm:text-left">Quantity</Label>
-          <div className="col-span-2 sm:col-span-3">{product.quantity}</div>
-        </div>
-      </div>
+      </ScrollArea>
       <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
@@ -656,5 +658,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
+
+    
 
     
