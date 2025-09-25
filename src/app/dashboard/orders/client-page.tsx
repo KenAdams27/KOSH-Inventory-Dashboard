@@ -10,7 +10,7 @@ import { format } from "date-fns";
 
 import type { Order, Product, OrderItem, ShippingAddress } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { updateOrderStatusAction } from "./actions";
+import { updateOrderStatusAction, deleteOrderAction } from "./actions";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,6 +83,17 @@ import {
 } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type OrderStatus = "Pending" | "Delivered" | "Cancelled";
 type MappedStatus = "isDelivered" | "isPending" | "isCancelled";
@@ -314,12 +325,12 @@ function OrderDetailsDialog({ order }: { order: Order }) {
       <div className="grid gap-4 py-4">
         <div className="space-y-2">
           <h4 className="font-medium">Shipping Information</h4>
-          <p className="text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground">
             {order.shippingAddress.fullName}<br/>
             {order.shippingAddress.phone}<br/>
             {order.shippingAddress.address}<br/>
             {order.shippingAddress.city}, {order.shippingAddress.pincode}
-          </p>
+          </div>
         </div>
         <div className="space-y-2">
            <h4 className="font-medium">Items Ordered</h4>
@@ -359,12 +370,14 @@ function OrdersTable({
   status, 
   orders,
   onViewDetails,
-  onStatusChange
+  onStatusChange,
+  onDeleteOrder
 }: { 
   status: "All" | MappedStatus, 
   orders: Order[],
   onViewDetails: (order: Order) => void,
-  onStatusChange: (orderId: string, newStatus: OrderStatus) => void 
+  onStatusChange: (orderId: string, newStatus: OrderStatus) => void,
+  onDeleteOrder: (orderId: string) => void
 }) {
 
   const getOrderStatus = (order: Order): OrderStatus => {
@@ -435,6 +448,26 @@ function OrdersTable({
                                 {/* Add Cancelled logic if schema supports it */}
                            </DropdownMenuSubContent>
                         </DropdownMenuSub>
+                        <DropdownMenuSeparator />
+                         <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem className="text-red-600" onSelect={(e) => e.preventDefault()}>Delete Order</DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the order for {order.shippingAddress.fullName}.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => onDeleteOrder(order.id)}>
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </DropdownMenuContent>
                     </DropdownMenu>
                 </TableCell>
@@ -493,17 +526,29 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
         });
       } else {
         // Revert the optimistic update on failure
-        setOrders(prevOrders => 
-          prevOrders.map(order => 
-            order.id === orderId ? { ...order, isDelivered: !isDelivered, deliveredAt: !isDelivered ? new Date().toISOString() : undefined } : order
-          )
-        );
+        setOrders(initialOrders); // Revert to original server state
         toast({
           variant: "destructive",
           title: "Error",
           description: result.message,
         });
       }
+    };
+    
+    const handleDeleteOrder = async (orderId: string) => {
+        const result = await deleteOrderAction(orderId);
+        if (result.success) {
+            toast({
+                title: "Order Deleted",
+                description: result.message,
+            });
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: result.message,
+            });
+        }
     };
 
     const searchFilteredOrders = orders.filter(order =>
@@ -558,13 +603,13 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
             </div>
           </div>
           <TabsContent value="all">
-            <OrdersTable status="All" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} />
+            <OrdersTable status="All" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} onDeleteOrder={handleDeleteOrder} />
           </TabsContent>
           <TabsContent value="isPending">
-            <OrdersTable status="isPending" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} />
+            <OrdersTable status="isPending" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} onDeleteOrder={handleDeleteOrder} />
           </TabsContent>
           <TabsContent value="isDelivered">
-            <OrdersTable status="isDelivered" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} />
+            <OrdersTable status="isDelivered" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} onDeleteOrder={handleDeleteOrder} />
           </TabsContent>
         </Tabs>
         {selectedOrder && <OrderDetailsDialog order={selectedOrder} />}

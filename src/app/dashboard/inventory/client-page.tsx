@@ -277,9 +277,7 @@ function PublishToggle({ product, onStatusChange }: { product: Product, onStatus
   const { toast } = useToast();
   
   const handleToggle = async (checked: boolean) => {
-    // Optimistically update the UI before calling the server action
     onStatusChange(product.id, checked);
-    
     const result = await updateProductWebsiteStatus(product.id, checked);
 
     if (result.success) {
@@ -290,7 +288,6 @@ function PublishToggle({ product, onStatusChange }: { product: Product, onStatus
           });
       }
     } else {
-      // Revert the change in the UI on failure
       onStatusChange(product.id, !checked);
       toast({
         variant: "destructive",
@@ -654,3 +651,5 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
+
+    

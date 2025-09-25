@@ -54,3 +54,22 @@ export async function updateOrderStatusAction(orderId: string, isDelivered: bool
     return { success: false, message: `Database Error: ${message}` };
   }
 }
+
+export async function deleteOrderAction(orderId: string) {
+    try {
+        const db = await getDb();
+        const result = await db.collection('orders').deleteOne({ _id: new ObjectId(orderId) });
+
+        if (result.deletedCount > 0) {
+            revalidatePath('/dashboard/orders');
+            return { success: true, message: 'Order deleted successfully.' };
+        } else {
+            return { success: false, message: 'Failed to delete order.' };
+        }
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'An unknown error occurred.';
+        return { success: false, message: `Database Error: ${message}` };
+    }
+}
+
+    
