@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -19,11 +20,18 @@ export function AnimatedTitle() {
     return () => {
       clearInterval(ticker);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text, isDeleting, typingSpeed]);
 
   const tick = () => {
     const i = loopNum % toRotate.length;
     const fullText = toRotate[i];
+
+    if (loopNum >= toRotate.length) {
+      setText('KUNAL ENTERPRISES');
+      setTypingSpeed(100000); // Stop ticking
+      return;
+    }
 
     let newText = '';
     if (isDeleting) {
@@ -46,8 +54,7 @@ export function AnimatedTitle() {
           setTypingSpeed(100);
         }, 1500);
       } else { // Finished typing "KUNAL ENTERPRISES"
-         // This part is for looping, we can stop here if we don't want to loop.
-         // For now, it will just stay at "KUNAL ENTERPRISES"
+        setLoopNum(loopNum + 1);
       }
     } else if (isDeleting && newText === 'K') { // Finished deleting "OSH"
       setIsDeleting(false);
@@ -69,10 +76,12 @@ export function AnimatedTitle() {
   return (
     <span
       className={cn(
-        "inline-block border-r-2 border-primary animate-blink-caret",
+        "inline-block border-r-2 border-primary",
+        loopNum < toRotate.length && "animate-blink-caret"
       )}
     >
       {text}
     </span>
   );
 }
+
