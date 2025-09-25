@@ -1,6 +1,5 @@
 
 import { Boxes, IndianRupee, ShoppingCart, Truck } from 'lucide-react';
-import Image from "next/image";
 import clientPromise from "@/lib/mongodb";
 import type { Order, Product } from "@/lib/types";
 import {
@@ -12,6 +11,7 @@ import {
 } from '@/components/ui/card';
 import { PageHeader } from '@/components/page-header';
 import { RevenueChart } from '@/components/dashboard/revenue-chart';
+import { RecentSales } from '@/components/dashboard/recent-sales';
 
 async function getOrders(): Promise<Order[]> {
   if (!clientPromise) {
@@ -169,55 +169,7 @@ export default async function DashboardHomePage() {
             <RevenueChart data={orders} />
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Sales</CardTitle>
-            <CardDescription>
-              Here are the most recent items sold.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-             {orders.length > 0 ? (
-                <div className="space-y-4">
-                {orders.slice(0, 5).map((order) => {
-                    const firstItem = order.orderItems[0];
-                    return (
-                    <div key={order.id} className="flex items-center gap-4">
-                        {firstItem.image ? (
-                        <div className="h-12 w-12 flex-shrink-0">
-                            <Image
-                            src={firstItem.image}
-                            alt={firstItem.name}
-                            width={48}
-                            height={48}
-                            className="h-full w-full rounded-md object-cover"
-                            />
-                        </div>
-                        ) : (
-                        <div className="h-12 w-12 flex-shrink-0 rounded-md bg-muted" />
-                        )}
-                        <div className="flex-1">
-                        <p className="text-sm font-medium leading-none truncate">
-                            {firstItem.name}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                            {order.shippingAddress.fullName}
-                        </p>
-                        </div>
-                        <div className="ml-auto font-medium">
-                        +₹{order.totalPrice.toFixed(2)}
-                        </div>
-                    </div>
-                    );
-                })}
-                </div>
-            ) : (
-                <div className="text-center text-muted-foreground py-8">
-                    No recent sales.
-                </div>
-            )}
-          </CardContent>
-        </Card>
+        <RecentSales orders={orders} />
       </div>
     </>
   );
