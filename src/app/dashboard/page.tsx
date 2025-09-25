@@ -60,7 +60,7 @@ export default async function DashboardHomePage() {
 
   const totalOrders = orders.length;
 
-  const totalInventory = products.reduce((acc, p) => acc + p.quantity, 0);
+  const totalInventory = products.length;
 
   const pendingOrders = orders.filter((o) => !o.isDelivered).length;
   
