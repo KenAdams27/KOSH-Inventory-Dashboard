@@ -266,11 +266,6 @@ function ProductForm({
           {form.formState.errors.quantity && <p className="text-sm text-destructive">{form.formState.errors.quantity.message as string}</p>}
         </div>
       </div>
-       <div className="space-y-2">
-          <Label htmlFor="rating">Rating (0-5)</Label>
-          <Input id="rating" type="number" step="0.1" {...form.register("rating")} />
-          {form.formState.errors.rating && <p className="text-sm text-destructive">{form.formState.errors.rating.message as string}</p>}
-        </div>
       
       <SheetFooter className="mt-6">
           <Button type="submit">Save Product</Button>
@@ -394,10 +389,6 @@ function ProductDetailsDialog({ product }: { product: Product }) {
           <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
             <Label className="text-right sm:text-left">Price</Label>
             <div className="col-span-2 sm:col-span-3">₹{product.price.toFixed(2)}</div>
-          </div>
-           <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
-              <Label className="text-right sm:text-left">Rating</Label>
-              <div className="col-span-2 sm:col-span-3">{product.rating}/5</div>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
             <Label className="text-right sm:text-left">Quantity</Label>
@@ -584,9 +575,6 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                   <TableHead className="hidden md:table-cell">
                     Qty
                   </TableHead>
-                   <TableHead className="hidden md:table-cell">
-                    Rating
-                  </TableHead>
                   <TableHead>
                     <span className="sr-only">Actions</span>
                   </TableHead>
@@ -619,9 +607,6 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {product.quantity}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {product.rating}/5
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -684,5 +669,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     
 
 
+
+    
 
     

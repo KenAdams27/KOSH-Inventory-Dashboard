@@ -82,7 +82,6 @@ export async function addProductAction(formData: FormData) {
       sizes: (formData.get('sizes') as string || '').split(',').map((s: string) => s.trim().split(' ')).filter(parts => parts.length > 0),
       price: formData.get('price'),
       quantity: formData.get('quantity'),
-      rating: formData.get('rating'),
       onWebsite: formData.get('onWebsite') === 'true',
       status: Number(formData.get('quantity')) > 0 ? "In Stock" : "Out of Stock",
   };
@@ -133,7 +132,6 @@ export async function updateProductAction(productId: string, formData: FormData)
       subCategory: formData.get('subCategory'),
       price: formData.get('price'),
       quantity: formData.get('quantity'),
-      rating: formData.get('rating'),
       onWebsite: formData.get('onWebsite') === 'true',
     };
 
@@ -224,3 +222,5 @@ export async function updateProductWebsiteStatus(productId: string, onWebsite: b
         return { success: false, message: `Database Error: ${message}` };
     }
 }
+
+    
