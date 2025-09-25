@@ -84,7 +84,6 @@ const productSchema = z.object({
   sizes: z.string().min(1, "Please enter at least one size"),
   price: z.coerce.number().min(0, "Price must be a positive number"),
   quantity: z.coerce.number().int().min(0, "Quantity must be a positive integer"),
-  rating: z.coerce.number().min(0).max(5).default(0),
 }).refine(data => {
     if (data.category === 'ethnicWear' && data.subCategory) {
         return ["sarees", "kurtas & suits", "dupattas"].includes(data.subCategory);
@@ -108,12 +107,15 @@ function ProductForm({
   onSave,
   product,
   onSheetOpenChange,
+  formRef,
+  onSubmit,
 }: {
   onSave: (data: FormData) => Promise<void>;
   product?: Product | null;
   onSheetOpenChange: (isOpen: boolean) => void;
+  formRef: React.RefObject<HTMLFormElement>;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
-  const formRef = useRef<HTMLFormElement>(null);
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: product ? {
@@ -131,7 +133,6 @@ function ProductForm({
       sizes: "",
       price: 0,
       quantity: 0,
-      rating: 0,
     },
   });
 
@@ -142,14 +143,12 @@ function ProductForm({
         form.setValue("subCategory", subCategoryOptions[selectedCategory][0]);
     }
   }, [selectedCategory, form]);
-
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  
+  // This function will be called by the parent to trigger form submission
+  async function triggerSubmit() {
     const isValid = await form.trigger();
     if (isValid && formRef.current) {
         const formData = new FormData(formRef.current);
-        // Manually append react-hook-form controlled fields
         formData.set('category', form.getValues('category'));
         formData.set('subCategory', form.getValues('subCategory') || '');
         await onSave(formData);
@@ -157,9 +156,17 @@ function ProductForm({
         onSheetOpenChange(false);
     }
   }
+  
+  // Expose the triggerSubmit function to the parent component
+  useEffect(() => {
+    if(formRef.current) {
+      (formRef.current as any).triggerSubmit = triggerSubmit;
+    }
+  });
+
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="grid gap-6">
+    <form ref={formRef} onSubmit={onSubmit} className="grid gap-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="name">Product Name</Label>
@@ -266,10 +273,6 @@ function ProductForm({
           {form.formState.errors.quantity && <p className="text-sm text-destructive">{form.formState.errors.quantity.message as string}</p>}
         </div>
       </div>
-      
-      <SheetFooter className="mt-6">
-          <Button type="submit">Save Product</Button>
-      </SheetFooter>
     </form>
   );
 }
@@ -418,6 +421,9 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const { toast } = useToast();
+  
+  const addFormRef = useRef<HTMLFormElement>(null);
+  const editFormRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     setProducts(initialProducts);
@@ -431,6 +437,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
         title: "Product Added",
         description: result.message,
       });
+      setIsAddSheetOpen(false);
     } else {
       toast({
         variant: "destructive",
@@ -453,6 +460,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
             title: "Product Updated",
             description: result.message,
         });
+        setIsEditSheetOpen(false);
     } else {
         toast({
             variant: "destructive",
@@ -492,6 +500,14 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
       )
     );
   };
+  
+  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget as any;
+    if (form.triggerSubmit) {
+      form.triggerSubmit();
+    }
+  };
 
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -509,18 +525,31 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
               </span>
             </Button>
           </SheetTrigger>
-          <SheetContent className="sm:max-w-xl w-full">
+          <SheetContent className="sm:max-w-xl w-full flex flex-col">
             <SheetHeader>
               <SheetTitle>Add a New Product</SheetTitle>
               <SheetDescription>
                 Fill in the details below to add a new product to your inventory.
               </SheetDescription>
             </SheetHeader>
-            <ScrollArea className="h-[calc(100vh-8rem)]">
+            <ScrollArea className="flex-grow">
               <div className="p-6 pt-4">
-                <ProductForm onSave={handleAddProduct} onSheetOpenChange={setIsAddSheetOpen} />
+                <ProductForm 
+                  onSave={handleAddProduct} 
+                  onSheetOpenChange={setIsAddSheetOpen} 
+                  formRef={addFormRef}
+                  onSubmit={handleFormSubmit}
+                />
               </div>
             </ScrollArea>
+             <SheetFooter className="mt-auto p-6 pt-0">
+                <Button 
+                  type="button" 
+                  onClick={() => addFormRef.current && (addFormRef.current as any).triggerSubmit()}
+                >
+                  Save Product
+                </Button>
+            </SheetFooter>
           </SheetContent>
         </Sheet>
       </PageHeader>
@@ -529,18 +558,32 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
           setIsEditSheetOpen(isOpen);
           if (!isOpen) setEditingProduct(null);
       }}>
-          <SheetContent className="sm:max-w-xl w-full">
+          <SheetContent className="sm:max-w-xl w-full flex flex-col">
               <SheetHeader>
                   <SheetTitle>Edit Product</SheetTitle>
                   <SheetDescription>
                       Update the details for &quot;{editingProduct?.name}&quot;.
                   </SheetDescription>
               </SheetHeader>
-              <ScrollArea className="h-[calc(100vh-8rem)]">
+              <ScrollArea className="flex-grow">
                 <div className="p-6 pt-4">
-                    <ProductForm onSave={handleEditProduct} product={editingProduct} onSheetOpenChange={setIsEditSheetOpen} />
+                    <ProductForm 
+                      onSave={handleEditProduct} 
+                      product={editingProduct} 
+                      onSheetOpenChange={setIsEditSheetOpen}
+                      formRef={editFormRef}
+                      onSubmit={handleFormSubmit}
+                    />
                 </div>
               </ScrollArea>
+              <SheetFooter className="mt-auto p-6 pt-0">
+                <Button 
+                  type="button"
+                  onClick={() => editFormRef.current && (editFormRef.current as any).triggerSubmit()}
+                >
+                  Save Changes
+                </Button>
+              </SheetFooter>
           </SheetContent>
       </Sheet>
 
