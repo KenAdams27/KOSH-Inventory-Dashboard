@@ -157,20 +157,20 @@ function CustomerDetailsDialog({ customer, orders }: { customer: Customer, order
         </div>
       </DialogHeader>
       <div className="grid gap-6 py-4">
-         <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
-            <Label className="text-right sm:text-left">Customer ID</Label>
-            <div className="col-span-2 sm:col-span-3">{customer.id}</div>
+         <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+            <Label className="text-left">Customer ID</Label>
+            <div className="col-span-1 sm:col-span-3 text-muted-foreground truncate">{customer.id}</div>
         </div>
-         <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
-            <Label className="text-right sm:text-left">Phone</Label>
-            <div className="col-span-2 sm:col-span-3">
+         <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+            <Label className="text-left">Phone</Label>
+            <div className="col-span-1 sm:col-span-3 text-muted-foreground">
                 {customer.phone || 'N/A'}
             </div>
         </div>
         {latestAddress && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 items-start gap-4">
-                <Label className="text-right sm:text-left mt-1">Address</Label>
-                <div className="col-span-2 sm:col-span-3">
+              <div className="grid grid-cols-1 sm:grid-cols-4 items-start gap-2 sm:gap-4">
+                <Label className="text-left">Address</Label>
+                <div className="col-span-1 sm:col-span-3 text-muted-foreground">
                     {latestAddress.address}, {latestAddress.city}, {latestAddress.state}, {latestAddress.pincode}
                 </div>
             </div>
@@ -266,9 +266,14 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
     }
   };
 
-  const filteredCustomers = customers.filter((customer) =>
-    customer.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredCustomers = customers.filter((customer) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      customer.name.toLowerCase().includes(query) ||
+      customer.id.toLowerCase().includes(query)
+    );
+  });
+
 
   if (customers.length === 0) {
       return (
@@ -303,7 +308,7 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                     type="search"
-                    placeholder="Search customers..."
+                    placeholder="Search by name or ID..."
                     className="w-full sm:w-64 rounded-lg bg-background pl-8"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -396,5 +401,3 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
     </>
   );
 }
-
-    
