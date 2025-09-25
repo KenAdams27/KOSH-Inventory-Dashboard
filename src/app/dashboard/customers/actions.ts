@@ -43,44 +43,6 @@ const updateCustomerSchema = customerSchema.extend({
   password: z.string().optional(),
 });
 
-
-export async function addCustomerAction(formData: Omit<Customer, 'id'>) {
-  try {
-    const validation = customerSchema.safeParse(formData);
-    if (!validation.success) {
-      return { success: false, message: 'Invalid data.', errors: validation.error.flatten().fieldErrors };
-    }
-
-    if (!clientPromise) {
-      throw new Error('MongoDB client is not available.');
-    }
-    const client = await clientPromise;
-    const dbName = process.env.DB_NAME;
-    if (!dbName) {
-        throw new Error('DB_NAME environment variable is not set.');
-    }
-    const db = client.db(dbName);
-    
-    const newCustomer = {
-        ...validation.data,
-    }
-
-    const result = await db.collection('users').insertOne(newCustomer);
-
-    if (result.acknowledged) {
-        revalidatePath('/dashboard/customers');
-        return { success: true, message: 'Customer added successfully.' };
-    } else {
-        return { success: false, message: 'Failed to add customer.' };
-    }
-
-  } catch (error) {
-    console.error('[addCustomerAction] Error adding customer:', error);
-    const message = error instanceof Error ? error.message : 'An unknown error occurred.';
-    return { success: false, message: `Database Error: ${message}` };
-  }
-}
-
 export async function updateCustomerAction(customerId: string, formData: Partial<Omit<Customer, 'id'>>) {
     try {
         const validation = updateCustomerSchema.safeParse(formData);

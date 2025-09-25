@@ -43,7 +43,6 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
   SheetFooter,
   SheetClose,
   SheetDescription,
@@ -55,7 +54,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Textarea } from "@/components/ui/textarea";
-import { addCustomerAction, updateCustomerAction, deleteCustomerAction } from "./actions";
+import { updateCustomerAction, deleteCustomerAction } from "./actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -231,7 +230,6 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
@@ -240,21 +238,6 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
     setCustomers(initialCustomers);
   }, [initialCustomers]);
 
-  const handleAddCustomer = async (data: any) => {
-    const result = await addCustomerAction(data);
-    if (result.success) {
-      toast({
-        title: "Customer Added",
-        description: result.message,
-      });
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: result.message,
-      });
-    }
-  };
 
   const handleEditClick = (customer: Customer) => {
     setEditingCustomer(customer);
@@ -307,25 +290,6 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
                 title="Customers"
                 description="Here is a list of all your customers."
             >
-                <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
-                    <SheetTrigger asChild>
-                        <Button size="sm" className="gap-1">
-                            <PlusCircle className="h-3.5 w-3.5" />
-                            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                                Add Customer
-                            </span>
-                        </Button>
-                    </SheetTrigger>
-                    <SheetContent>
-                        <SheetHeader>
-                            <SheetTitle>Add a New Customer</SheetTitle>
-                            <SheetDescription>
-                                Fill in the details below to add a new customer.
-                            </SheetDescription>
-                        </SheetHeader>
-                        <CustomerForm onSave={handleAddCustomer} onSheetOpenChange={setIsAddSheetOpen} />
-                    </SheetContent>
-                </Sheet>
             </PageHeader>
             <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm">
                 <div className="flex flex-col items-center gap-1 text-center">
@@ -333,22 +297,8 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
                         You have no customers
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                        You can start selling as soon as you add your first product.
+                        Your customer list is currently empty.
                     </p>
-                    <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
-                        <SheetTrigger asChild>
-                            <Button className="mt-4">Add Customer</Button>
-                        </SheetTrigger>
-                        <SheetContent>
-                            <SheetHeader>
-                                <SheetTitle>Add a New Customer</SheetTitle>
-                                <SheetDescription>
-                                    Fill in the details below to add a new customer.
-                                </SheetDescription>
-                            </SheetHeader>
-                            <CustomerForm onSave={handleAddCustomer} onSheetOpenChange={setIsAddSheetOpen} />
-                        </SheetContent>
-                    </Sheet>
                 </div>
             </div>
         </>
@@ -372,25 +322,6 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
             </div>
-            <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
-                <SheetTrigger asChild>
-                    <Button size="sm" className="gap-1">
-                    <PlusCircle className="h-3.5 w-3.5" />
-                    <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                        Add Customer
-                    </span>
-                    </Button>
-                </SheetTrigger>
-                <SheetContent>
-                    <SheetHeader>
-                        <SheetTitle>Add a New Customer</SheetTitle>
-                        <SheetDescription>
-                            Fill in the details below to add a new customer.
-                        </SheetDescription>
-                    </SheetHeader>
-                    <CustomerForm onSave={handleAddCustomer} onSheetOpenChange={setIsAddSheetOpen} />
-                </SheetContent>
-            </Sheet>
         </div>
       </PageHeader>
 
@@ -478,7 +409,3 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
     </>
   );
 }
-
-    
-
-    
