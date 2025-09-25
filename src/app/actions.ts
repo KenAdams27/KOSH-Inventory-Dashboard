@@ -33,12 +33,22 @@ export async function loginAction(credentials: z.infer<typeof loginSchema>) {
     const user = await db.collection('users').findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
 
     if (!user || !user.password) {
+      if (user) {
+        // For debugging: log user if found but password check fails, excluding password.
+        const { password, ...userWithoutPassword } = user;
+        console.error('[loginAction] User found, but password validation failed. User data:', userWithoutPassword);
+      } else {
+        console.error('[loginAction] No user found for email:', email);
+      }
       return { success: false, message: 'Invalid email or password.' };
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
+       // For debugging: log user if found but password check fails, excluding password.
+       const { password, ...userWithoutPassword } = user;
+       console.error('[loginAction] User found, but password validation failed. User data:', userWithoutPassword);
       return { success: false, message: 'Invalid email or password.' };
     }
 
