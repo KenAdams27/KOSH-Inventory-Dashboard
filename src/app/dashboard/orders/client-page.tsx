@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -321,8 +322,8 @@ function OrderDetailsDialog({ order }: { order: Order }) {
         </div>
         <div className="space-y-2">
            <h4 className="font-medium">Items Ordered</h4>
-           {order.orderItems.map(item => (
-              <div key={item.itemId} className="text-sm text-muted-foreground">
+           {order.orderItems.map((item, index) => (
+              <div key={`${item.itemId}-${item.name}-${index}`} className="text-sm text-muted-foreground">
                 {item.name} (x{item.quantity})
                 {item.size && ` - Size: ${item.size}`}
               </div>
