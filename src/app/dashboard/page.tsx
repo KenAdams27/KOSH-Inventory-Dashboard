@@ -73,15 +73,15 @@ export default async function DashboardHomePage() {
     return orderDate.getMonth() === previousMonth && orderDate.getFullYear() === previousMonthYear;
   });
 
-  const totalRevenue = orders.reduce((acc, order) => acc + order.totalPrice, 0);
+  const currentMonthRevenue = currentMonthOrders.reduce((acc, order) => acc + order.totalPrice, 0);
   const previousMonthRevenue = previousMonthOrders.reduce((acc, order) => acc + order.totalPrice, 0);
 
-  const totalOrders = orders.length;
+  const currentMonthTotalOrders = currentMonthOrders.length;
   const previousMonthTotalOrders = previousMonthOrders.length;
   
   const totalInventory = products.length;
 
-  const pendingOrders = orders.filter((o) => !o.isDelivered).length;
+  const currentMonthPendingOrders = currentMonthOrders.filter((o) => !o.isDelivered).length;
   const previousMonthPendingOrders = previousMonthOrders.filter((o) => !o.isDelivered).length;
 
   const calculatePercentageChange = (current: number, previous: number) => {
@@ -91,12 +91,13 @@ export default async function DashboardHomePage() {
     return ((current - previous) / previous) * 100;
   }
   
-  const revenuePercentageChange = calculatePercentageChange(totalRevenue, previousMonthRevenue);
-  const ordersPercentageChange = calculatePercentageChange(totalOrders, previousMonthTotalOrders);
-  const pendingPercentageChange = calculatePercentageChange(pendingOrders, previousMonthPendingOrders);
-  
-  // Inventory is a snapshot, not time-based from orders. Keep as is for now.
-  const inventoryPercentageChange = 0;
+  const totalRevenue = orders.reduce((acc, order) => acc + order.totalPrice, 0);
+  const totalOrders = orders.length;
+  const pendingOrders = orders.filter((o) => !o.isDelivered).length;
+
+  const revenuePercentageChange = calculatePercentageChange(currentMonthRevenue, previousMonthRevenue);
+  const ordersPercentageChange = calculatePercentageChange(currentMonthTotalOrders, previousMonthTotalOrders);
+  const pendingPercentageChange = calculatePercentageChange(currentMonthPendingOrders, previousMonthPendingOrders);
 
 
   return (
@@ -142,7 +143,7 @@ export default async function DashboardHomePage() {
           <CardContent>
             <div className="text-2xl font-bold">{totalInventory}</div>
             <p className="text-xs text-muted-foreground">
-                +{inventoryPercentageChange.toFixed(1)}% from last month
+                Total unique products in your store.
             </p>
           </CardContent>
         </Card>
@@ -221,5 +222,3 @@ export default async function DashboardHomePage() {
     </>
   );
 }
-
-    
