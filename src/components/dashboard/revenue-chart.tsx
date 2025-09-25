@@ -28,14 +28,13 @@ export function RevenueChart({ data: orders }: { data: Order[] }) {
     const monthlyRevenue: { [key: string]: number } = {};
 
     orders.forEach(order => {
-      if (order.isDelivered) {
-        const date = new Date(order.createdAt);
-        const monthYear = `${monthNames[date.getMonth()]}`;
-        if (!monthlyRevenue[monthYear]) {
-          monthlyRevenue[monthYear] = 0;
-        }
-        monthlyRevenue[monthYear] += order.totalPrice;
+      // The original code only included delivered orders. This now includes all orders.
+      const date = new Date(order.createdAt);
+      const monthYear = `${monthNames[date.getMonth()]}`;
+      if (!monthlyRevenue[monthYear]) {
+        monthlyRevenue[monthYear] = 0;
       }
+      monthlyRevenue[monthYear] += order.totalPrice;
     });
 
     const today = new Date();
