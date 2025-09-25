@@ -22,17 +22,17 @@ async function uploadToImageKit(files: File[], name: string, brand: string) {
         const file = files[i];
         if (!file || file.size === 0) continue;
 
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("fileName", `${name} by ${brand} - ${i + 1}.jpg`);
-        formData.append("folder", "/KOSH Images/"); // Corrected parameter
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", file);
+        uploadFormData.append("fileName", `${name} by ${brand} - ${i + 1}.jpg`);
+        uploadFormData.append("folder", "/KOSH Images/");
 
         const response = await fetch(IMAGEKIT_UPLOAD_URL, {
             method: 'POST',
             headers: {
                 'Authorization': `Basic ${Buffer.from(process.env.IMAGEKIT_PRIVATE_KEY + ':').toString('base64')}`
             },
-            body: formData,
+            body: uploadFormData,
         });
 
         if (!response.ok) {
@@ -199,8 +199,7 @@ export async function updateProductAction(productId: string, formData: FormData)
 
         if (files.length > 0 && validation.data.name && validation.data.brand) {
           const { uploadedUrls, imageHints } = await uploadToImageKit(files, validation.data.name, validation.data.brand);
-          // Here, you might want to merge with existing images or replace them.
-          // This example replaces them.
+          // This example replaces existing images.
           updateData.images = uploadedUrls;
           updateData.imageHints = imageHints;
         }
@@ -252,8 +251,6 @@ export async function updateProductWebsiteStatus(productId: string, onWebsite: b
             revalidatePath('/dashboard/inventory');
             return { success: true, message: `Product is now ${onWebsite ? 'on the website' : 'off the website'}.` };
         } else {
-            // This can happen if the status was already what the user clicked.
-            // It's not a failure, but no change was made.
             return { success: true, message: 'No change in product status.' };
         }
     } catch (error) {
