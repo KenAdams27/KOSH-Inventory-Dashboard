@@ -23,10 +23,10 @@ async function getOrders(): Promise<Order[]> {
       .sort({ createdAt: -1 })
       .toArray();
       
+    // Deep serialization to ensure all nested properties are plain values.
     const orders = JSON.parse(JSON.stringify(ordersFromDb)).map((order: any) => ({
       ...order,
       id: order._id.toString(),
-      createdAt: order.createdAt, 
     }));
 
     return orders;

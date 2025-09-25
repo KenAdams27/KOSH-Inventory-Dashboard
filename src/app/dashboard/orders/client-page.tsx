@@ -10,6 +10,7 @@ import { format } from "date-fns";
 
 import type { Order, Product, OrderItem, ShippingAddress } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
+import { updateOrderStatusAction } from "./actions";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -333,19 +334,19 @@ function OrderDetailsDialog({ order }: { order: Order }) {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <h4 className="font-medium">Total</h4>
-            <p className="text-sm text-muted-foreground">₹{order.totalPrice.toFixed(2)}</p>
+            <div className="text-sm text-muted-foreground">₹{order.totalPrice.toFixed(2)}</div>
           </div>
            <div className="space-y-1">
             <h4 className="font-medium">Date</h4>
-            <p className="text-sm text-muted-foreground">{format(new Date(order.createdAt), 'PPP')}</p>
+            <div className="text-sm text-muted-foreground">{format(new Date(order.createdAt), 'PPP')}</div>
           </div>
           <div className="space-y-1">
             <h4 className="font-medium">Status</h4>
-            <div className="text-sm"><Badge className={`border-none ${statusStyles[status]}`} variant="secondary">{status}</Badge></div>
+            <Badge className={`border-none ${statusStyles[status]}`} variant="secondary">{status}</Badge>
           </div>
            <div className="space-y-1">
             <h4 className="font-medium">Payment</h4>
-            <p className="text-sm text-muted-foreground">{order.isPaid ? `Paid (${order.paymentMethod})` : `Unpaid (${order.paymentMethod})`}</p>
+            <div className="text-sm text-muted-foreground">{order.isPaid ? `Paid (${order.paymentMethod})` : `Unpaid (${order.paymentMethod})`}</div>
           </div>
         </div>
 
@@ -473,16 +474,36 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
         setIsDetailsOpen(true);
     };
 
-    const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
+    const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+      const isDelivered = newStatus === 'Delivered';
+
+      // Optimistically update the UI
       setOrders(prevOrders => 
         prevOrders.map(order => 
-          order.id === orderId ? { ...order, isDelivered: newStatus === 'Delivered', deliveredAt: newStatus === 'Delivered' ? new Date().toISOString() : undefined } : order
+          order.id === orderId ? { ...order, isDelivered, deliveredAt: isDelivered ? new Date().toISOString() : undefined } : order
         )
       );
-      toast({
-        title: "Order Status Updated",
-        description: `Order #${orderId.slice(-6)} is now ${newStatus}.`,
-      });
+
+      const result = await updateOrderStatusAction(orderId, isDelivered);
+
+      if (result.success) {
+        toast({
+          title: "Order Status Updated",
+          description: `Order #${orderId.slice(-6)} is now ${newStatus}.`,
+        });
+      } else {
+        // Revert the optimistic update on failure
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order.id === orderId ? { ...order, isDelivered: !isDelivered, deliveredAt: !isDelivered ? new Date().toISOString() : undefined } : order
+          )
+        );
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: result.message,
+        });
+      }
     };
 
     const searchFilteredOrders = orders.filter(order =>
