@@ -251,21 +251,7 @@ function ProductForm({
           <Input id="rating" type="number" step="0.1" {...form.register("rating")} />
           {form.formState.errors.rating && <p className="text-sm text-destructive">{form.formState.errors.rating.message as string}</p>}
         </div>
-      <div className="flex items-center space-x-2">
-        <Controller
-            control={form.control}
-            name="isPublished"
-            render={({ field }) => (
-                <Switch
-                    id="isPublished"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                />
-            )}
-        />
-        <Label htmlFor="isPublished">Publish on website</Label>
-      </div>
-
+      
       <SheetFooter className="mt-6">
         <SheetClose asChild>
           <Button type="submit">Save Product</Button>
@@ -642,4 +628,5 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   );
 }
 
+    
     
