@@ -29,8 +29,8 @@ export async function loginAction(credentials: z.infer<typeof loginSchema>) {
     }
     const db = client.db(dbName);
     
-    // Use a case-insensitive regex for the email lookup
-    const user = await db.collection('users').findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
+    // Use a case-insensitive regex for the email lookup in the AdminUsers collection
+    const user = await db.collection('AdminUsers').findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
 
     if (!user || !user.password) {
       if (user) {

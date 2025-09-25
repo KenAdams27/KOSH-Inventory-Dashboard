@@ -31,8 +31,8 @@ export async function signupAction(credentials: z.infer<typeof signupSchema>) {
     }
     const db = client.db(dbName);
     
-    // Check if user already exists
-    const existingUser = await db.collection('users').findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
+    // Check if user already exists in AdminUsers collection
+    const existingUser = await db.collection('AdminUsers').findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
     if (existingUser) {
       return { success: false, message: 'An account with this email already exists.' };
     }
@@ -40,16 +40,11 @@ export async function signupAction(credentials: z.infer<typeof signupSchema>) {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert new user conforming to a base Customer structure
-    await db.collection('users').insertOne({
+    // Insert new user into AdminUsers collection
+    await db.collection('AdminUsers').insertOne({
       name,
       email,
       password: hashedPassword,
-      phone: '', // Add empty phone to conform to base Customer type
-      wishlist: [],
-      cart: [],
-      orders: [],
-      address: [],
       createdAt: new Date(),
     });
 
