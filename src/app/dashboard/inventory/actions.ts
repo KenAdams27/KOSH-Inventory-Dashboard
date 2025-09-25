@@ -25,7 +25,7 @@ async function uploadToImageKit(files: File[], name: string, brand: string) {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("fileName", `${name} by ${brand} - ${i + 1}.jpg`);
-        formData.append("folder", "KOSH Images");
+        formData.append("folder", "/KOSH Images/"); // Corrected parameter
 
         const response = await fetch(IMAGEKIT_UPLOAD_URL, {
             method: 'POST',
