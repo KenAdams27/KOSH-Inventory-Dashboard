@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { MoreHorizontal, PlusCircle, Search, ImageIcon, X } from "lucide-react";
 import { z } from "zod";
@@ -80,10 +80,6 @@ const productSchema = z.object({
   description: z.string().optional(),
   category: z.enum(["ethnicWear", "bedsheet"]),
   subCategory: z.string().optional(),
-  image1: z.any().optional(),
-  image2: z.any().optional(),
-  image3: z.any().optional(),
-  image4: z.any().optional(),
   colors: z.string().min(1, "Please enter at least one color"),
   sizes: z.string().min(1, "Please enter at least one size"),
   price: z.coerce.number().min(0, "Price must be a positive number"),
@@ -113,17 +109,18 @@ function ProductForm({
   product,
   onSheetOpenChange,
 }: {
-  onSave: (data: z.infer<typeof productSchema>) => Promise<void>;
+  onSave: (data: FormData) => Promise<void>;
   product?: Product | null;
   onSheetOpenChange: (isOpen: boolean) => void;
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: product ? {
       ...product,
       description: product.desc,
       colors: product.colors?.join(', ') || '',
-      sizes: product.sizes?.join(', ') || '',
+      sizes: product.sizes?.map(s => s.join(' ')).join(', ') || '',
     } : {
       name: "",
       brand: "",
@@ -147,14 +144,22 @@ function ProductForm({
   }, [selectedCategory, form]);
 
 
-  async function onSubmit(data: z.infer<typeof productSchema>) {
-    await onSave(data);
-    form.reset();
-    onSheetOpenChange(false);
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const isValid = await form.trigger();
+    if (isValid && formRef.current) {
+        const formData = new FormData(formRef.current);
+        // Manually append react-hook-form controlled fields
+        formData.set('category', form.getValues('category'));
+        formData.set('subCategory', form.getValues('subCategory') || '');
+        await onSave(formData);
+        form.reset();
+        onSheetOpenChange(false);
+    }
   }
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6">
+    <form ref={formRef} onSubmit={handleSubmit} className="grid gap-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="name">Product Name</Label>
@@ -180,7 +185,7 @@ function ProductForm({
             control={form.control}
             name="category"
             render={({ field }) => (
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                 <SelectTrigger>
                     <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
@@ -219,19 +224,19 @@ function ProductForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="image1" className="text-sm font-normal text-muted-foreground">Image 1</Label>
-            <Input id="image1" type="file" {...form.register("image1")} />
+            <Input id="image1" name="image1" type="file" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="image2" className="text-sm font-normal text-muted-foreground">Image 2</Label>
-            <Input id="image2" type="file" {...form.register("image2")} />
+            <Input id="image2" name="image2" type="file" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="image3" className="text-sm font-normal text-muted-foreground">Image 3</Label>
-            <Input id="image3" type="file" {...form.register("image3")} />
+            <Input id="image3" name="image3" type="file" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="image4" className="text-sm font-normal text-muted-foreground">Image 4</Label>
-            <Input id="image4" type="file" {...form.register("image4")} />
+            <Input id="image4" name="image4" type="file" />
           </div>
         </div>
       </div>
@@ -367,7 +372,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
           <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
             <Label className="text-right sm:text-left">Sizes</Label>
             <div className="col-span-2 sm:col-span-3 flex flex-wrap gap-2">
-              {product.sizes?.map(size => <Badge key={size} variant="outline">{size}</Badge>)}
+              {product.sizes?.map(size => <Badge key={size.join(' ')} variant="outline">{size.join(' ')}</Badge>)}
             </div>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
@@ -408,7 +413,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   }, [initialProducts]);
 
 
-  const handleAddProduct = async (data: any) => {
+  const handleAddProduct = async (data: FormData) => {
     const result = await addProductAction(data);
     if (result.success) {
       toast({
@@ -429,7 +434,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     setIsEditSheetOpen(true);
   };
 
-  const handleEditProduct = async (data: any) => {
+  const handleEditProduct = async (data: FormData) => {
     if (!editingProduct) return;
     const result = await updateProductAction(editingProduct.id, data);
     if (result.success) {
