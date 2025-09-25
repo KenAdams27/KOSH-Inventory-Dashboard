@@ -14,7 +14,7 @@ export type Product = {
   rating: number;
   quantity: number;
   status: "In Stock" | "Out of Stock" | "Low Stock";
-  isPublished: boolean;
+  onWebsite: boolean;
 };
 
 export type OrderItem = {

@@ -59,7 +59,7 @@ import { PageHeader } from "@/components/page-header";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { addProductAction, updateProductAction, deleteProductAction, updateProductPublishedStatus } from "./actions";
+import { addProductAction, updateProductAction, deleteProductAction, updateProductWebsiteStatus } from "./actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -273,14 +273,14 @@ function ProductForm({
   );
 }
 
-function PublishToggle({ product, onStatusChange }: { product: Product, onStatusChange: (productId: string, isPublished: boolean) => void }) {
+function PublishToggle({ product, onStatusChange }: { product: Product, onStatusChange: (productId: string, onWebsite: boolean) => void }) {
   const { toast } = useToast();
   
   const handleToggle = async (checked: boolean) => {
     // Optimistically update the UI before calling the server action
     onStatusChange(product.id, checked);
     
-    const result = await updateProductPublishedStatus(product.id, checked);
+    const result = await updateProductWebsiteStatus(product.id, checked);
 
     if (result.success) {
       if (result.message !== 'No change in product status.') {
@@ -304,12 +304,12 @@ function PublishToggle({ product, onStatusChange }: { product: Product, onStatus
     <div className="flex items-center gap-2">
       <Switch
         id={`publish-${product.id}`}
-        checked={product.isPublished}
+        checked={product.onWebsite}
         onCheckedChange={handleToggle}
         aria-label="Publish status"
       />
-      <Badge variant={product.isPublished ? "secondary" : "outline"}>
-        {product.isPublished ? "Yes" : "No"}
+      <Badge variant={product.onWebsite ? "secondary" : "outline"}>
+        {product.onWebsite ? "Yes" : "No"}
       </Badge>
     </div>
   )
@@ -465,10 +465,10 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     setIsDetailsOpen(true);
   };
 
-  const handleStatusChange = (productId: string, isPublished: boolean) => {
+  const handleStatusChange = (productId: string, onWebsite: boolean) => {
     setProducts(prev => 
       prev.map(p => 
-        p.id === productId ? { ...p, isPublished } : p
+        p.id === productId ? { ...p, onWebsite } : p
       )
     );
   };

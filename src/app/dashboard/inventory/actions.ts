@@ -17,7 +17,7 @@ const baseProductSchema = z.object({
   price: z.coerce.number().min(0, "Price must be a positive number"),
   quantity: z.coerce.number().int().min(0, "Quantity must be a positive integer"),
   rating: z.coerce.number().min(0).max(5).default(0),
-  isPublished: z.boolean().default(true),
+  onWebsite: z.boolean().default(true),
   images: z.array(z.string()).optional(),
   imageHints: z.array(z.string()).optional(),
 });
@@ -135,17 +135,17 @@ export async function deleteProductAction(productId: string) {
     }
 }
 
-export async function updateProductPublishedStatus(productId: string, isPublished: boolean) {
+export async function updateProductWebsiteStatus(productId: string, onWebsite: boolean) {
     try {
         const db = await getDb();
         const result = await db.collection('items').updateOne(
             { _id: new ObjectId(productId) },
-            { $set: { isPublished } }
+            { $set: { onWebsite } }
         );
 
         if (result.modifiedCount > 0) {
             revalidatePath('/dashboard/inventory');
-            return { success: true, message: `Product is now ${isPublished ? 'published' : 'unpublished'}.` };
+            return { success: true, message: `Product is now ${onWebsite ? 'on the website' : 'off the website'}.` };
         } else {
             // This can happen if the status was already what the user clicked.
             // It's not a failure, but no change was made.
