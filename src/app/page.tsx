@@ -94,18 +94,18 @@ export default function LoginPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="flex items-center">
-                        <FormLabel>Password</FormLabel>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input placeholder="••••••••" type="password" {...field} />
+                      </FormControl>
+                       <div className="text-right">
                          <Link
                           href="/forgot-password"
-                          className="ml-auto inline-block text-sm underline"
+                          className="inline-block text-sm underline"
                         >
                           Forgot your password?
                         </Link>
                       </div>
-                      <FormControl>
-                        <Input placeholder="••••••••" type="password" {...field} />
-                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
