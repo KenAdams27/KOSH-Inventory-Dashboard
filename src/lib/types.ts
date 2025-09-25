@@ -2,7 +2,7 @@ export type Product = {
   id: string;
   name: string;
   brand: string;
-  description?: string;
+  desc?: string;
   category: "ethnicWear" | "bedsheet";
   subCategory?: string;
   images: string[];
@@ -15,24 +15,38 @@ export type Product = {
   status: "In Stock" | "Out of Stock" | "Low Stock";
 };
 
+export type OrderItem = {
+  itemId: string; // Product ID
+  name: string;
+  image?: string;
+  price: number;
+  quantity: number;
+  size?: string;
+};
+
+export type ShippingAddress = {
+  fullName: string;
+  phone: string;
+  address: string;
+  city: string;
+  pincode: string;
+  country: string;
+};
+
 export type Order = {
   id: string;
-  customer: {
-    name: string;
-    email: string;
-    contactNumber?: string;
-    address?: string;
-  };
-  items: {
-    productId: string;
-    productName: string;
-    quantity: number;
-  }[];
-  paid: boolean;
-  date: string;
-  status: "Pending" | "Delivered" | "Cancelled";
-  total: number;
+  user: string; // User ID
+  orderItems: OrderItem[];
+  shippingAddress: ShippingAddress;
+  paymentMethod: "Cash on Delivery" | "Card" | "UPI";
+  totalPrice: number;
+  isPaid: boolean;
+  paidAt?: string; // ISO date string
+  isDelivered: boolean;
+  deliveredAt?: string; // ISO date string
+  createdAt: string; // ISO date string from timestamps
 };
+
 
 export type Address = {
   fullName: string;
@@ -45,7 +59,7 @@ export type Address = {
 };
 
 export type CartItem = {
-  itemId: string; // Assuming ObjectId is stored as a string
+  itemId: string;
   size: string;
   quantity: number;
   color: string;
@@ -55,7 +69,7 @@ export type Customer = {
   id:string;
   name: string;
   email: string;
-  password?: string; // Should be handled securely, not sent to client
+  password?: string;
   phone: string;
   wishlist?: CartItem[];
   cart?: CartItem[];
