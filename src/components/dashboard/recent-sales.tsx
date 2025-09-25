@@ -79,7 +79,7 @@ function OrderDetailsDialog({ order, open, onOpenChange }: { order: Order; open:
             </div>
             <div className="space-y-1">
                 <h4 className="font-medium">Status</h4>
-                <p className="text-sm"><Badge className={`border-none ${statusStyles[status]}`} variant="secondary">{status}</Badge></p>
+                <div className="text-sm"><Badge className={`border-none ${statusStyles[status]}`} variant="secondary">{status}</Badge></div>
             </div>
             <div className="space-y-1">
                 <h4 className="font-medium">Payment</h4>
