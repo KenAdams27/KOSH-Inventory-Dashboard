@@ -7,7 +7,6 @@ import { MoreHorizontal, PlusCircle, Search, ImageIcon } from "lucide-react";
 import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { updateStockStatus } from "@/ai/flows/real-time-stock-updates";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@/lib/types";
 
@@ -27,7 +26,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -77,6 +75,7 @@ const productSchema = z.object({
   price: z.coerce.number().min(0, "Price must be a positive number"),
   quantity: z.coerce.number().int().min(0, "Quantity must be a positive integer"),
   rating: z.coerce.number().min(0).max(5).default(0),
+  isPublished: z.boolean().default(true),
 }).refine(data => {
     if (data.category === 'ethnicWear' && data.subCategory) {
         return ["sarees", "kurtas & suits", "dupattas"].includes(data.subCategory);
@@ -122,6 +121,7 @@ function ProductForm({
       price: 0,
       quantity: 0,
       rating: 0,
+      isPublished: true,
     },
   });
 
@@ -251,6 +251,20 @@ function ProductForm({
           <Input id="rating" type="number" step="0.1" {...form.register("rating")} />
           {form.formState.errors.rating && <p className="text-sm text-destructive">{form.formState.errors.rating.message as string}</p>}
         </div>
+      <div className="flex items-center space-x-2">
+        <Controller
+            control={form.control}
+            name="isPublished"
+            render={({ field }) => (
+                <Switch
+                    id="isPublished"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                />
+            )}
+        />
+        <Label htmlFor="isPublished">Publish on website</Label>
+      </div>
 
       <SheetFooter className="mt-6">
         <SheetClose asChild>
@@ -261,43 +275,30 @@ function ProductForm({
   );
 }
 
-function StockStatusToggle({ product, onStockChange }: { product: Product, onStockChange: (productId: string, inStock: boolean) => void }) {
+function PublishToggle({ product, onPublishChange }: { product: Product, onPublishChange: (productId: string, isPublished: boolean) => void }) {
   const { toast } = useToast();
-  const [isInStock, setIsInStock] = useState(product.status !== "Out of Stock");
+  const [isPublished, setIsPublished] = useState(product.isPublished);
 
   const handleToggle = async (checked: boolean) => {
-    setIsInStock(checked);
+    setIsPublished(checked);
     toast({
-      title: "Updating Stock...",
-      description: `Setting ${product.name} to ${checked ? 'In Stock' : 'Out of Stock'}.`,
+      title: "Updating Status...",
+      description: `${product.name} is now ${checked ? 'published' : 'unpublished'}.`,
     });
-    try {
-      const result = await updateStockStatus({ productId: product.id, inStock: checked });
-      toast({
-        title: "Update Successful",
-        description: result.message,
-      });
-      onStockChange(product.id, checked);
-    } catch (e) {
-      toast({
-        variant: "destructive",
-        title: "Update Failed",
-        description: "Could not update stock status.",
-      });
-      setIsInStock(!checked); // Revert on failure
-    }
+    // Here you would ideally call a server action to update the database
+    onPublishChange(product.id, checked);
   }
 
   return (
     <div className="flex items-center gap-2">
       <Switch
-        id={`stock-${product.id}`}
-        checked={isInStock}
+        id={`publish-${product.id}`}
+        checked={isPublished}
         onCheckedChange={handleToggle}
-        aria-label="Stock status"
+        aria-label="Publish status"
       />
-      <Badge variant={isInStock ? "secondary" : "destructive"}>
-        {isInStock ? "In Stock" : "Out of Stock"}
+      <Badge variant={isPublished ? "secondary" : "destructive"}>
+        {isPublished ? "Yes" : "No"}
       </Badge>
     </div>
   )
@@ -409,6 +410,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
       quantity: data.quantity,
       rating: data.rating,
       status: data.quantity > 0 ? "In Stock" : "Out of Stock",
+      isPublished: data.isPublished,
     };
     setProducts((prev) => [newProduct, ...prev]);
     setIsSheetOpen(false);
@@ -476,9 +478,9 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     setIsEditSheetOpen(true);
   };
   
-  const handleStockChange = (productId: string, inStock: boolean) => {
+  const handlePublishChange = (productId: string, isPublished: boolean) => {
     setProducts(prev => prev.map(p => 
-      p.id === productId ? { ...p, status: inStock ? 'In Stock' : 'Out of Stock' } : p
+      p.id === productId ? { ...p, isPublished } : p
     ));
   };
 
@@ -564,7 +566,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                     <span className="sr-only">Image</span>
                   </TableHead>
                   <TableHead>Name</TableHead>
-                  <TableHead className="hidden sm:table-cell">Status</TableHead>
+                  <TableHead className="hidden sm:table-cell">On Website</TableHead>
                   <TableHead className="hidden md:table-cell">Price</TableHead>
                   <TableHead className="hidden md:table-cell">
                     Qty
@@ -598,7 +600,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                     </TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell className="hidden sm:table-cell">
-                      <StockStatusToggle product={product} onStockChange={handleStockChange} />
+                      <PublishToggle product={product} onPublishChange={handlePublishChange} />
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       ₹{product.price.toFixed(2)}
@@ -646,5 +648,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
+
+    
 
     

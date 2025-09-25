@@ -1,3 +1,4 @@
+
 export type Product = {
   id: string;
   name: string;
@@ -13,6 +14,7 @@ export type Product = {
   rating: number;
   quantity: number;
   status: "In Stock" | "Out of Stock" | "Low Stock";
+  isPublished: boolean;
 };
 
 export type OrderItem = {
@@ -84,3 +86,6 @@ export type User = {
   avatarUrl: string;
   avatarHint: string;
 };
+
+
+    
