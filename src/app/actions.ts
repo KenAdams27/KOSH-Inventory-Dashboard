@@ -29,15 +29,10 @@ export async function loginAction(credentials: z.infer<typeof loginSchema>) {
     }
     const db = client.db(dbName);
     
-    // Using 'users' collection as per user request to check from 'AdminUsers' which implies a general users collection.
     const user = await db.collection('users').findOne({ email: email.toLowerCase() });
 
-    if (!user) {
+    if (!user || !user.password) {
       return { success: false, message: 'Invalid email or password.' };
-    }
-
-    if (!user.password) {
-        return { success: false, message: 'Invalid credentials. Please contact support.' };
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
