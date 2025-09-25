@@ -105,7 +105,7 @@ function OrderDetailsDialog({ order }: { order: Order }) {
            <h4 className="font-medium">Items Ordered</h4>
            {order.orderItems.map((item, index) => (
               <div key={`${item.itemId}-${item.name}-${index}`} className="text-sm text-muted-foreground">
-                {item.name} ({item.itemId.slice(-6)}) (x{item.quantity})
+                {item.name} {item.itemId && `(${item.itemId.slice(-6)})`} (x{item.quantity})
                 {item.size && ` - Size: ${item.size}`}
               </div>
             ))}
@@ -333,7 +333,7 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search by customer or ID..."
+                placeholder="Search by name or ID..."
                 className="w-full rounded-lg bg-background pl-8 sm:w-64"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -355,5 +355,3 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
     </>
   );
 }
-
-    

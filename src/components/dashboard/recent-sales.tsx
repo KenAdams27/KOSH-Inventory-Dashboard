@@ -62,7 +62,7 @@ function OrderDetailsDialog({ order, open, onOpenChange }: { order: Order; open:
             <h4 className="font-medium">Items Ordered</h4>
             {order.orderItems.map((item, index) => (
                 <div key={`${item.itemId}-${item.name}-${index}`} className="text-sm text-muted-foreground">
-                    {item.name} ({item.itemId.slice(-6)}) (x{item.quantity})
+                    {item.name} {item.itemId && `(${item.itemId.slice(-6)})`} (x{item.quantity})
                     {item.size && ` - Size: ${item.size}`}
                 </div>
                 ))}
@@ -156,5 +156,3 @@ export function RecentSales({ orders }: { orders: Order[] }) {
     </>
   );
 }
-
-    
