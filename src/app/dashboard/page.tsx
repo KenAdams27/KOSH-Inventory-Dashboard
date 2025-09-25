@@ -54,22 +54,49 @@ async function getProducts(): Promise<Product[]> {
 export default async function DashboardHomePage() {
   const orders = await getOrders();
   const products = await getProducts();
+  
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+  
+  const previousMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const previousMonth = previousMonthDate.getMonth();
+  const previousMonthYear = previousMonthDate.getFullYear();
 
-  const totalRevenue = orders
-    .reduce((acc, order) => acc + order.totalPrice, 0);
+  const currentMonthOrders = orders.filter(o => {
+    const orderDate = new Date(o.createdAt);
+    return orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear;
+  });
+
+  const previousMonthOrders = orders.filter(o => {
+    const orderDate = new Date(o.createdAt);
+    return orderDate.getMonth() === previousMonth && orderDate.getFullYear() === previousMonthYear;
+  });
+
+  const totalRevenue = orders.reduce((acc, order) => acc + order.totalPrice, 0);
+  const previousMonthRevenue = previousMonthOrders.reduce((acc, order) => acc + order.totalPrice, 0);
 
   const totalOrders = orders.length;
-
+  const previousMonthTotalOrders = previousMonthOrders.length;
+  
   const totalInventory = products.length;
 
   const pendingOrders = orders.filter((o) => !o.isDelivered).length;
+  const previousMonthPendingOrders = previousMonthOrders.filter((o) => !o.isDelivered).length;
+
+  const calculatePercentageChange = (current: number, previous: number) => {
+    if (previous === 0) {
+      return current > 0 ? 100 : 0;
+    }
+    return ((current - previous) / previous) * 100;
+  }
   
-  // Note: Since there is no historical data, the percentage change is currently 0.
-  // This logic should be updated to compare with data from the previous month.
-  const revenuePercentageChange = 0;
-  const ordersPercentageChange = 0;
+  const revenuePercentageChange = calculatePercentageChange(totalRevenue, previousMonthRevenue);
+  const ordersPercentageChange = calculatePercentageChange(totalOrders, previousMonthTotalOrders);
+  const pendingPercentageChange = calculatePercentageChange(pendingOrders, previousMonthPendingOrders);
+  
+  // Inventory is a snapshot, not time-based from orders. Keep as is for now.
   const inventoryPercentageChange = 0;
-  const pendingPercentageChange = 0;
 
 
   return (
@@ -89,7 +116,7 @@ export default async function DashboardHomePage() {
               ₹{totalRevenue.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
-              +{revenuePercentageChange.toFixed(1)}% from last month
+              {revenuePercentageChange >= 0 ? '+' : ''}{revenuePercentageChange.toFixed(1)}% from last month
             </p>
           </CardContent>
         </Card>
@@ -101,7 +128,7 @@ export default async function DashboardHomePage() {
           <CardContent>
             <div className="text-2xl font-bold">+{totalOrders}</div>
             <p className="text-xs text-muted-foreground">
-              +{ordersPercentageChange.toFixed(1)}% from last month
+              {ordersPercentageChange >= 0 ? '+' : ''}{ordersPercentageChange.toFixed(1)}% from last month
             </p>
           </CardContent>
         </Card>
@@ -127,7 +154,7 @@ export default async function DashboardHomePage() {
           <CardContent>
             <div className="text-2xl font-bold">+{pendingOrders}</div>
             <p className="text-xs text-muted-foreground">
-              +{pendingPercentageChange.toFixed(1)}% from last month
+              {pendingPercentageChange >= 0 ? '+' : ''}{pendingPercentageChange.toFixed(1)}% from last month
             </p>
           </CardContent>
         </Card>
@@ -194,3 +221,5 @@ export default async function DashboardHomePage() {
     </>
   );
 }
+
+    
