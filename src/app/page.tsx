@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Boxes } from "lucide-react";
@@ -5,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -92,7 +94,15 @@ export default function LoginPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <div className="flex items-center">
+                        <FormLabel>Password</FormLabel>
+                         <Link
+                          href="/forgot-password"
+                          className="ml-auto inline-block text-sm underline"
+                        >
+                          Forgot your password?
+                        </Link>
+                      </div>
                       <FormControl>
                         <Input placeholder="••••••••" type="password" {...field} />
                       </FormControl>
@@ -105,6 +115,12 @@ export default function LoginPage() {
                 </Button>
               </form>
             </Form>
+             <div className="mt-4 text-center text-sm">
+              Don&apos;t have an account?{" "}
+              <Link href="/signup" className="underline">
+                Sign up
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </div>
