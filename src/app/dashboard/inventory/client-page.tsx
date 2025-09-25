@@ -120,7 +120,7 @@ function ProductForm({
       ...product,
       description: product.desc,
       colors: product.colors?.join(', ') || '',
-      sizes: product.sizes?.map(s => s.join(' ')).join(', ') || '',
+      sizes: product.sizes?.map(s => Array.isArray(s) ? s.join(' ') : s).join(', ') || '',
     } : {
       name: "",
       brand: "",
@@ -319,12 +319,23 @@ function PublishToggle({ product, onStatusChange }: { product: Product, onStatus
 }
 
 function ProductDetailsDialog({ product }: { product: Product }) {
-  const sizes = Array.isArray(product.sizes)
-    ? product.sizes
-    : typeof product.sizes === 'string'
-    ? (product.sizes as unknown as string).split(',').map(s => s.trim().split(' '))
-    : [];
+  const getDisplayableSizes = (sizes: any): string[] => {
+    if (!Array.isArray(sizes)) {
+      return [];
+    }
+    return sizes.map(size => {
+      if (Array.isArray(size)) {
+        return size.join(' ');
+      }
+      if (typeof size === 'string') {
+        return size;
+      }
+      return '';
+    }).filter(Boolean);
+  };
   
+  const displaySizes = getDisplayableSizes(product.sizes);
+
   return (
     <DialogContent className="sm:max-w-lg">
       <DialogHeader>
@@ -378,7 +389,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
           <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
             <Label className="text-right sm:text-left">Sizes</Label>
             <div className="col-span-2 sm:col-span-3 flex flex-wrap gap-2">
-              {sizes.map(size => <Badge key={size.join(' ')} variant="outline">{size.join(' ')}</Badge>)}
+              {displaySizes.map(size => <Badge key={size} variant="outline">{size}</Badge>)}
             </div>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
@@ -674,3 +685,6 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
 
     
 
+
+
+    
