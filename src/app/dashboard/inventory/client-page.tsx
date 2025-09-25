@@ -319,6 +319,12 @@ function PublishToggle({ product, onStatusChange }: { product: Product, onStatus
 }
 
 function ProductDetailsDialog({ product }: { product: Product }) {
+  const sizes = Array.isArray(product.sizes)
+    ? product.sizes
+    : typeof product.sizes === 'string'
+    ? (product.sizes as unknown as string).split(',').map(s => s.trim().split(' '))
+    : [];
+  
   return (
     <DialogContent className="sm:max-w-lg">
       <DialogHeader>
@@ -372,7 +378,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
           <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
             <Label className="text-right sm:text-left">Sizes</Label>
             <div className="col-span-2 sm:col-span-3 flex flex-wrap gap-2">
-              {product.sizes?.map(size => <Badge key={size.join(' ')} variant="outline">{size.join(' ')}</Badge>)}
+              {sizes.map(size => <Badge key={size.join(' ')} variant="outline">{size.join(' ')}</Badge>)}
             </div>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
@@ -667,3 +673,4 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     
 
     
+
