@@ -277,28 +277,25 @@ function ProductForm({
 
 function PublishToggle({ product, onPublishChange }: { product: Product, onPublishChange: (productId: string, isPublished: boolean) => void }) {
   const { toast } = useToast();
-  const [isPublished, setIsPublished] = useState(product.isPublished);
-
+  
   const handleToggle = async (checked: boolean) => {
-    setIsPublished(checked);
+    onPublishChange(product.id, checked);
     toast({
       title: "Updating Status...",
       description: `${product.name} is now ${checked ? 'published' : 'unpublished'}.`,
     });
-    // Here you would ideally call a server action to update the database
-    onPublishChange(product.id, checked);
   }
 
   return (
     <div className="flex items-center gap-2">
       <Switch
         id={`publish-${product.id}`}
-        checked={isPublished}
+        checked={product.isPublished}
         onCheckedChange={handleToggle}
         aria-label="Publish status"
       />
-      <Badge variant={isPublished ? "secondary" : "destructive"}>
-        {isPublished ? "Yes" : "No"}
+      <Badge variant={product.isPublished ? "secondary" : "destructive"}>
+        {product.isPublished ? "Yes" : "No"}
       </Badge>
     </div>
   )
@@ -648,7 +645,5 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
-
-    
 
     
