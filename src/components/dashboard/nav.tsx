@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -18,7 +19,7 @@ const links = [
   { href: "/dashboard/customers", label: "Customers", icon: Users },
 ];
 
-export function DashboardNav() {
+export function DashboardNav({ onLinkClick }: { onLinkClick?: () => void }) {
   const pathname = usePathname();
 
   return (
@@ -29,6 +30,7 @@ export function DashboardNav() {
           <Link
             key={link.href}
             href={link.href}
+            onClick={onLinkClick}
             className={cn(
               "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
               isActive && "bg-muted text-primary"
