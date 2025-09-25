@@ -33,14 +33,15 @@ async function getOrders(): Promise<Order[]> {
         user: user.toString(),
         orderItems: orderItems.map((item: any) => {
           // Ensure item is a plain object without complex types
+          const { _id: item_id, ...restOfItem } = item;
           const plainItem: any = {
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
+            name: restOfItem.name,
+            price: restOfItem.price,
+            quantity: restOfItem.quantity,
           };
-          if (item.image) plainItem.image = item.image;
-          if (item.size) plainItem.size = item.size;
-          if (item.itemId) plainItem.itemId = item.itemId.toString();
+          if (restOfItem.image) plainItem.image = restOfItem.image;
+          if (restOfItem.size) plainItem.size = restOfItem.size;
+          if (restOfItem.itemId) plainItem.itemId = restOfItem.itemId.toString();
           return plainItem;
         }),
       } as Order;
