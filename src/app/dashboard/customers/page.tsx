@@ -33,7 +33,7 @@ async function getCustomers(): Promise<Customer[]> {
       const convertCartItems = (items: any[] | undefined) => {
         if (!items) return [];
         return items.map(item => {
-          const { _id: item_id, ...restOfItem } = item;
+          const { _id: item_id, ...restOfItem } = item; // remove the nested _id
           return {
             ...restOfItem,
             itemId: item.itemId ? item.itemId.toString() : undefined,
@@ -77,6 +77,7 @@ async function getOrders(): Promise<Order[]> {
       const { _id, user, orderItems, ...rest } = order;
       return {
         ...rest,
+        _id: _id.toHexString(), // Store the raw ObjectId as a string
         id: _id.toString(),
         user: user.toString(),
         orderItems: orderItems.map((item: any) => {

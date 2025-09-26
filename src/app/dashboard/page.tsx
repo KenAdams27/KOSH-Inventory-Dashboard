@@ -28,12 +28,30 @@ async function getOrders(): Promise<Order[]> {
     }
     const db = client.db(dbName);
     const ordersFromDb = await db.collection("orders").find({}).sort({ createdAt: -1 }).toArray();
-    return JSON.parse(JSON.stringify(ordersFromDb)).map((o: any) => ({ ...o, id: o._id.toString() }));
+
+    // Manually map and convert all ObjectIDs to strings, including nested ones.
+    return ordersFromDb.map((order: any) => {
+        const { _id, user, orderItems, ...rest } = order;
+        return {
+            ...rest,
+            _id: _id.toHexString(), // Store the raw ObjectId as a string
+            id: _id.toString(),
+            user: user.toString(),
+            orderItems: orderItems.map((item: any) => {
+                const { _id: item_id, ...restOfItem } = item;
+                return {
+                  ...restOfItem,
+                  itemId: restOfItem.itemId ? restOfItem.itemId.toString() : undefined,
+                };
+            }),
+        } as Order;
+    });
   } catch (error) {
     console.error("[getOrders dashboard] Failed to fetch orders:", error);
     return [];
   }
 }
+
 
 async function getProducts(): Promise<Product[]> {
   if (!clientPromise) {

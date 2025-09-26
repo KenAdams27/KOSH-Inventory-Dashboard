@@ -31,6 +31,7 @@ async function getOrders(): Promise<Order[]> {
       const { _id, user, orderItems, ...rest } = order;
       return {
         ...rest,
+        _id: _id.toHexString(), // Store the raw ObjectId as a string
         id: _id.toString(),
         user: user.toString(),
         orderItems: orderItems.map((item: any) => {

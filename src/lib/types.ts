@@ -1,4 +1,5 @@
 
+
 export type Product = {
   id: string;
   name: string;
@@ -17,7 +18,7 @@ export type Product = {
 };
 
 export type OrderItem = {
-  itemId: string; // Product ID
+  itemId?: string; // Product ID
   name: string;
   image?: string;
   price: number;
@@ -35,6 +36,7 @@ export type ShippingAddress = {
 };
 
 export type Order = {
+  _id: string; // Raw MongoDB ID
   id: string;
   user: string; // User ID
   orderItems: OrderItem[];
