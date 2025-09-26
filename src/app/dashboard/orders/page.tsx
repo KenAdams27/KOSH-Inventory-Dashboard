@@ -31,11 +31,10 @@ async function getOrders(): Promise<Order[]> {
       const { _id, user, orderItems, ...rest } = order;
       return {
         ...rest,
-        _id: _id.toHexString(), // Store the raw ObjectId as a string
+        _id: _id.toHexString(),   // Store the raw ObjectId as a string
         id: _id.toString(),
         user: user.toString(),
         orderItems: orderItems.map((item: any) => {
-          // Ensure item is a plain object without complex types
           const { _id: item_id, ...restOfItem } = item;
           const plainItem: any = {
             name: restOfItem.name,
@@ -44,7 +43,10 @@ async function getOrders(): Promise<Order[]> {
           };
           if (restOfItem.image) plainItem.image = restOfItem.image;
           if (restOfItem.size) plainItem.size = restOfItem.size;
-          if (restOfItem.itemId) plainItem.itemId = restOfItem.itemId.toString();
+
+          // Fix: map "item" (ObjectId in DB) to "itemId"
+          if (restOfItem.item) plainItem.itemId = restOfItem.item.toString();
+
           return plainItem;
         }),
       } as Order;
@@ -57,6 +59,7 @@ async function getOrders(): Promise<Order[]> {
     return [];
   }
 }
+
 
 export default async function OrdersPage() {
   const orders = await getOrders();

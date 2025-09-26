@@ -108,7 +108,7 @@ function OrderDetailsDialog({ order }: { order: Order }) {
         </div>
         <div className="space-y-2">
            <h4 className="font-medium">Items Ordered</h4>
-            <TooltipProvider>
+            <TooltipProvider delayDuration={100}>
               {order.orderItems.map((item, index) => (
                 <div key={`${item.itemId}-${item.name}-${index}`} className="text-sm text-muted-foreground">
                   <Tooltip>
@@ -198,10 +198,10 @@ function OrdersTable({
               return (
               <TableRow key={order.id}>
                 <TableCell>
-                  <div className="font-medium">{order.shippingAddress.fullName}</div>
-                  <div className="hidden text-sm text-muted-foreground md:inline">
-                    {order._id}
-                  </div>
+                    <div className="font-medium">{order.shippingAddress.fullName}</div>
+                    <div className="hidden text-sm text-muted-foreground md:inline">
+                        {order._id}
+                    </div>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
                   <Badge className={`border-none relative -left-px ${statusStyles[currentStatus]}`} variant="secondary">

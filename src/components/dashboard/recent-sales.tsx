@@ -61,7 +61,7 @@ function OrderDetailsDialog({ order, open, onOpenChange }: { order: Order; open:
             </div>
             <div className="space-y-2">
               <h4 className="font-medium">Items Ordered</h4>
-              <TooltipProvider>
+              <TooltipProvider delayDuration={100}>
                 {order.orderItems.map((item, index) => (
                   <div key={`${item.itemId}-${item.name}-${index}`} className="text-sm text-muted-foreground">
                     <Tooltip>
