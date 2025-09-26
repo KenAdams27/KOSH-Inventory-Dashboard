@@ -97,7 +97,7 @@ async function getOrders(): Promise<Order[]> {
     });
     
     return orders;
-  } catch (error) => {
+  } catch (error) {
     console.error("[getOrders customers] Failed to fetch orders:", error);
     return [];
   }
