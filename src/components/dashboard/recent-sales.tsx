@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "../ui/badge";
 import { format } from "date-fns";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type OrderStatus = "Pending" | "Delivered" | "Cancelled";
 
@@ -59,13 +60,25 @@ function OrderDetailsDialog({ order, open, onOpenChange }: { order: Order; open:
             </p>
             </div>
             <div className="space-y-2">
-            <h4 className="font-medium">Items Ordered</h4>
-            {order.orderItems.map((item, index) => (
-                <div key={`${item.itemId}-${item.name}-${index}`} className="text-sm text-muted-foreground">
-                    {item.name} {item.itemId && `(${item.itemId.slice(-6)})`} (x{item.quantity})
+              <h4 className="font-medium">Items Ordered</h4>
+              <TooltipProvider>
+                {order.orderItems.map((item, index) => (
+                  <div key={`${item.itemId}-${item.name}-${index}`} className="text-sm text-muted-foreground">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="font-medium cursor-pointer">{item.name}</span>
+                      </TooltipTrigger>
+                      {item.itemId && (
+                        <TooltipContent>
+                          <p>Product ID: {item.itemId}</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                    {` (x${item.quantity})`}
                     {item.size && ` - Size: ${item.size}`}
-                </div>
+                  </div>
                 ))}
+              </TooltipProvider>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -156,3 +169,5 @@ export function RecentSales({ orders }: { orders: Order[] }) {
     </>
   );
 }
+
+    

@@ -63,6 +63,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type OrderStatus = "Pending" | "Delivered" | "Cancelled";
 type MappedStatus = "isDelivered" | "isPending" | "isCancelled";
@@ -103,12 +104,24 @@ function OrderDetailsDialog({ order }: { order: Order }) {
         </div>
         <div className="space-y-2">
            <h4 className="font-medium">Items Ordered</h4>
-           {order.orderItems.map((item, index) => (
-              <div key={`${item.itemId}-${item.name}-${index}`} className="text-sm text-muted-foreground">
-                {item.name} {item.itemId && `(${item.itemId.slice(-6)})`} (x{item.quantity})
-                {item.size && ` - Size: ${item.size}`}
-              </div>
-            ))}
+            <TooltipProvider>
+              {order.orderItems.map((item, index) => (
+                <div key={`${item.itemId}-${item.name}-${index}`} className="text-sm text-muted-foreground">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="font-medium cursor-pointer">{item.name}</span>
+                    </TooltipTrigger>
+                    {item.itemId && (
+                      <TooltipContent>
+                        <p>Product ID: {item.itemId}</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                  {` (x${item.quantity})`}
+                  {item.size && ` - Size: ${item.size}`}
+                </div>
+              ))}
+            </TooltipProvider>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -355,3 +368,5 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
     </>
   );
 }
+
+    
