@@ -12,7 +12,7 @@ const signupSchema = z.object({
   secretCode: z.string().length(4, 'Secret code must be 4 digits'),
 });
 
-const SECRET_CODE = '2757';
+const SECRET_CODE = process.env.SECRET_KEY;
 
 export async function signupAction(credentials: z.infer<typeof signupSchema>) {
   const validation = signupSchema.safeParse(credentials);
@@ -22,6 +22,11 @@ export async function signupAction(credentials: z.infer<typeof signupSchema>) {
   }
 
   const { name, email, password, secretCode } = validation.data;
+
+  if (!SECRET_CODE) {
+    console.error('SECRET_KEY environment variable is not set.');
+    return { success: false, message: 'Server configuration error.' };
+  }
 
   if (secretCode !== SECRET_CODE) {
     return { success: false, message: 'Invalid secret code.' };
