@@ -194,9 +194,18 @@ function OrdersTable({
               return (
               <TableRow key={order.id}>
                 <TableCell>
-                  <div className="font-medium">{order.shippingAddress.fullName}</div>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="font-medium cursor-pointer">{order.shippingAddress.fullName}</div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Customer ID: {order.user}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   <div className="hidden text-sm text-muted-foreground md:inline">
-                    {order.user}
+                    {order._id}
                   </div>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
