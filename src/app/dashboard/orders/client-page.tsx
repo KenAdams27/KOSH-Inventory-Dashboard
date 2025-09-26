@@ -102,6 +102,10 @@ function OrderDetailsDialog({ order }: { order: Order }) {
             {order.shippingAddress.city}, {order.shippingAddress.pincode}
           </div>
         </div>
+         <div className="space-y-2">
+            <h4 className="font-medium">Customer ID</h4>
+            <div className="text-sm text-muted-foreground">{order.user}</div>
+        </div>
         <div className="space-y-2">
            <h4 className="font-medium">Items Ordered</h4>
             <TooltipProvider>
@@ -194,16 +198,7 @@ function OrdersTable({
               return (
               <TableRow key={order.id}>
                 <TableCell>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="font-medium cursor-pointer">{order.shippingAddress.fullName}</div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Customer ID: {order.user}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <div className="font-medium">{order.shippingAddress.fullName}</div>
                   <div className="hidden text-sm text-muted-foreground md:inline">
                     {order._id}
                   </div>
@@ -335,7 +330,7 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
       const query = searchQuery.toLowerCase();
       return (
         order.shippingAddress.fullName.toLowerCase().includes(query) ||
-        order.id.toLowerCase().includes(query)
+        order._id.toLowerCase().includes(query)
       );
     });
 
@@ -377,5 +372,3 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
     </>
   );
 }
-
-    
