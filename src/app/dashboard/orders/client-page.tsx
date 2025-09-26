@@ -89,19 +89,10 @@ function OrderDetailsDialog({ order }: { order: Order }) {
       <DialogHeader>
         <DialogTitle>Order Details</DialogTitle>
         <DialogDescription>
-          Viewing details for order ID: {order.id.slice(-6)}
+          Viewing details for order ID: {order._id}
         </DialogDescription>
       </DialogHeader>
       <div className="grid gap-4 py-4">
-        <div className="space-y-2">
-          <h4 className="font-medium">ID Information</h4>
-           <div className="text-sm text-muted-foreground grid grid-cols-3 gap-2">
-                <span className="font-medium col-span-1">MongoDB ID:</span>
-                <span className="col-span-2 truncate">{order._id}</span>
-                <span className="font-medium col-span-1">App ID:</span>
-                <span className="col-span-2 truncate">{order.id}</span>
-          </div>
-        </div>
         <div className="space-y-2">
           <h4 className="font-medium">Shipping Information</h4>
           <div className="text-sm text-muted-foreground">
@@ -377,3 +368,5 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
     </>
   );
 }
+
+    
