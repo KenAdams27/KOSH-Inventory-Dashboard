@@ -37,7 +37,7 @@ export async function loginAction(credentials: z.infer<typeof loginSchema>) {
     }
 
     if (!user.password) {
-        const { password, ...userWithoutPassword } = user;
+        const { password: userPassword, ...userWithoutPassword } = user;
         console.error('[loginAction] User found, but has no password field. User data:', userWithoutPassword);
         return { success: false, message: 'Invalid email or password.' };
     }
@@ -45,7 +45,7 @@ export async function loginAction(credentials: z.infer<typeof loginSchema>) {
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-       const { password, ...userWithoutPassword } = user;
+       const { password: userPassword, ...userWithoutPassword } = user;
        console.error('[loginAction] User found, but password validation failed. User data:', userWithoutPassword);
       return { success: false, message: 'Invalid email or password.' };
     }
