@@ -64,6 +64,7 @@ export async function signupAction(credentials: z.infer<typeof signupSchema>) {
 
   } catch (error) {
     console.error('[signupAction] Error:', error);
-    return { success: false, message: 'An internal server error occurred.' };
+    const message = error instanceof Error ? error.message : 'An unknown error occurred.';
+    return { success: false, message };
   }
 }
