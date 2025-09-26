@@ -56,6 +56,7 @@ export async function signupAction(credentials: z.infer<typeof signupSchema>) {
     await db.collection('AdminUsers').insertOne({
       name,
       email,
+      username: email, // Use email as username to satisfy unique index
       password: hashedPassword,
       createdAt: new Date(),
     });
@@ -64,7 +65,13 @@ export async function signupAction(credentials: z.infer<typeof signupSchema>) {
 
   } catch (error) {
     console.error('[signupAction] Error:', error);
-    const message = error instanceof Error ? error.message : 'An unknown error occurred.';
-    return { success: false, message };
+    if (error instanceof Error) {
+        // Handle potential duplicate key errors on username more gracefully
+        if (error.message.includes('E11000')) {
+             return { success: false, message: 'An account with this email or username already exists.' };
+        }
+        return { success: false, message: error.message };
+    }
+    return { success: false, message: 'An unknown error occurred during sign-up.' };
   }
 }
