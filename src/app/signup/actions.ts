@@ -9,7 +9,10 @@ const signupSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters long').trim(),
   email: z.string().email('Please provide a valid email address').toLowerCase(),
   password: z.string().min(8, 'Password must be at least 8 characters long'),
+  secretCode: z.string().length(4, 'Secret code must be 4 digits'),
 });
+
+const SECRET_CODE = '2757';
 
 export async function signupAction(credentials: z.infer<typeof signupSchema>) {
   const validation = signupSchema.safeParse(credentials);
@@ -18,7 +21,11 @@ export async function signupAction(credentials: z.infer<typeof signupSchema>) {
     return { success: false, message: `Invalid data provided: ${errorMessages}` };
   }
 
-  const { name, email, password } = validation.data;
+  const { name, email, password, secretCode } = validation.data;
+
+  if (secretCode !== SECRET_CODE) {
+    return { success: false, message: 'Invalid secret code.' };
+  }
 
   try {
     if (!clientPromise) {

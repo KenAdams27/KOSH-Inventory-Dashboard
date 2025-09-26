@@ -34,6 +34,7 @@ const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Please enter a valid email." }),
   password: z.string().min(8, { message: "Password must be at least 8 characters." }),
+  secretCode: z.string().length(4, { message: "Secret code must be 4 digits." }),
 });
 
 
@@ -47,6 +48,7 @@ export default function SignupPage() {
       name: "",
       email: "",
       password: "",
+      secretCode: "",
     },
   });
 
@@ -132,6 +134,19 @@ export default function SignupPage() {
                       <FormLabel>Password</FormLabel>
                       <FormControl>
                         <Input placeholder="••••••••" type="password" {...field} disabled={isLoading} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="secretCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Secret Code</FormLabel>
+                      <FormControl>
+                        <Input placeholder="••••" type="password" {...field} disabled={isLoading} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
