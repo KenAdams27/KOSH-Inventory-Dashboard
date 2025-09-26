@@ -29,31 +29,28 @@ export async function loginAction(credentials: z.infer<typeof loginSchema>) {
     }
     const db = client.db(dbName);
     
-    // Use a case-insensitive regex for the email lookup in the AdminUsers collection
     const user = await db.collection('AdminUsers').findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
 
-    if (!user || !user.password) {
-      if (user) {
-        // For debugging: log user if found but password check fails, excluding password.
-        const { password, ...userWithoutPassword } = user;
-        console.error('[loginAction] User found, but password validation failed. User data:', userWithoutPassword);
-      } else {
-        console.error('[loginAction] No user found for email:', email);
-      }
+    if (!user) {
+      console.error('[loginAction] No user found for email:', email);
       return { success: false, message: 'Invalid email or password.' };
+    }
+
+    if (!user.password) {
+        const { password, ...userWithoutPassword } = user;
+        console.error('[loginAction] User found, but has no password field. User data:', userWithoutPassword);
+        return { success: false, message: 'Invalid email or password.' };
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-       // For debugging: log user if found but password check fails, excluding password.
        const { password, ...userWithoutPassword } = user;
        console.error('[loginAction] User found, but password validation failed. User data:', userWithoutPassword);
       return { success: false, message: 'Invalid email or password.' };
     }
 
-    // Here you would typically create a session, set a cookie, etc.
-    // For now, we just return success.
+    // Password is valid, return success
     return { success: true, message: 'Login successful!' };
 
   } catch (error) {
