@@ -4,6 +4,8 @@ import type { Order } from "@/lib/types";
 import { OrdersClientPage } from "./client-page";
 import { ObjectId } from "mongodb";
 
+export const dynamic = 'force-dynamic';
+
 async function getOrders(): Promise<Order[]> {
   if (!clientPromise) {
     console.warn('MongoDB client is not available. No orders will be fetched.');

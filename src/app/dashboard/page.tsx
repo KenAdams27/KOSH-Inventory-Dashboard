@@ -14,6 +14,8 @@ import { RevenueChart } from '@/components/dashboard/revenue-chart';
 import { RecentSales } from '@/components/dashboard/recent-sales';
 import { DownloadOrders } from '@/components/dashboard/download-orders';
 
+export const dynamic = 'force-dynamic';
+
 async function getOrders(): Promise<Order[]> {
   if (!clientPromise) {
     return [];

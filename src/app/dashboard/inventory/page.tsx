@@ -2,6 +2,7 @@ import { InventoryClientPage } from "./client-page";
 import clientPromise from "@/lib/mongodb";
 import type { Product } from "@/lib/types";
 
+export const dynamic = 'force-dynamic';
 
 async function getProducts(): Promise<Product[]> {
   if (!clientPromise) {

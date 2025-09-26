@@ -4,6 +4,8 @@ import clientPromise from "@/lib/mongodb";
 import type { Customer, Order } from "@/lib/types";
 import { ObjectId } from "mongodb";
 
+export const dynamic = 'force-dynamic';
+
 async function getCustomers(): Promise<Customer[]> {
   if (!clientPromise) {
     console.warn('MongoDB client is not available. No customers will be fetched.');
@@ -94,7 +96,7 @@ async function getOrders(): Promise<Order[]> {
     });
     
     return orders;
-  } catch (error) {
+  } catch (error) => {
     console.error("[getOrders customers] Failed to fetch orders:", error);
     return [];
   }
