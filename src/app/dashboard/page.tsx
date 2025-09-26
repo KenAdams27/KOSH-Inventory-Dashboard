@@ -18,34 +18,53 @@ export const dynamic = 'force-dynamic';
 
 async function getOrders(): Promise<Order[]> {
   if (!clientPromise) {
+    console.warn('MongoDB client is not available. No orders will be fetched.');
     return [];
   }
   try {
     const client = await clientPromise;
     const dbName = process.env.DB_NAME;
+
     if (!dbName) {
       throw new Error('DB_NAME environment variable is not set.');
     }
-    const db = client.db(dbName);
-    const ordersFromDb = await db.collection("orders").find({}).sort({ createdAt: -1 }).toArray();
 
+    const db = client.db(dbName);
+    const ordersFromDb = await db
+      .collection("orders")
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
+      
     // Manually map and convert all ObjectIDs to strings, including nested ones.
-    return ordersFromDb.map((order: any) => {
-        const { _id, user, orderItems, ...rest } = order;
-        return {
-            ...rest,
-            _id: _id.toHexString(), // Store the raw ObjectId as a string
-            id: _id.toString(),
-            user: user.toString(),
-            orderItems: orderItems.map((item: any) => {
-                const { _id: item_id, ...restOfItem } = item;
-                return {
-                  ...restOfItem,
-                  itemId: restOfItem.itemId ? restOfItem.itemId.toString() : undefined,
-                };
-            }),
-        } as Order;
+    const orders = ordersFromDb.map((order) => {
+      const { _id, user, orderItems, ...rest } = order;
+      return {
+        ...rest,
+        _id: _id.toHexString(),   // Store the raw ObjectId as a string
+        id: _id.toString(),
+        user: user.toString(),
+        orderItems: orderItems.map((item: any) => {
+          // Ensure item is a plain object without complex types
+          const { _id: item_id, ...restOfItem } = item;
+          const plainItem: any = {
+            name: restOfItem.name,
+            price: restOfItem.price,
+            quantity: restOfItem.quantity,
+          };
+          if (restOfItem.image) plainItem.image = restOfItem.image;
+          if (restOfItem.size) plainItem.size = restOfItem.size;
+          // Check for 'item' or 'itemId' and convert if it's an ObjectId
+          if (restOfItem.item && restOfItem.item.toString) plainItem.itemId = restOfItem.item.toString();
+          if (restOfItem.itemId && restOfItem.itemId.toString) plainItem.itemId = restOfItem.itemId.toString();
+          
+          return plainItem;
+        }),
+      } as Order;
     });
+
+    return orders;
+
   } catch (error) {
     console.error("[getOrders dashboard] Failed to fetch orders:", error);
     return [];
@@ -65,8 +84,9 @@ async function getProducts(): Promise<Product[]> {
     }
     const db = client.db(dbName);
     const productsFromDb = await db.collection("items").find({}).toArray();
+
     // Manually map and convert all ObjectIDs to strings to ensure serializable data.
-    const products = productsFromDb.map((product: any) => ({
+    const products = JSON.parse(JSON.stringify(productsFromDb)).map((product: any) => ({
       ...product,
       id: product._id.toString(),
     }));
