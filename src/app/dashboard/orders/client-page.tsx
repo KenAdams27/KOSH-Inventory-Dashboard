@@ -80,22 +80,23 @@ const statusStyles: Record<OrderStatus, string> = {
 
 
 // Helper function to generate a single shipping label page
-const generateLabelPage = (doc: jsPDF, order: Order) => {
+const generateLabelPage = (doc: jsPDF, order: Order, yOffset: number = 10) => {
     const { shippingAddress } = order;
+    const labelHeight = 50;
 
     doc.setProperties({
         title: `Shipping Label - ${order.id}`,
     });
-    doc.rect(10, 10, 190, 50);
+    doc.rect(10, yOffset, 190, labelHeight);
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text("Shipping Label", 105, 20, { align: 'center' });
+    doc.text("Shipping Label", 105, yOffset + 10, { align: 'center' });
     doc.setLineDashPattern([1, 1], 0);
-    doc.line(10, 25, 200, 25);
+    doc.line(10, yOffset + 15, 200, yOffset + 15);
     doc.setLineDashPattern([], 0);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text("FROM:", 15, 30);
+    doc.text("FROM:", 15, yOffset + 20);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(12);
     const fromAddress = [
@@ -105,10 +106,10 @@ const generateLabelPage = (doc: jsPDF, order: Order) => {
       "Off University Road",
       "Udaipur 313001"
     ];
-    doc.text(fromAddress, 15, 35);
+    doc.text(fromAddress, 15, yOffset + 25, { lineHeightFactor: 1.2 });
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text("TO:", 110, 30);
+    doc.text("TO:", 110, yOffset + 20);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(12);
     const customerAddress = [
@@ -117,7 +118,9 @@ const generateLabelPage = (doc: jsPDF, order: Order) => {
         `${shippingAddress.city}, ${shippingAddress.pincode}`,
         `Contact: ${shippingAddress.phone}`
     ];
-    doc.text(customerAddress, 110, 37);
+    doc.text(customerAddress, 110, yOffset + 27, { lineHeightFactor: 1.2 });
+
+    return yOffset + labelHeight;
 };
 
 
@@ -416,12 +419,18 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
         }
 
         const doc = new jsPDF();
+        const labelHeight = 50;
+        const gap = 15;
+        let yOffset = 10;
 
         placedOrders.forEach((order, index) => {
-            if (index > 0) {
+            const pageHeight = doc.internal.pageSize.height;
+            if (yOffset + labelHeight > pageHeight) {
                 doc.addPage();
+                yOffset = 10; // Reset Y offset for the new page
             }
-            generateLabelPage(doc, order);
+            generateLabelPage(doc, order, yOffset);
+            yOffset += labelHeight + gap;
         });
 
         doc.save(`shipping-labels-placed-page-${currentPage}.pdf`);
