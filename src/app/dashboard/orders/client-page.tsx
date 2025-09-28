@@ -19,6 +19,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import {
   Dialog,
@@ -207,26 +208,19 @@ function OrderDetailsDialog({ order }: { order: Order }) {
 }
 
 function OrdersTable({ 
-  status, 
   orders,
   onViewDetails,
   onStatusChange,
   onDeleteOrder
 }: { 
-  status: "all" | OrderStatus, 
   orders: Order[],
   onViewDetails: (order: Order) => void,
   onStatusChange: (orderId: string, newStatus: OrderStatus) => void,
   onDeleteOrder: (orderId: string) => void
 }) {
 
-  const filteredOrders = orders.filter(order => {
-    if (status === 'all') return true;
-    return order.status === status;
-  });
-
   return (
-    <Card>
+    <>
       <CardContent className="p-0">
         <Table>
           <TableHeader>
@@ -239,7 +233,7 @@ function OrdersTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredOrders.map(order => {
+            {orders.map(order => {
               const currentStatus = order.status;
               return (
               <TableRow key={order.id}>
@@ -317,7 +311,7 @@ function OrdersTable({
           </TableBody>
         </Table>
       </CardContent>
-    </Card>
+    </>
   );
 }
 
@@ -327,10 +321,17 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
+    const [activeTab, setActiveTab] = useState<"all" | OrderStatus>("all");
+    const [currentPage, setCurrentPage] = useState(1);
+    const ordersPerPage = 10;
 
      useEffect(() => {
         setOrders(initialOrders);
     }, [initialOrders]);
+    
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeTab, searchQuery]);
 
     const handleViewDetails = (order: Order) => {
         setSelectedOrder(order);
@@ -381,18 +382,37 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
 
     const searchFilteredOrders = orders.filter(order => {
       const query = searchQuery.toLowerCase();
-      return (
+      const tabFilter = activeTab === 'all' || order.status === activeTab;
+      const searchFilter = 
         order.shippingAddress.fullName.toLowerCase().includes(query) ||
-        order.id.toLowerCase().includes(query)
-      );
+        order.id.toLowerCase().includes(query);
+      return tabFilter && searchFilter;
     });
+    
+    const indexOfLastOrder = currentPage * ordersPerPage;
+    const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
+    const currentOrders = searchFilteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
+    const totalPages = Math.ceil(searchFilteredOrders.length / ordersPerPage);
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(currentPage + 1);
+        }
+    };
+
+    const handlePrevPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        }
+    };
+
 
   return (
     <>
       <PageHeader title="Orders" description="View and manage all customer orders." />
       
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <Tabs defaultValue="all">
+        <Tabs defaultValue="all" onValueChange={(value) => setActiveTab(value as any)}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <TabsList className="grid w-full grid-cols-4 sm:w-auto sm:grid-cols-4">
               <TabsTrigger value="all">All</TabsTrigger>
@@ -411,18 +431,40 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
               />
             </div>
           </div>
-          <TabsContent value="all">
-            <OrdersTable status="all" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} onDeleteOrder={handleDeleteOrder} />
-          </TabsContent>
-          <TabsContent value="placed">
-            <OrdersTable status="placed" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} onDeleteOrder={handleDeleteOrder} />
-          </TabsContent>
-          <TabsContent value="dispatched">
-            <OrdersTable status="dispatched" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} onDeleteOrder={handleDeleteOrder} />
-          </TabsContent>
-          <TabsContent value="delivered">
-            <OrdersTable status="delivered" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} onDeleteOrder={handleDeleteOrder} />
-          </TabsContent>
+           <Card>
+            <OrdersTable 
+                orders={currentOrders} 
+                onViewDetails={handleViewDetails} 
+                onStatusChange={handleStatusChange} 
+                onDeleteOrder={handleDeleteOrder} 
+            />
+            <CardFooter className="flex items-center justify-between pt-6">
+                <div className="text-xs text-muted-foreground">
+                    Showing <strong>{indexOfFirstOrder + 1}-{Math.min(indexOfLastOrder, searchFilteredOrders.length)}</strong> of <strong>{searchFilteredOrders.length}</strong> orders
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePrevPage}
+                        disabled={currentPage === 1}
+                    >
+                        Previous
+                    </Button>
+                     <span className="text-sm text-muted-foreground">
+                        Page {currentPage} of {totalPages > 0 ? totalPages : 1}
+                    </span>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages || totalPages === 0}
+                    >
+                        Next
+                    </Button>
+                </div>
+            </CardFooter>
+          </Card>
         </Tabs>
         {selectedOrder && <OrderDetailsDialog order={selectedOrder} />}
       </Dialog>
