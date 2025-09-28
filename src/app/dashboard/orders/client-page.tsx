@@ -2,8 +2,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MoreHorizontal, Search } from "lucide-react";
+import { MoreHorizontal, Search, Download } from "lucide-react";
 import { format } from "date-fns";
+import jsPDF from 'jspdf';
+
 
 import type { Order } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +26,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -84,12 +87,32 @@ function OrderDetailsDialog({ order }: { order: Order }) {
   };
   const status = getStatus(order);
 
+  const handleDownloadPdf = () => {
+    const doc = new jsPDF();
+    const { shippingAddress } = order;
+
+    doc.setFontSize(16);
+    doc.text("Order Details", 14, 22);
+
+    doc.setFontSize(12);
+    doc.text(`Customer Name: ${shippingAddress.fullName}`, 14, 32);
+    
+    const shippingInfo = `Shipping Address: ${shippingAddress.address}, ${shippingAddress.city}, ${shippingAddress.pincode}`;
+    const splitShipping = doc.splitTextToSize(shippingInfo, 180);
+    doc.text(splitShipping, 14, 42);
+
+    const phoneYPos = 42 + (splitShipping.length * 5); // Adjust Y position based on lines in address
+    doc.text(`Contact Number: ${shippingAddress.phone}`, 14, phoneYPos);
+
+    doc.save(`order_${order.id}.pdf`);
+  };
+
   return (
     <DialogContent className="sm:max-w-lg">
       <DialogHeader>
         <DialogTitle>Order Details</DialogTitle>
         <DialogDescription>
-          Viewing details for order ID: {order._id}
+          Viewing details for order ID: {order.id}
         </DialogDescription>
       </DialogHeader>
       <div className="grid gap-4 py-4">
@@ -148,6 +171,12 @@ function OrderDetailsDialog({ order }: { order: Order }) {
         </div>
 
       </div>
+       <DialogFooter>
+          <Button variant="outline" size="sm" onClick={handleDownloadPdf}>
+            <Download className="mr-2 h-4 w-4" />
+            Download PDF
+          </Button>
+        </DialogFooter>
     </DialogContent>
   );
 }
@@ -198,10 +227,19 @@ function OrdersTable({
               return (
               <TableRow key={order.id}>
                 <TableCell>
-                    <div className="font-medium">{order.shippingAddress.fullName}</div>
-                    <div className="hidden text-sm text-muted-foreground md:inline">
-                        {order._id}
-                    </div>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="font-medium cursor-pointer">{order.shippingAddress.fullName}</div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Customer ID: {order.user}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <div className="hidden text-sm text-muted-foreground md:inline">
+                      {order.id}
+                  </div>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
                   <Badge className={`border-none relative -left-px ${statusStyles[currentStatus]}`} variant="secondary">
@@ -330,7 +368,7 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
       const query = searchQuery.toLowerCase();
       return (
         order.shippingAddress.fullName.toLowerCase().includes(query) ||
-        order._id.toLowerCase().includes(query)
+        order.id.toLowerCase().includes(query)
       );
     });
 
