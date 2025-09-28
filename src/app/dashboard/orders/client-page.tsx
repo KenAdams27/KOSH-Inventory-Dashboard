@@ -102,7 +102,7 @@ function OrderDetailsDialog({ order }: { order: Order }) {
     // Add Title
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text("Shipping Label", 105, 20, { align: 'center' });
+    doc.text("Shipping Details", 105, 20, { align: 'center' });
 
     // Add "From" section
     doc.setFontSize(10);
@@ -110,7 +110,7 @@ function OrderDetailsDialog({ order }: { order: Order }) {
     doc.text("FROM:", 15, 30);
     doc.setFont('helvetica', 'normal');
     doc.text("KUNAL ENTERPRISES", 15, 35);
-    doc.text("Warehouse Address, City, 12345", 15, 40);
+    doc.text("Udaipur, Rajasthan", 15, 40);
 
 
     // Add "To" section
