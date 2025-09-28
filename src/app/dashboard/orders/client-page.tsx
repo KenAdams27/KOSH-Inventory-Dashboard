@@ -91,16 +91,16 @@ function OrderDetailsDialog({ order }: { order: Order }) {
         title: `Shipping Label - ${order.id}`,
     });
 
-    // Add a border for the label - increased height for new address
-    doc.rect(10, 10, 190, 110); // x, y, width, height
+    // Add a border for the label - reduced height
+    doc.rect(10, 10, 190, 80); // x, y, width, height
 
     // Add Title
-    doc.setFontSize(18);
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text("Shipping Label", 105, 20, { align: 'center' });
 
     // Add "From" section
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.text("FROM:", 15, 30);
     doc.setFont('helvetica', 'normal');
@@ -114,24 +114,24 @@ function OrderDetailsDialog({ order }: { order: Order }) {
     doc.text(fromAddress, 15, 35);
 
 
-    // Add "To" section - moved down
-    doc.setFontSize(12);
+    // Add "To" section
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text("TO:", 15, 75);
+    doc.text("TO:", 110, 30);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(14);
+    doc.setFontSize(12);
     const customerAddress = [
         shippingAddress.fullName,
         shippingAddress.address,
         `${shippingAddress.city}, ${shippingAddress.pincode}`,
         `Contact: ${shippingAddress.phone}`
     ];
-    doc.text(customerAddress, 15, 82);
+    doc.text(customerAddress, 110, 37);
 
 
-    // Add a separator line - moved down
+    // Add a separator line
     doc.setLineDashPattern([1, 1], 0);
-    doc.line(10, 65, 200, 65); // x1, y1, x2, y2
+    doc.line(10, 25, 200, 25); 
     doc.setLineDashPattern([], 0);
 
 
