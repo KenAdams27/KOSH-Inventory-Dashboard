@@ -91,20 +91,51 @@ function OrderDetailsDialog({ order }: { order: Order }) {
     const doc = new jsPDF();
     const { shippingAddress } = order;
 
-    doc.setFontSize(16);
-    doc.text("Order Details", 14, 22);
+    // Set document properties
+    doc.setProperties({
+        title: `Shipping Label - ${order.id}`,
+    });
 
+    // Add a border for the label
+    doc.rect(10, 10, 190, 80); // x, y, width, height
+
+    // Add Title
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text("Shipping Label", 105, 20, { align: 'center' });
+
+    // Add "From" section
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text("FROM:", 15, 30);
+    doc.setFont('helvetica', 'normal');
+    doc.text("KUNAL ENTERPRISES", 15, 35);
+    doc.text("Warehouse Address, City, 12345", 15, 40);
+
+
+    // Add "To" section
     doc.setFontSize(12);
-    doc.text(`Customer Name: ${shippingAddress.fullName}`, 14, 32);
-    
-    const shippingInfo = `Shipping Address: ${shippingAddress.address}, ${shippingAddress.city}, ${shippingAddress.pincode}`;
-    const splitShipping = doc.splitTextToSize(shippingInfo, 180);
-    doc.text(splitShipping, 14, 42);
+    doc.setFont('helvetica', 'bold');
+    doc.text("TO:", 15, 55);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(14);
+    const customerAddress = [
+        shippingAddress.fullName,
+        shippingAddress.address,
+        `${shippingAddress.city}, ${shippingAddress.pincode}`,
+        `Contact: ${shippingAddress.phone}`
+    ];
+    doc.text(customerAddress, 15, 62);
 
-    const phoneYPos = 42 + (splitShipping.length * 5); // Adjust Y position based on lines in address
-    doc.text(`Contact Number: ${shippingAddress.phone}`, 14, phoneYPos);
 
-    doc.save(`order_${order.id}.pdf`);
+    // Add a separator line
+    doc.setLineDashPattern([1, 1], 0);
+    doc.line(10, 45, 200, 45); // x1, y1, x2, y2
+    doc.setLineDashPattern([], 0);
+
+
+    // Save the PDF
+    doc.save(`shipping-label-${order.id}.pdf`);
   };
 
   return (
