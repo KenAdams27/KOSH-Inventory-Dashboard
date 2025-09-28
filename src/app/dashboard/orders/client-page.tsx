@@ -91,27 +91,33 @@ function OrderDetailsDialog({ order }: { order: Order }) {
         title: `Shipping Label - ${order.id}`,
     });
 
-    // Add a border for the label
-    doc.rect(10, 10, 190, 80); // x, y, width, height
+    // Add a border for the label - increased height for new address
+    doc.rect(10, 10, 190, 110); // x, y, width, height
 
     // Add Title
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text("Shipping Details", 105, 20, { align: 'center' });
+    doc.text("Shipping Label", 105, 20, { align: 'center' });
 
     // Add "From" section
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text("FROM:", 15, 30);
     doc.setFont('helvetica', 'normal');
-    doc.text("KUNAL ENTERPRISES", 15, 35);
-    doc.text("Udaipur, Rajasthan", 15, 40);
+    const fromAddress = [
+      "KUNAL Enterprises",
+      "House no 8,B road Ashok Vihar",
+      "Behind B.P Petrol Pump Sobhagpura 100ft Road",
+      "Off University Road",
+      "Udaipur 313001"
+    ];
+    doc.text(fromAddress, 15, 35);
 
 
-    // Add "To" section
+    // Add "To" section - moved down
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text("TO:", 15, 55);
+    doc.text("TO:", 15, 75);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(14);
     const customerAddress = [
@@ -120,12 +126,12 @@ function OrderDetailsDialog({ order }: { order: Order }) {
         `${shippingAddress.city}, ${shippingAddress.pincode}`,
         `Contact: ${shippingAddress.phone}`
     ];
-    doc.text(customerAddress, 15, 62);
+    doc.text(customerAddress, 15, 82);
 
 
-    // Add a separator line
+    // Add a separator line - moved down
     doc.setLineDashPattern([1, 1], 0);
-    doc.line(10, 45, 200, 45); // x1, y1, x2, y2
+    doc.line(10, 65, 200, 65); // x1, y1, x2, y2
     doc.setLineDashPattern([], 0);
 
 
