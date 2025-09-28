@@ -79,42 +79,33 @@ const statusStyles: Record<OrderStatus, string> = {
 };
 
 
-function OrderDetailsDialog({ order }: { order: Order }) {
-  const status = order.status;
-
-  const handleDownloadPdf = () => {
-    const doc = new jsPDF();
+// Helper function to generate a single shipping label page
+const generateLabelPage = (doc: jsPDF, order: Order) => {
     const { shippingAddress } = order;
 
-    // Set document properties
     doc.setProperties({
         title: `Shipping Label - ${order.id}`,
     });
-
-    // Add a border for the label - reduced height
-    doc.rect(10, 10, 190, 80); // x, y, width, height
-
-    // Add Title
+    doc.rect(10, 10, 190, 50);
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text("Shipping Label", 105, 20, { align: 'center' });
-
-    // Add "From" section
-    doc.setFontSize(9);
+    doc.setLineDashPattern([1, 1], 0);
+    doc.line(10, 25, 200, 25);
+    doc.setLineDashPattern([], 0);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text("FROM:", 15, 30);
     doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
     const fromAddress = [
       "KUNAL Enterprises",
       "House no 8,B road Ashok Vihar",
-      "Behind B.P Petrol Pump Sobhagpura 100ft Road",
+      "Behind B.P Petrol Pump  Sobhagpura 100ft Road",
       "Off University Road",
       "Udaipur 313001"
     ];
     doc.text(fromAddress, 15, 35);
-
-
-    // Add "To" section
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text("TO:", 110, 30);
@@ -127,15 +118,15 @@ function OrderDetailsDialog({ order }: { order: Order }) {
         `Contact: ${shippingAddress.phone}`
     ];
     doc.text(customerAddress, 110, 37);
+};
 
 
-    // Add a separator line
-    doc.setLineDashPattern([1, 1], 0);
-    doc.line(10, 25, 200, 25); 
-    doc.setLineDashPattern([], 0);
+function OrderDetailsDialog({ order }: { order: Order }) {
+  const status = order.status;
 
-
-    // Save the PDF
+  const handleDownloadPdf = () => {
+    const doc = new jsPDF();
+    generateLabelPage(doc, order);
     doc.save(`shipping-label-${order.id}.pdf`);
   };
 
@@ -412,6 +403,35 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
         }
     };
 
+    const handleBulkDownload = () => {
+        const placedOrders = currentOrders.filter(order => order.status === 'placed');
+
+        if (placedOrders.length === 0) {
+            toast({
+                variant: "destructive",
+                title: "No Placed Orders",
+                description: "There are no orders with 'placed' status on the current page to download.",
+            });
+            return;
+        }
+
+        const doc = new jsPDF();
+
+        placedOrders.forEach((order, index) => {
+            if (index > 0) {
+                doc.addPage();
+            }
+            generateLabelPage(doc, order);
+        });
+
+        doc.save(`shipping-labels-placed-page-${currentPage}.pdf`);
+
+        toast({
+            title: "Download Started",
+            description: `Generated a PDF with ${placedOrders.length} shipping label(s).`,
+        });
+    };
+
 
   return (
     <>
@@ -426,15 +446,21 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
               <TabsTrigger value="dispatched">Dispatched</TabsTrigger>
               <TabsTrigger value="delivered">Delivered</TabsTrigger>
             </TabsList>
-             <div className="relative w-full sm:w-auto">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search by name or ID..."
-                className="w-full rounded-lg bg-background pl-8 sm:w-64"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+             <div className="flex flex-col sm:flex-row items-center gap-2">
+                <div className="relative w-full sm:w-auto">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Search by name or ID..."
+                        className="w-full rounded-lg bg-background pl-8 sm:w-64"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+                <Button variant="outline" size="sm" onClick={handleBulkDownload} className="w-full sm:w-auto">
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Labels for Placed
+                </Button>
             </div>
           </div>
            <Card>
