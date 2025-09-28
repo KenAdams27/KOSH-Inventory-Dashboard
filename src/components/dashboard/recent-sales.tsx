@@ -22,23 +22,19 @@ import { Badge } from "../ui/badge";
 import { format } from "date-fns";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-type OrderStatus = "Pending" | "Delivered" | "Cancelled";
+type OrderStatus = 'placed' | 'dispatched' | 'delivered';
 
 const statusStyles: Record<OrderStatus, string> = {
-    Delivered: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
-    Pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300",
-    Cancelled: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300",
+    delivered: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
+    placed: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300",
+    dispatched: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300",
 };
 
 
 function OrderDetailsDialog({ order, open, onOpenChange }: { order: Order; open: boolean; onOpenChange: (open: boolean) => void }) {
   if (!order) return null;
 
-  const getStatus = (order: Order): OrderStatus => {
-    if (order.isDelivered) return 'Delivered';
-    return 'Pending';
-  };
-  const status = getStatus(order);
+  const status = order.status;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -61,7 +57,7 @@ function OrderDetailsDialog({ order, open, onOpenChange }: { order: Order; open:
             </div>
             <div className="space-y-2">
               <h4 className="font-medium">Items Ordered</h4>
-              <TooltipProvider delayDuration={100}>
+              <TooltipProvider delayDuration={0}>
                 {order.orderItems.map((item, index) => (
                   <div key={`${item.itemId}-${item.name}-${index}`} className="text-sm text-muted-foreground">
                     <Tooltip>
@@ -92,7 +88,7 @@ function OrderDetailsDialog({ order, open, onOpenChange }: { order: Order; open:
             </div>
             <div className="space-y-1">
                 <h4 className="font-medium">Status</h4>
-                <div className="text-sm"><Badge className={`border-none ${statusStyles[status]}`} variant="secondary">{status}</Badge></div>
+                <div className="text-sm"><Badge className={`border-none capitalize ${statusStyles[status]}`} variant="secondary">{status}</Badge></div>
             </div>
             <div className="space-y-1">
                 <h4 className="font-medium">Payment</h4>
@@ -169,5 +165,3 @@ export function RecentSales({ orders }: { orders: Order[] }) {
     </>
   );
 }
-
-    

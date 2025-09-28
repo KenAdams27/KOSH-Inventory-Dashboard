@@ -194,8 +194,8 @@ function CustomerDetailsDialog({ customer, orders }: { customer: Customer, order
                       <TableCell className="font-medium">{order.id.slice(-6)}</TableCell>
                       <TableCell className="hidden sm:table-cell">{format(new Date(order.createdAt), 'PPP')}</TableCell>
                       <TableCell className="hidden sm:table-cell">
-                        <Badge variant={order.isDelivered ? 'secondary' : 'default'}>
-                            {order.isDelivered ? 'Delivered' : 'Pending'}
+                        <Badge variant={order.status === 'delivered' ? 'secondary' : 'default'} className="capitalize">
+                            {order.status}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">₹{order.totalPrice.toFixed(2)}</TableCell>

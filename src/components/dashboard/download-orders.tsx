@@ -67,7 +67,7 @@ export function DownloadOrders({ orders }: { orders: Order[] }) {
       order.totalPrice,
       order.paymentMethod,
       order.isPaid ? "Paid" : "Unpaid",
-      order.isDelivered ? "Delivered" : "Pending"
+      order.status,
     ]);
 
     let csvContent = "data:text/csv;charset=utf-8," 

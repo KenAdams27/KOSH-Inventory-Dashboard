@@ -38,12 +38,22 @@ async function getOrders(): Promise<Order[]> {
       
     // Manually map and convert all ObjectIDs to strings, including nested ones.
     const orders = ordersFromDb.map((order) => {
-      const { _id, user, orderItems, ...rest } = order;
+      const { _id, user, orderItems, isDelivered, ...rest } = order;
+
+      // Backward compatibility for old schema
+      let status: 'placed' | 'dispatched' | 'delivered' = 'placed';
+      if (order.status) {
+        status = order.status;
+      } else if (isDelivered) {
+        status = 'delivered';
+      }
+
       return {
         ...rest,
         _id: _id.toHexString(),   // Store the raw ObjectId as a string
         id: _id.toString(),
         user: user.toString(),
+        status: status,
         orderItems: orderItems.map((item: any) => {
           // Ensure item is a plain object without complex types
           const { _id: item_id, ...restOfItem } = item;
@@ -127,8 +137,8 @@ export default async function DashboardHomePage() {
   
   const totalInventory = products.length;
 
-  const currentMonthPendingOrders = currentMonthOrders.filter((o) => !o.isDelivered).length;
-  const previousMonthPendingOrders = previousMonthOrders.filter((o) => !o.isDelivered).length;
+  const currentMonthPendingOrders = currentMonthOrders.filter((o) => o.status !== 'delivered').length;
+  const previousMonthPendingOrders = previousMonthOrders.filter((o) => o.status !== 'delivered').length;
 
   const calculatePercentageChange = (current: number, previous: number) => {
     if (previous === 0) {
@@ -139,7 +149,7 @@ export default async function DashboardHomePage() {
   
   const totalRevenue = orders.reduce((acc, order) => acc + order.totalPrice, 0);
   const totalOrders = orders.length;
-  const pendingOrders = orders.filter((o) => !o.isDelivered).length;
+  const pendingOrders = orders.filter((o) => o.status !== 'delivered').length;
 
   const revenuePercentageChange = calculatePercentageChange(currentMonthRevenue, previousMonthRevenue);
   const ordersPercentageChange = calculatePercentageChange(currentMonthTotalOrders, previousMonthTotalOrders);

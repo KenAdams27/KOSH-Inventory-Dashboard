@@ -68,24 +68,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-type OrderStatus = "Pending" | "Delivered" | "Cancelled";
-type MappedStatus = "isDelivered" | "isPending" | "isCancelled";
+type OrderStatus = "placed" | "dispatched" | "delivered";
 
 
 const statusStyles: Record<OrderStatus, string> = {
-    Delivered: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
-    Pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300",
-    Cancelled: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300",
+    delivered: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
+    placed: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300",
+    dispatched: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300",
 };
 
 
 function OrderDetailsDialog({ order }: { order: Order }) {
-  const getStatus = (order: Order): OrderStatus => {
-    if (order.isDelivered) return 'Delivered';
-    // Simplified logic: If not delivered, it's pending. Real app might have 'cancelled'.
-    return 'Pending'; 
-  };
-  const status = getStatus(order);
+  const status = order.status;
 
   const handleDownloadPdf = () => {
     const doc = new jsPDF();
@@ -162,7 +156,7 @@ function OrderDetailsDialog({ order }: { order: Order }) {
         </div>
         <div className="space-y-2">
            <h4 className="font-medium">Items Ordered</h4>
-            <TooltipProvider delayDuration={100}>
+            <TooltipProvider delayDuration={0}>
               {order.orderItems.map((item, index) => (
                 <div key={`${item.itemId}-${item.name}-${index}`} className="text-sm text-muted-foreground">
                   <Tooltip>
@@ -193,7 +187,7 @@ function OrderDetailsDialog({ order }: { order: Order }) {
           </div>
           <div className="space-y-1">
             <h4 className="font-medium">Status</h4>
-            <Badge className={`border-none relative -left-px ${statusStyles[status]}`} variant="secondary">{status}</Badge>
+            <Badge className={`border-none relative -left-px ${statusStyles[status]} capitalize`} variant="secondary">{status}</Badge>
           </div>
            <div className="space-y-1">
             <h4 className="font-medium">Payment</h4>
@@ -219,24 +213,16 @@ function OrdersTable({
   onStatusChange,
   onDeleteOrder
 }: { 
-  status: "All" | MappedStatus, 
+  status: "all" | OrderStatus, 
   orders: Order[],
   onViewDetails: (order: Order) => void,
   onStatusChange: (orderId: string, newStatus: OrderStatus) => void,
   onDeleteOrder: (orderId: string) => void
 }) {
 
-  const getOrderStatus = (order: Order): OrderStatus => {
-    // Simplified: No 'Cancelled' state in new schema
-    return order.isDelivered ? 'Delivered' : 'Pending';
-  };
-
   const filteredOrders = orders.filter(order => {
-    if (status === 'All') return true;
-    if (status === 'isDelivered') return order.isDelivered;
-    if (status === 'isPending') return !order.isDelivered;
-    // Add isCancelled logic if schema supports it
-    return false;
+    if (status === 'all') return true;
+    return order.status === status;
   });
 
   return (
@@ -254,7 +240,7 @@ function OrdersTable({
           </TableHeader>
           <TableBody>
             {filteredOrders.map(order => {
-              const currentStatus = getOrderStatus(order);
+              const currentStatus = order.status;
               return (
               <TableRow key={order.id}>
                 <TableCell>
@@ -273,7 +259,7 @@ function OrdersTable({
                   </div>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
-                  <Badge className={`border-none relative -left-px ${statusStyles[currentStatus]}`} variant="secondary">
+                  <Badge className={`border-none relative -left-px ${statusStyles[currentStatus]} capitalize`} variant="secondary">
                     {currentStatus}
                   </Badge>
                 </TableCell>
@@ -298,9 +284,9 @@ function OrdersTable({
                         <DropdownMenuSub>
                            <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
                            <DropdownMenuSubContent>
-                                <DropdownMenuItem onClick={() => onStatusChange(order.id, 'Delivered')}>Delivered</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onStatusChange(order.id, 'Pending')}>Pending</DropdownMenuItem>
-                                {/* Add Cancelled logic if schema supports it */}
+                                <DropdownMenuItem onClick={() => onStatusChange(order.id, 'placed')}>Placed</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onStatusChange(order.id, 'dispatched')}>Dispatched</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onStatusChange(order.id, 'delivered')}>Delivered</DropdownMenuItem>
                            </DropdownMenuSubContent>
                         </DropdownMenuSub>
                         <DropdownMenuSeparator />
@@ -352,16 +338,14 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
     };
 
     const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
-      const isDelivered = newStatus === 'Delivered';
-
       // Optimistically update the UI
       setOrders(prevOrders => 
         prevOrders.map(order => 
-          order.id === orderId ? { ...order, isDelivered, deliveredAt: isDelivered ? new Date().toISOString() : undefined } : order
+          order.id === orderId ? { ...order, status: newStatus, deliveredAt: newStatus === 'delivered' ? new Date().toISOString() : undefined } : order
         )
       );
 
-      const result = await updateOrderStatusAction(orderId, isDelivered);
+      const result = await updateOrderStatusAction(orderId, newStatus);
 
       if (result.success) {
         toast({
@@ -410,10 +394,11 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <Tabs defaultValue="all">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-            <TabsList className="grid w-full grid-cols-3 sm:w-auto sm:grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4 sm:w-auto sm:grid-cols-4">
               <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="isPending">Pending</TabsTrigger>
-              <TabsTrigger value="isDelivered">Delivered</TabsTrigger>
+              <TabsTrigger value="placed">Placed</TabsTrigger>
+              <TabsTrigger value="dispatched">Dispatched</TabsTrigger>
+              <TabsTrigger value="delivered">Delivered</TabsTrigger>
             </TabsList>
              <div className="relative w-full sm:w-auto">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -427,13 +412,16 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
             </div>
           </div>
           <TabsContent value="all">
-            <OrdersTable status="All" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} onDeleteOrder={handleDeleteOrder} />
+            <OrdersTable status="all" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} onDeleteOrder={handleDeleteOrder} />
           </TabsContent>
-          <TabsContent value="isPending">
-            <OrdersTable status="isPending" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} onDeleteOrder={handleDeleteOrder} />
+          <TabsContent value="placed">
+            <OrdersTable status="placed" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} onDeleteOrder={handleDeleteOrder} />
           </TabsContent>
-          <TabsContent value="isDelivered">
-            <OrdersTable status="isDelivered" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} onDeleteOrder={handleDeleteOrder} />
+          <TabsContent value="dispatched">
+            <OrdersTable status="dispatched" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} onDeleteOrder={handleDeleteOrder} />
+          </TabsContent>
+          <TabsContent value="delivered">
+            <OrdersTable status="delivered" orders={searchFilteredOrders} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} onDeleteOrder={handleDeleteOrder} />
           </TabsContent>
         </Tabs>
         {selectedOrder && <OrderDetailsDialog order={selectedOrder} />}

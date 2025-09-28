@@ -45,7 +45,7 @@ export type Order = {
   totalPrice: number;
   isPaid: boolean;
   paidAt?: string; // ISO date string
-  isDelivered: boolean;
+  status: 'placed' | 'dispatched' | 'delivered';
   deliveredAt?: string; // ISO date string
   createdAt: string; // ISO date string from timestamps
 };

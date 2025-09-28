@@ -28,12 +28,22 @@ async function getOrders(): Promise<Order[]> {
       
     // Manually map and convert all ObjectIDs to strings, including nested ones.
     const orders = ordersFromDb.map((order) => {
-      const { _id, user, orderItems, ...rest } = order;
+      const { _id, user, orderItems, isDelivered, ...rest } = order;
+      
+      // Backward compatibility for old schema
+      let status: 'placed' | 'dispatched' | 'delivered' = 'placed';
+      if (order.status) {
+        status = order.status;
+      } else if (isDelivered) {
+        status = 'delivered';
+      }
+
       return {
         ...rest,
         _id: _id.toHexString(),   // Store the raw ObjectId as a string
         id: _id.toString(),
         user: user.toString(),
+        status: status,
         orderItems: orderItems.map((item: any) => {
           const { _id: item_id, ...restOfItem } = item;
           const plainItem: any = {

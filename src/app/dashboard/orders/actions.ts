@@ -8,7 +8,7 @@ import clientPromise from '@/lib/mongodb';
 
 const updateOrderStatusSchema = z.object({
   orderId: z.string().min(1, 'Order ID is required'),
-  isDelivered: z.boolean(),
+  status: z.enum(['placed', 'dispatched', 'delivered']),
 });
 
 async function getDb() {
@@ -23,8 +23,8 @@ async function getDb() {
     return client.db(dbName);
 }
 
-export async function updateOrderStatusAction(orderId: string, isDelivered: boolean) {
-  const validation = updateOrderStatusSchema.safeParse({ orderId, isDelivered });
+export async function updateOrderStatusAction(orderId: string, status: 'placed' | 'dispatched' | 'delivered') {
+  const validation = updateOrderStatusSchema.safeParse({ orderId, status });
   if (!validation.success) {
     return { success: false, message: 'Invalid data.', errors: validation.error.flatten().fieldErrors };
   }
@@ -32,13 +32,22 @@ export async function updateOrderStatusAction(orderId: string, isDelivered: bool
   try {
     const db = await getDb();
     
+    const updatePayload: any = { 
+      status: status,
+      isDelivered: status === 'delivered'
+    };
+
+    if (status === 'delivered') {
+      updatePayload.deliveredAt = new Date().toISOString();
+    } else {
+      // If moving away from delivered, unset deliveredAt
+      updatePayload.deliveredAt = undefined;
+    }
+
     const result = await db.collection('orders').updateOne(
       { _id: new ObjectId(orderId) },
       { 
-        $set: { 
-          isDelivered: isDelivered,
-          deliveredAt: isDelivered ? new Date().toISOString() : undefined
-        } 
+        $set: updatePayload
       }
     );
 
@@ -71,5 +80,3 @@ export async function deleteOrderAction(orderId: string) {
         return { success: false, message: `Database Error: ${message}` };
     }
 }
-
-    
