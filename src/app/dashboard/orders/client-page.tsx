@@ -90,7 +90,7 @@ const generateLabelPage = (doc: jsPDF, order: Order, yOffset: number = 10) => {
     doc.rect(10, yOffset, 190, labelHeight);
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text("Shipping Label", 105, yOffset + 10, { align: 'center' });
+    doc.text(`Shipping Label (${order.id.substring(order.id.length - 4, order.id.length)})`, 105, yOffset + 10, { align: 'center' });
     doc.setLineDashPattern([1, 1], 0);
     doc.line(10, yOffset + 15, 200, yOffset + 15);
     doc.setLineDashPattern([], 0);
@@ -102,7 +102,7 @@ const generateLabelPage = (doc: jsPDF, order: Order, yOffset: number = 10) => {
     const fromAddress = [
       "KUNAL Enterprises",
       "House no 8,B road Ashok Vihar",
-      "Behind B.P Petrol Pump  Sobhagpura 100ft Road",
+      "Sobhagpura 100ft Road",
       "Off University Road",
       "Udaipur 313001"
     ];
