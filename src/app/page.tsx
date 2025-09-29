@@ -56,9 +56,7 @@ export default function LoginPage() {
         title: "Login Successful",
         description: "Redirecting to your dashboard...",
       });
-      // Instead of client-side push, reload the page.
-      // The middleware will handle the redirect to the dashboard.
-      router.refresh();
+      router.push('/dashboard');
     } else {
       toast({
         variant: "destructive",

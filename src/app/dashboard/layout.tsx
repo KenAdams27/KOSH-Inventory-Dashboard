@@ -19,7 +19,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { DashboardNav } from "@/components/dashboard/nav";
 import { ModeToggle } from "@/components/mode-toggle";
 import { AnimatedTitle } from "@/components/dashboard/animated-title";
-import { logoutAction } from "../actions";
 
 export default function DashboardLayout({
   children,
@@ -29,8 +28,7 @@ export default function DashboardLayout({
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const router = useRouter();
 
-  const handleLogout = async () => {
-    await logoutAction();
+  const handleLogout = () => {
     router.push('/');
   };
 

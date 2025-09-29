@@ -2,7 +2,6 @@
 'use server';
 
 import { z } from 'zod';
-import { cookies } from 'next/headers';
 import clientPromise from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
 
@@ -51,15 +50,6 @@ export async function loginAction(credentials: z.infer<typeof loginSchema>) {
       return { success: false, message: 'Invalid email or password.' };
     }
 
-    // Set session cookie
-    cookies().set('session', email, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24, // 1 day
-    });
-
     return { success: true, message: 'Login successful!' };
 
   } catch (error) {
@@ -69,5 +59,5 @@ export async function loginAction(credentials: z.infer<typeof loginSchema>) {
 }
 
 export async function logoutAction() {
-  cookies().delete('session');
+  // This function is no longer used for session management but is kept to prevent breaking imports.
 }
