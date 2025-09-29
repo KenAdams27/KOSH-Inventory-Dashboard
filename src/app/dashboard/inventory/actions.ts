@@ -27,7 +27,7 @@ const reviewSchema = z.object({
     title: z.string(),
     review: z.string(),
     image: z.string().optional(),
-    createdAt: z.string(),
+    createdAt: z.string().datetime(),
 });
 
 const baseProductSchema = z.object({
@@ -233,3 +233,5 @@ export async function updateProductWebsiteStatus(productId: string, onWebsite: b
         return { success: false, message: `Database Error: ${message}` };
     }
 }
+
+    

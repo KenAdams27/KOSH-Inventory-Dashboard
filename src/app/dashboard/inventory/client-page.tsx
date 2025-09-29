@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -82,7 +83,7 @@ const reviewSchema = z.object({
     title: z.string(),
     review: z.string(),
     image: z.string().optional(),
-    createdAt: z.string(),
+    createdAt: z.string().datetime(),
 });
 
 const productSchema = z.object({
@@ -234,7 +235,7 @@ function ProductForm({
                     </Select>
                 )}
             />
-            {form.formState.errors.subCategory && <p className="text-sm text-destructive">{form.formState.errors.subCategory.message as string}</p>}
+            {form.formState.errors.subCategory && <p className="text-sm text-destructive">{form.formaste.errors.subCategory.message as string}</p>}
         </div>
       </div>
 
@@ -426,7 +427,11 @@ function ProductDetailsDialog({ product }: { product: Product }) {
                             <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr_3fr] gap-4">
                                 <div className="space-y-2">
                                     <p className="font-semibold">{review.name}</p>
-                                    <p className="text-xs text-muted-foreground">{format(new Date(review.createdAt), 'PPP')}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {review.createdAt && !isNaN(new Date(review.createdAt).getTime()) 
+                                            ? format(new Date(review.createdAt), 'PPP') 
+                                            : 'Invalid date'}
+                                    </p>
                                 </div>
                                 <div className="space-y-2">
                                      <div className="flex items-center gap-2">
@@ -765,3 +770,5 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
+
+    
