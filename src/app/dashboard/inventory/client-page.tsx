@@ -420,17 +420,22 @@ function ProductDetailsDialog({ product }: { product: Product }) {
            <Separator />
 
             <div>
-                <h3 className="text-lg font-semibold mb-4">Customer Reviews</h3>
+                <h3 className="text-lg font-semibold mb-4">Latest Customer Reviews</h3>
                 {product.reviews && product.reviews.length > 0 ? (
                     <div className="space-y-6">
-                        {product.reviews.map((review, index) => (
+                        {product.reviews
+                        .slice(0,4)
+                        .sort((a, b) => new Date(b.date) - new Date(a.date))
+                        .map((review, index) => (
                             <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr_3fr] gap-4">
                                 <div className="space-y-2">
                                     <p className="font-semibold">{review.name}</p>
                                     <p className="text-xs text-muted-foreground">
-                                        {review.createdAt && !isNaN(new Date(review.createdAt).getTime()) 
-                                            ? format(new Date(review.createdAt), 'PPP') 
-                                            : 'Invalid date'}
+                                        {new Date(review.date).toLocaleDateString("en-IN", {
+                                          year: "numeric",
+                                          month: "long",
+                                          day: "numeric",
+                                        })}
                                     </p>
                                 </div>
                                 <div className="space-y-2">
@@ -439,15 +444,6 @@ function ProductDetailsDialog({ product }: { product: Product }) {
                                         <h4 className="font-semibold">{review.title}</h4>
                                     </div>
                                     <p className="text-sm text-muted-foreground">{review.review}</p>
-                                    {review.image && (
-                                        <Image
-                                            src={review.image}
-                                            alt={`Review image by ${review.name}`}
-                                            width={100}
-                                            height={100}
-                                            className="rounded-md object-cover mt-2"
-                                        />
-                                    )}
                                 </div>
                             </div>
                         ))}

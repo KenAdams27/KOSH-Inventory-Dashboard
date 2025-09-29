@@ -1,6 +1,7 @@
 
 
 export type Review = {
+  date: string | number | Date;
   name: string;
   rating: number;
   title: string;
