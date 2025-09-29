@@ -3,12 +3,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { MoreHorizontal, PlusCircle, Search, ImageIcon, X } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Search, ImageIcon, X, Star } from "lucide-react";
+import { format } from "date-fns";
 import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
-import type { Product } from "@/lib/types";
+import type { Product, Review } from "@/lib/types";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,7 @@ import { PageHeader } from "@/components/page-header";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { addProductAction, updateProductAction, deleteProductAction, updateProductWebsiteStatus } from "./actions";
 import {
   AlertDialog,
@@ -74,6 +76,15 @@ import {
 } from "@/components/ui/alert-dialog";
 
 
+const reviewSchema = z.object({
+    name: z.string(),
+    rating: z.number(),
+    title: z.string(),
+    review: z.string(),
+    image: z.string().optional(),
+    createdAt: z.string(),
+});
+
 const productSchema = z.object({
   name: z.string().min(1, "Name is required"),
   brand: z.string().min(1, "Brand is required"),
@@ -84,6 +95,7 @@ const productSchema = z.object({
   sizes: z.string().min(1, "Please enter at least one size"),
   price: z.coerce.number().min(0, "Price must be a positive number"),
   quantity: z.coerce.number().int().min(0, "Quantity must be a positive integer"),
+  reviews: z.array(reviewSchema).optional(),
 }).refine(data => {
     if (data.category === 'ethnicWear' && data.subCategory) {
         return ["sarees", "kurtas & suits", "dupattas"].includes(data.subCategory);
@@ -316,6 +328,22 @@ function PublishToggle({ product, onStatusChange }: { product: Product, onStatus
   )
 }
 
+function ReviewStars({ rating }: { rating: number }) {
+  return (
+    <div className="flex items-center">
+      {[...Array(5)].map((_, i) => (
+        <Star
+          key={i}
+          className={`h-4 w-4 ${
+            i < rating ? "fill-yellow-400 text-yellow-400" : "fill-muted-foreground text-muted-foreground"
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
+
 function ProductDetailsDialog({ product }: { product: Product }) {
   const getDisplayableSizes = (sizes: any): string[] => {
     if (!Array.isArray(sizes)) {
@@ -335,7 +363,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
   const displaySizes = getDisplayableSizes(product.sizes);
 
   return (
-    <DialogContent className="sm:max-w-lg">
+    <DialogContent className="sm:max-w-2xl">
       <DialogHeader>
         <DialogTitle>{product.name}</DialogTitle>
         <DialogDescription>
@@ -398,9 +426,49 @@ function ProductDetailsDialog({ product }: { product: Product }) {
             <div className="col-span-2 sm:col-span-3">{product.quantity}</div>
           </div>
            <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
-            <Label className="text-right sm:text-left">Rating</Label>
-            <div className="col-span-2 sm:col-span-3">{product.rating}/5</div>
+            <Label className="text-right sm:text-left">Overall Rating</Label>
+            <div className="col-span-2 sm:col-span-3 flex items-center gap-2">
+                <ReviewStars rating={product.rating} />
+                <span className="text-sm text-muted-foreground">({product.rating}/5)</span>
+            </div>
           </div>
+          
+           <Separator />
+
+            <div>
+                <h3 className="text-lg font-semibold mb-4">Customer Reviews</h3>
+                {product.reviews && product.reviews.length > 0 ? (
+                    <div className="space-y-6">
+                        {product.reviews.map((review, index) => (
+                            <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr_3fr] gap-4">
+                                <div className="space-y-2">
+                                    <p className="font-semibold">{review.name}</p>
+                                    <p className="text-xs text-muted-foreground">{format(new Date(review.createdAt), 'PPP')}</p>
+                                </div>
+                                <div className="space-y-2">
+                                     <div className="flex items-center gap-2">
+                                        <ReviewStars rating={review.rating} />
+                                        <h4 className="font-semibold">{review.title}</h4>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">{review.review}</p>
+                                    {review.image && (
+                                        <Image
+                                            src={review.image}
+                                            alt={`Review image by ${review.name}`}
+                                            width={100}
+                                            height={100}
+                                            className="rounded-md object-cover mt-2"
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-sm text-muted-foreground">No reviews for this product yet.</p>
+                )}
+            </div>
+
         </div>
       </ScrollArea>
       <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">

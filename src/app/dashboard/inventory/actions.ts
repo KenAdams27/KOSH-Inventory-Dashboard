@@ -21,6 +21,15 @@ async function filesToBase64(files: File[]) {
   return base64Strings;
 }
 
+const reviewSchema = z.object({
+    name: z.string(),
+    rating: z.number(),
+    title: z.string(),
+    review: z.string(),
+    image: z.string().optional(),
+    createdAt: z.string(),
+});
+
 const baseProductSchema = z.object({
   name: z.string().min(1, "Name is required"),
   brand: z.string().min(1, "Brand is required"),
@@ -34,6 +43,7 @@ const baseProductSchema = z.object({
   rating: z.coerce.number().min(0).max(5).default(0),
   onWebsite: z.boolean().default(true),
   images: z.array(z.string()).optional(),
+  reviews: z.array(reviewSchema).optional(),
 });
 
 const productSchema = baseProductSchema.refine(data => {
@@ -101,6 +111,7 @@ export async function addProductAction(formData: FormData) {
         ...validation.data, 
         desc: validation.data.description,
         images: imageBase64Strings,
+        reviews: [], // Initialize with an empty array
     });
 
     if (result.acknowledged) {
@@ -222,5 +233,3 @@ export async function updateProductWebsiteStatus(productId: string, onWebsite: b
         return { success: false, message: `Database Error: ${message}` };
     }
 }
-
-    

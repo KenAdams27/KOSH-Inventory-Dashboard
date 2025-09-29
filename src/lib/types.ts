@@ -1,5 +1,14 @@
 
 
+export type Review = {
+  name: string;
+  rating: number;
+  title: string;
+  review: string;
+  image?: string; // Base64 image
+  createdAt: string; // ISO date string
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -12,6 +21,7 @@ export type Product = {
   sizes: string[][];
   price: number;
   rating: number;
+  reviews?: Review[];
   quantity: number;
   status: "In Stock" | "Out of Stock" | "Low Stock";
   onWebsite: boolean;
