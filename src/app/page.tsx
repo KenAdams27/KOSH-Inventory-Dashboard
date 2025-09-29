@@ -56,7 +56,9 @@ export default function LoginPage() {
         title: "Login Successful",
         description: "Redirecting to your dashboard...",
       });
-      router.push("/dashboard");
+      // Instead of client-side push, reload the page.
+      // The middleware will handle the redirect to the dashboard.
+      router.refresh();
     } else {
       toast({
         variant: "destructive",
@@ -115,6 +117,13 @@ export default function LoginPage() {
                     </FormItem>
                   )}
                 />
+                <div className="flex items-center justify-between">
+                    <div className="text-sm">
+                        <Link href="/forgot-password" prefetch={false} className="underline">
+                            Forgot password?
+                        </Link>
+                    </div>
+                </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? 'Signing In...' : 'Sign In'}
                 </Button>
