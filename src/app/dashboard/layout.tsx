@@ -4,8 +4,8 @@
 import { useState } from "react";
 import { Boxes, PanelLeft, User } from "lucide-react";
 import Link from "next/link";
-import { user } from "@/lib/data";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useRouter } from "next/navigation";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,6 +19,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { DashboardNav } from "@/components/dashboard/nav";
 import { ModeToggle } from "@/components/mode-toggle";
 import { AnimatedTitle } from "@/components/dashboard/animated-title";
+import { logoutAction } from "../actions";
 
 export default function DashboardLayout({
   children,
@@ -26,6 +27,12 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logoutAction();
+    router.push('/');
+  };
 
   return (
       <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -84,9 +91,7 @@ export default function DashboardLayout({
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/">Logout</Link>
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
