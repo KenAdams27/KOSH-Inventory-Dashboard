@@ -18,7 +18,7 @@ export type Product = {
   subCategory?: string;
   images: string[];
   colors: string[];
-  sizes: string[][];
+  sizes: string[];
   price: number;
   rating: number;
   reviews?: Review[];

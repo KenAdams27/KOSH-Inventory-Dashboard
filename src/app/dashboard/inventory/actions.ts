@@ -37,7 +37,7 @@ const baseProductSchema = z.object({
   category: z.enum(["ethnicWear", "bedsheet"]),
   subCategory: z.string().optional(),
   colors: z.array(z.string()).min(1, "Please enter at least one color"),
-  sizes: z.array(z.array(z.string())).min(1, "Please enter at least one size"),
+  sizes: z.array(z.string()).min(1, "Please enter at least one size"),
   price: z.coerce.number().min(0, "Price must be a positive number"),
   quantity: z.coerce.number().int().min(0, "Quantity must be a positive integer"),
   rating: z.coerce.number().min(0).max(5).default(0),
@@ -89,7 +89,7 @@ export async function addProductAction(formData: FormData) {
       category: formData.get('category'),
       subCategory: formData.get('subCategory'),
       colors: (formData.get('colors') as string || '').split(',').map((s: string) => s.trim()).filter(Boolean),
-      sizes: (formData.get('sizes') as string || '').split(',').map((s: string) => s.trim().split(' ')).filter(parts => parts.length > 0),
+      sizes: (formData.get('sizes') as string || '').split(',').map((s: string) => s.trim()).filter(Boolean),
       price: formData.get('price'),
       quantity: formData.get('quantity'),
       onWebsite: formData.get('onWebsite') === 'true',
@@ -153,7 +153,7 @@ export async function updateProductAction(productId: string, formData: FormData)
     
     const sizesStr = formData.get('sizes') as string;
     if (sizesStr) {
-      rawData.sizes = sizesStr.split(',').map((s: string) => s.trim().split(' ')).filter(parts => parts.length > 0);
+      rawData.sizes = sizesStr.split(',').map((s: string) => s.trim()).filter(Boolean);
     }
 
     if (rawData.quantity !== undefined) {
