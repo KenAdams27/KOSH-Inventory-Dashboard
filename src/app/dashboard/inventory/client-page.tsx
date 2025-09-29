@@ -235,7 +235,7 @@ function ProductForm({
                     </Select>
                 )}
             />
-            {form.formState.errors.subCategory && <p className="text-sm text-destructive">{form.formaste.errors.subCategory.message as string}</p>}
+            {form.formState.errors.subCategory && <p className="text-sm text-destructive">{form.formState.errors.subCategory.message as string}</p>}
         </div>
       </div>
 
@@ -349,7 +349,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
   return (
     <DialogContent className="sm:max-w-2xl">
       <DialogHeader>
-        <DialogTitle>{product.name}</DialogTitle>
+        <DialogTitle className="pr-8">{product.name}</DialogTitle>
         <DialogDescription>
           Viewing details for product ID: {product.id}
         </DialogDescription>
