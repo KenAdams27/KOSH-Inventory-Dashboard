@@ -66,6 +66,7 @@ export async function loginAction(credentials: z.infer<typeof loginSchema>) {
   }
 
   // Redirect to dashboard on successful login
+  // This must be outside the try/catch block
   redirect('/dashboard');
 }
 
