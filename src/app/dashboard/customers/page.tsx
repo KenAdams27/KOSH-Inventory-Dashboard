@@ -120,3 +120,5 @@ export default async function CustomersPage() {
     const orders = await getOrders();
     return <CustomersClientPage customers={customers} orders={orders} />;
 }
+
+    

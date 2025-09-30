@@ -167,7 +167,7 @@ function OrderDetailsDialog({ order }: { order: Order }) {
                     {item.itemId && (
                       <TooltipContent>
                         <p>Product ID: {item.itemId}</p>
-                        <p>SKUID: {"VN_170" + "_" + "Blue".toUpperCase().substring(0,2) + "_" + item.size}</p>
+                        <p>SKUID: {"VN_170" + "_" + (item.color ? item.color.toUpperCase().substring(0,2) : 'NA') + "_" + item.size}</p>
                       </TooltipContent>
                     )}
                   </Tooltip>
@@ -514,3 +514,5 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
     </>
   );
 }
+
+    
