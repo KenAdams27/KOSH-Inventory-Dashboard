@@ -27,9 +27,11 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const router = useRouter();
 
   const handleLogout = async () => {
     await logoutAction();
+    router.push('/');
   };
 
   return (
