@@ -173,7 +173,7 @@ function OrderDetailsDialog({ order }: { order: Order }) {
                   </Tooltip>
                   {` (x${item.quantity})`}
                   {item.size && ` - Size: ${item.size}`}
-                  {item.color && ` - Color: ${item.color}`}
+                  {` - Color: ${item.color || 'null'}`}
                 </div>
               ))}
             </TooltipProvider>
