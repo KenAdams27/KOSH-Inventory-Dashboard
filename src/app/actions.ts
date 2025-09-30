@@ -4,6 +4,7 @@
 import { z } from 'zod';
 import clientPromise from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
+import { cookies } from 'next/headers';
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -49,6 +50,15 @@ export async function loginAction(credentials: z.infer<typeof loginSchema>) {
        console.error('[loginAction] User found, but password validation failed. User data:', userWithoutPassword);
       return { success: false, message: 'Invalid email or password.' };
     }
+    
+    // Set session cookie
+    const sessionData = { userId: user._id.toString(), email: user.email, name: user.name };
+    cookies().set('session', JSON.stringify(sessionData), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 60 * 60 * 24, // 1 day
+    });
 
     return { success: true, message: 'Login successful!' };
 
@@ -59,5 +69,5 @@ export async function loginAction(credentials: z.infer<typeof loginSchema>) {
 }
 
 export async function logoutAction() {
-  // This function is no longer used for session management but is kept to prevent breaking imports.
+  cookies().delete('session');
 }
