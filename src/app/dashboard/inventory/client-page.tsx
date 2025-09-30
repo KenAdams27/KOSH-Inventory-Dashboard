@@ -480,6 +480,8 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 5;
   const { toast } = useToast();
   
   const addFormRef = useRef<HTMLFormElement>(null);
@@ -488,6 +490,10 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   useEffect(() => {
     setProducts(initialProducts);
   }, [initialProducts]);
+  
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
 
   const handleAddProduct = async (data: FormData) => {
@@ -573,9 +579,28 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     const query = searchQuery.toLowerCase();
     return (
       product.name.toLowerCase().includes(query) ||
-      product.id.toLowerCase().includes(query)
+      product.id.toLowerCase().includes(query) ||
+      product.sku.toLowerCase().includes(query)
     );
   });
+  
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+  const indexOfLastProduct = currentPage * productsPerPage;
+  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
+  const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+        setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+      if (currentPage > 1) {
+          setCurrentPage(currentPage - 1);
+      }
+  };
+
 
   return (
     <>
@@ -665,7 +690,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         type="search"
-                        placeholder="Search by name or ID..."
+                        placeholder="Search by name, ID, or SKU..."
                         className="w-full sm:w-64 rounded-lg bg-background pl-8"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -692,7 +717,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProducts.map((product) => (
+                {currentProducts.map((product) => (
                   <TableRow key={product.id}>
                     <TableCell className="hidden sm:table-cell">
                       {product.images && product.images.length > 0 ? (
@@ -762,10 +787,30 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
               </TableBody>
             </Table>
           </CardContent>
-          <CardFooter>
-            <div className="text-xs text-muted-foreground">
-              Showing <strong>1-{filteredProducts.length}</strong> of <strong>{products.length}</strong>{" "}
-              products
+          <CardFooter className="flex items-center justify-between pt-6">
+             <div className="text-xs text-muted-foreground">
+              Showing <strong>{indexOfFirstProduct + 1}-{Math.min(indexOfLastProduct, filteredProducts.length)}</strong> of <strong>{filteredProducts.length}</strong> products
+            </div>
+            <div className="flex items-center gap-2">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrevPage}
+                    disabled={currentPage === 1}
+                >
+                    Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages > 0 ? totalPages : 1}
+                </span>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages || totalPages === 0}
+                >
+                    Next
+                </Button>
             </div>
           </CardFooter>
         </Card>
@@ -774,3 +819,5 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
+
+    
