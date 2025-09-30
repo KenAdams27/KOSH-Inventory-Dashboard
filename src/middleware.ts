@@ -5,14 +5,18 @@ import type { NextRequest } from 'next/server';
 // This middleware protects dashboard routes from unauthenticated access.
 export function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get('session');
+  const { pathname } = request.nextUrl;
 
-  // If the user is trying to access the dashboard without a session, redirect to login
-  if (!sessionCookie) {
+  const isAuthPage = pathname === '/' || pathname === '/signup' || pathname === '/forgot-password' || pathname === '/reset-password';
+  const isDashboardPage = pathname.startsWith('/dashboard');
+
+  // If user has no session cookie and is trying to access a protected dashboard page
+  if (!sessionCookie && isDashboardPage) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
-  // If the user has a session and is trying to access the login page, redirect to dashboard
-  if (sessionCookie && (request.nextUrl.pathname === '/' || request.nextUrl.pathname === '/signup' || request.nextUrl.pathname === '/forgot-password')) {
+  // If user has a session cookie and is trying to access an auth page
+  if (sessionCookie && isAuthPage) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
@@ -20,6 +24,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Match all dashboard routes, but also the root and auth pages to handle redirection for logged-in users.
+  // Match all dashboard routes, and all auth-related pages.
   matcher: ['/dashboard/:path*', '/', '/signup', '/forgot-password', '/reset-password'],
 };
