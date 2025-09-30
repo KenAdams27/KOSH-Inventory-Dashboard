@@ -12,6 +12,7 @@ export type Review = {
 
 export type Product = {
   id: string;
+  sku: string;
   name: string;
   brand: string;
   desc?: string;

@@ -31,6 +31,7 @@ const reviewSchema = z.object({
 });
 
 const baseProductSchema = z.object({
+  sku: z.string().min(1, "SKU is required"),
   name: z.string().min(1, "Name is required"),
   brand: z.string().min(1, "Brand is required"),
   description: z.string().optional(),
@@ -83,6 +84,7 @@ export async function addProductAction(formData: FormData) {
   ].filter(file => file && file.size > 0);
 
   const rawData = {
+      sku: formData.get('sku'),
       name: formData.get('name'),
       brand: formData.get('brand'),
       description: formData.get('description'),
@@ -136,6 +138,7 @@ export async function updateProductAction(productId: string, formData: FormData)
     ].filter(file => file && file.size > 0);
 
     const rawData: any = {
+      sku: formData.get('sku'),
       name: formData.get('name'),
       brand: formData.get('brand'),
       description: formData.get('description'),
@@ -233,5 +236,3 @@ export async function updateProductWebsiteStatus(productId: string, onWebsite: b
         return { success: false, message: `Database Error: ${message}` };
     }
 }
-
-    

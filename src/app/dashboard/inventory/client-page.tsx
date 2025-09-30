@@ -87,6 +87,7 @@ const reviewSchema = z.object({
 });
 
 const productSchema = z.object({
+  sku: z.string().min(1, "SKU is required"),
   name: z.string().min(1, "Name is required"),
   brand: z.string().min(1, "Brand is required"),
   description: z.string().optional(),
@@ -137,6 +138,7 @@ function ProductForm({
       colors: product.colors?.join(', ') || '',
       sizes: product.sizes?.join(', ') || '',
     } : {
+      sku: "",
       name: "",
       brand: "",
       description: "",
@@ -180,17 +182,23 @@ function ProductForm({
 
   return (
     <form ref={formRef} onSubmit={onSubmit} className="grid gap-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
+          <Label htmlFor="sku">SKU</Label>
+          <Input id="sku" {...form.register("sku")} />
+          {form.formState.errors.sku && <p className="text-sm text-destructive">{form.formState.errors.sku.message as string}</p>}
+        </div>
+         <div className="space-y-2">
           <Label htmlFor="name">Product Name</Label>
           <Input id="name" {...form.register("name")} />
           {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message as string}</p>}
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="brand">Brand</Label>
-          <Input id="brand" {...form.register("brand")} />
-          {form.formState.errors.brand && <p className="text-sm text-destructive">{form.formState.errors.brand.message as string}</p>}
-        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="brand">Brand</Label>
+        <Input id="brand" {...form.register("brand")} />
+        {form.formState.errors.brand && <p className="text-sm text-destructive">{form.formState.errors.brand.message as string}</p>}
       </div>
 
       <div className="space-y-2">
@@ -356,6 +364,10 @@ function ProductDetailsDialog({ product }: { product: Product }) {
       </DialogHeader>
       <ScrollArea className="max-h-[70vh] p-4">
         <div className="grid gap-6">
+          <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+            <Label className="text-right sm:text-left">SKU</Label>
+            <div className="col-span-2 sm:col-span-3">{product.sku}</div>
+          </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
             <Label className="text-right sm:text-left">Brand</Label>
             <div className="col-span-2 sm:col-span-3">{product.brand}</div>
@@ -762,5 +774,3 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
-
-    
