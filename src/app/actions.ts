@@ -4,6 +4,8 @@
 import { z } from 'zod';
 import clientPromise from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -50,6 +52,14 @@ export async function loginAction(credentials: z.infer<typeof loginSchema>) {
       return { success: false, message: 'Invalid email or password.' };
     }
     
+    // Set session cookie
+    cookies().set('session', 'loggedIn', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 7, // 1 week
+      path: '/',
+    });
+
     return { success: true, message: 'Login successful!' };
 
   } catch (error) {
@@ -59,5 +69,6 @@ export async function loginAction(credentials: z.infer<typeof loginSchema>) {
 }
 
 export async function logoutAction() {
-  // This function is no longer responsible for session management.
+  cookies().delete('session');
+  redirect('/');
 }

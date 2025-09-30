@@ -19,6 +19,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { DashboardNav } from "@/components/dashboard/nav";
 import { ModeToggle } from "@/components/mode-toggle";
 import { AnimatedTitle } from "@/components/dashboard/animated-title";
+import { logoutAction } from "@/app/actions";
 
 export default function DashboardLayout({
   children,
@@ -26,10 +27,9 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const router = useRouter();
 
-  const handleLogout = () => {
-    router.push('/');
+  const handleLogout = async () => {
+    await logoutAction();
   };
 
   return (
@@ -89,7 +89,7 @@ export default function DashboardLayout({
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleLogout}>Logout</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
