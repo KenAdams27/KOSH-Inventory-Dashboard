@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import jsPDF from 'jspdf';
 
 
-import type { Order } from "@/lib/types";
+import type { Order, Product } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { updateOrderStatusAction, deleteOrderAction } from "./actions";
 
@@ -124,7 +124,7 @@ const generateLabelPage = (doc: jsPDF, order: Order, yOffset: number = 10) => {
 };
 
 
-function OrderDetailsDialog({ order }: { order: Order }) {
+function OrderDetailsDialog({ order, products }: { order: Order, products: Product[] }) {
   const status = order.status;
 
   const handleDownloadPdf = () => {
@@ -158,24 +158,31 @@ function OrderDetailsDialog({ order }: { order: Order }) {
         <div className="space-y-2">
            <h4 className="font-medium">Items Ordered</h4>
             <TooltipProvider delayDuration={0}>
-              {order.orderItems.map((item, index) => (
-                <div key={`${item.itemId}-${item.name}-${index}`} className="text-sm text-muted-foreground">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="font-medium cursor-pointer">{item.name}</span>
-                    </TooltipTrigger>
-                    {item.itemId && (
-                      <TooltipContent>
-                        <p>Product ID: {item.itemId}</p>
-                        <p>SKUID: {"VN_170" + "_" + (item.color ? item.color.toUpperCase().substring(0,2) : 'NA') + "_" + item.size}</p>
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                  {` (x${item.quantity})`}
-                  {item.size && ` - Size: ${item.size}`}
-                  {` - Color: ${item.color || 'null'}`}
-                </div>
-              ))}
+              {order.orderItems.map((item, index) => {
+                const product = products.find(p => p.id === item.itemId);
+                const baseSku = product ? product.sku : 'N/A';
+                const colorAbbr = item.color ? item.color.substring(0, 2).toUpperCase() : 'NA';
+                const dynamicSku = `${baseSku}_${colorAbbr}_${item.size || 'NA'}`;
+
+                return (
+                    <div key={`${item.itemId}-${item.name}-${index}`} className="text-sm text-muted-foreground">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                        <span className="font-medium cursor-pointer">{item.name}</span>
+                        </TooltipTrigger>
+                        {item.itemId && (
+                        <TooltipContent>
+                            <p>Product ID: {item.itemId}</p>
+                            <p>SKUID: {dynamicSku}</p>
+                        </TooltipContent>
+                        )}
+                    </Tooltip>
+                    {` (x${item.quantity})`}
+                    {item.size && ` - Size: ${item.size}`}
+                    {` - Color: ${item.color || 'null'}`}
+                    </div>
+                )
+              })}
             </TooltipProvider>
         </div>
 
@@ -317,7 +324,7 @@ function OrdersTable({
   );
 }
 
-export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] }) {
+export function OrdersClientPage({ orders: initialOrders, products }: { orders: Order[], products: Product[] }) {
     const { toast } = useToast();
     const [orders, setOrders] = useState<Order[]>(initialOrders);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -509,11 +516,8 @@ export function OrdersClientPage({ orders: initialOrders }: { orders: Order[] })
             </CardFooter>
           </Card>
         </Tabs>
-        {selectedOrder && <OrderDetailsDialog order={selectedOrder} />}
+        {selectedOrder && <OrderDetailsDialog order={selectedOrder} products={products} />}
       </Dialog>
     </>
   );
 }
-
-    
-    

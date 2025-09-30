@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Order } from "@/lib/types";
+import type { Order, Product } from "@/lib/types";
 
 import {
   Card,
@@ -31,7 +31,7 @@ const statusStyles: Record<OrderStatus, string> = {
 };
 
 
-function OrderDetailsDialog({ order, open, onOpenChange }: { order: Order; open: boolean; onOpenChange: (open: boolean) => void }) {
+function OrderDetailsDialog({ order, products, open, onOpenChange }: { order: Order; products: Product[]; open: boolean; onOpenChange: (open: boolean) => void }) {
   if (!order) return null;
 
   const status = order.status;
@@ -58,24 +58,31 @@ function OrderDetailsDialog({ order, open, onOpenChange }: { order: Order; open:
             <div className="space-y-2">
               <h4 className="font-medium">Items Ordered</h4>
               <TooltipProvider delayDuration={0}>
-                {order.orderItems.map((item, index) => (
-                  <div key={`${item.itemId}-${item.name}-${index}`} className="text-sm text-muted-foreground">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="font-medium cursor-pointer">{item.name}</span>
-                      </TooltipTrigger>
-                      {item.itemId && (
-                        <TooltipContent>
-                          <p>Product ID: {item.itemId}</p>
-                           <p>SKUID: {"VN_170" + "_" + (item.color ? item.color.toUpperCase().substring(0,2) : 'NA') + "_" + item.size}</p>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                    {` (x${item.quantity})`}
-                    {item.size && ` - Size: ${item.size}`}
-                    {` - Color: ${item.color || 'null'}`}
-                  </div>
-                ))}
+                {order.orderItems.map((item, index) => {
+                  const product = products.find(p => p.id === item.itemId);
+                  const baseSku = product ? product.sku : 'N/A';
+                  const colorAbbr = item.color ? item.color.substring(0, 2).toUpperCase() : 'NA';
+                  const dynamicSku = `${baseSku}_${colorAbbr}_${item.size || 'NA'}`;
+
+                  return (
+                    <div key={`${item.itemId}-${item.name}-${index}`} className="text-sm text-muted-foreground">
+                        <Tooltip>
+                        <TooltipTrigger asChild>
+                            <span className="font-medium cursor-pointer">{item.name}</span>
+                        </TooltipTrigger>
+                        {item.itemId && (
+                            <TooltipContent>
+                            <p>Product ID: {item.itemId}</p>
+                            <p>SKUID: {dynamicSku}</p>
+                            </TooltipContent>
+                        )}
+                        </Tooltip>
+                        {` (x${item.quantity})`}
+                        {item.size && ` - Size: ${item.size}`}
+                        {` - Color: ${item.color || 'null'}`}
+                    </div>
+                  )
+                })}
               </TooltipProvider>
             </div>
 
@@ -104,7 +111,7 @@ function OrderDetailsDialog({ order, open, onOpenChange }: { order: Order; open:
   );
 }
 
-export function RecentSales({ orders }: { orders: Order[] }) {
+export function RecentSales({ orders, products }: { orders: Order[], products: Product[] }) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const handleOrderClick = (order: Order) => {
@@ -159,7 +166,8 @@ export function RecentSales({ orders }: { orders: Order[] }) {
       </Card>
       {selectedOrder && (
           <OrderDetailsDialog 
-            order={selectedOrder} 
+            order={selectedOrder}
+            products={products}
             open={!!selectedOrder} 
             onOpenChange={(open) => !open && handleDialogClose()} 
           />
@@ -167,6 +175,3 @@ export function RecentSales({ orders }: { orders: Order[] }) {
     </>
   );
 }
-
-    
-    

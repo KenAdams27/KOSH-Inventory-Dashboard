@@ -153,7 +153,7 @@ export default async function DashboardHomePage() {
   const pendingOrders = orders.filter((o) => o.status !== 'delivered').length;
 
   const revenuePercentageChange = calculatePercentageChange(currentMonthRevenue, previousMonthRevenue);
-  const ordersPercentageChange = calculatePercentageChange(currentMonthTotalOrders, previousMonthTotalOrders);
+  const ordersPercentageChange = calculatePercentagechange(currentMonthTotalOrders, previousMonthTotalOrders);
   const pendingPercentageChange = calculatePercentageChange(currentMonthPendingOrders, previousMonthPendingOrders);
 
 
@@ -227,7 +227,7 @@ export default async function DashboardHomePage() {
                 <RevenueChart data={orders} />
               </CardContent>
             </Card>
-            <RecentSales orders={orders} />
+            <RecentSales orders={orders} products={products} />
         </div>
         <div>
             <DownloadOrders orders={orders} />
@@ -236,6 +236,3 @@ export default async function DashboardHomePage() {
     </>
   );
 }
-
-    
-    

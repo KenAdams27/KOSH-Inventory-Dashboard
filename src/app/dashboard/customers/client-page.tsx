@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Customer, Order } from "@/lib/types";
+import type { Customer, Order, Product } from "@/lib/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Card,
@@ -65,6 +65,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 const updateCustomerSchema = z.object({
@@ -134,7 +135,7 @@ function CustomerForm({ onSave, customer, onSheetOpenChange }: { onSave: (data: 
 }
 
 
-function CustomerDetailsDialog({ customer, orders }: { customer: Customer, orders: Order[] }) {
+function CustomerDetailsDialog({ customer, orders, products }: { customer: Customer, orders: Order[], products: Product[] }) {
   const customerOrders = orders.filter(
     (order) => order.user === customer.id
   );
@@ -213,7 +214,7 @@ function CustomerDetailsDialog({ customer, orders }: { customer: Customer, order
   );
 }
 
-export function CustomersClientPage({ customers: initialCustomers, orders }: { customers: Customer[], orders: Order[] }) {
+export function CustomersClientPage({ customers: initialCustomers, orders, products }: { customers: Customer[], orders: Order[], products: Product[] }) {
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -396,10 +397,8 @@ export function CustomersClientPage({ customers: initialCustomers, orders }: { c
               </Card>
           ))}
         </div>
-        {selectedCustomer && <CustomerDetailsDialog customer={selectedCustomer} orders={orders} />}
+        {selectedCustomer && <CustomerDetailsDialog customer={selectedCustomer} orders={orders} products={products} />}
       </Dialog>
     </>
   );
 }
-
-    
