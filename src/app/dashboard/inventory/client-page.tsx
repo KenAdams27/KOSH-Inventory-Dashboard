@@ -580,7 +580,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     return (
       product.name.toLowerCase().includes(query) ||
       product.id.toLowerCase().includes(query) ||
-      product.sku.toLowerCase().includes(query)
+      (product.sku && product.sku.toLowerCase().includes(query))
     );
   });
   
@@ -820,4 +820,5 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   );
 }
 
+    
     
