@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Order, Product } from "@/lib/types";
+import type { Order, Product, OrderItem } from "@/lib/types";
 
 import {
   Card,
@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "../ui/badge";
 import { format } from "date-fns";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type OrderStatus = 'placed' | 'dispatched' | 'delivered';
 
@@ -33,81 +32,86 @@ const statusStyles: Record<OrderStatus, string> = {
 
 function OrderDetailsDialog({ order, products, open, onOpenChange }: { order: Order; products: Product[]; open: boolean; onOpenChange: (open: boolean) => void }) {
   if (!order) return null;
+  const [skuDialog, setSkuDialog] = useState<{ open: boolean, item: OrderItem | null, sku: string | null }>({ open: false, item: null, sku: null });
 
   const status = order.status;
 
+  const handleItemClick = (item: OrderItem) => {
+    const product = products.find(p => p.id === item.itemId);
+    const baseSku = product ? product.sku : 'N/A';
+    const colorAbbr = item.color ? item.color.substring(0, 2).toUpperCase() : 'NA';
+    const dynamicSku = `${baseSku}_${colorAbbr}_${item.size || 'NA'}`;
+    setSkuDialog({ open: true, item, sku: dynamicSku });
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-            <DialogTitle>Order Details</DialogTitle>
-            <DialogDescription>
-            Viewing details for order ID: {order._id}
-            </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-            <h4 className="font-medium">Shipping Information</h4>
-            <p className="text-sm text-muted-foreground">
-                {order.shippingAddress.fullName}<br/>
-                {order.shippingAddress.phone}<br/>
-                {order.shippingAddress.address}<br/>
-                {order.shippingAddress.city}, {order.shippingAddress.pincode}
-            </p>
+    <>
+      <Dialog open={skuDialog.open} onOpenChange={(open) => setSkuDialog({ ...skuDialog, open })}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>SKU Details</DialogTitle>
+          </DialogHeader>
+          {skuDialog.item && (
+            <div className="grid gap-4 py-4">
+              <p><span className="font-semibold">Product ID:</span> {skuDialog.item.itemId}</p>
+              <p><span className="font-semibold">SKU:</span> {skuDialog.sku}</p>
             </div>
-            <div className="space-y-2">
-              <h4 className="font-medium">Items Ordered</h4>
-              <TooltipProvider delayDuration={0}>
-                {order.orderItems.map((item, index) => {
-                  const product = products.find(p => p.id === item.itemId);
-                  const baseSku = product ? product.sku : 'N/A';
-                  const colorAbbr = item.color ? item.color.substring(0, 2).toUpperCase() : 'NA';
-                  const dynamicSku = `${baseSku}_${colorAbbr}_${item.size || 'NA'}`;
-
-                  return (
-                    <div key={`${item.itemId}-${item.name}-${index}`} className="text-sm text-muted-foreground">
-                        <Tooltip>
-                        <TooltipTrigger asChild>
-                            <span className="font-medium cursor-pointer">{item.name}</span>
-                        </TooltipTrigger>
-                        {item.itemId && (
-                            <TooltipContent>
-                            <p>Product ID: {item.itemId}</p>
-                            <p>SKUID: {dynamicSku}</p>
-                            </TooltipContent>
-                        )}
-                        </Tooltip>
-                        {` (x${item.quantity})`}
-                        {item.size && ` - Size: ${item.size}`}
-                        {` - Color: ${item.color || 'null'}`}
-                    </div>
-                  )
-                })}
-              </TooltipProvider>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-                <h4 className="font-medium">Total</h4>
-                <p className="text-sm text-muted-foreground">₹{order.totalPrice.toFixed(2)}</p>
-            </div>
-            <div className="space-y-1">
-                <h4 className="font-medium">Date</h4>
-                <p className="text-sm text-muted-foreground">{format(new Date(order.createdAt), 'PPP')}</p>
-            </div>
-            <div className="space-y-1">
-                <h4 className="font-medium">Status</h4>
-                <div className="text-sm"><Badge className={`border-none capitalize ${statusStyles[status]}`} variant="secondary">{status}</Badge></div>
-            </div>
-            <div className="space-y-1">
-                <h4 className="font-medium">Payment</h4>
-                <p className="text-sm text-muted-foreground">{order.isPaid ? `Paid (${order.paymentMethod})` : `Unpaid (${order.paymentMethod})`}</p>
-            </div>
-            </div>
-
-        </div>
+          )}
         </DialogContent>
-    </Dialog>
+      </Dialog>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+              <DialogTitle>Order Details</DialogTitle>
+              <DialogDescription>
+              Viewing details for order ID: {order._id}
+              </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+              <h4 className="font-medium">Shipping Information</h4>
+              <p className="text-sm text-muted-foreground">
+                  {order.shippingAddress.fullName}<br/>
+                  {order.shippingAddress.phone}<br/>
+                  {order.shippingAddress.address}<br/>
+                  {order.shippingAddress.city}, {order.shippingAddress.pincode}
+              </p>
+              </div>
+              <div className="space-y-2">
+                <h4 className="font-medium">Items Ordered</h4>
+                {order.orderItems.map((item, index) => (
+                  <div key={`${item.itemId}-${item.name}-${index}`} className="text-sm text-muted-foreground cursor-pointer" onClick={() => handleItemClick(item)}>
+                      <span className="font-medium">{item.name}</span>
+                      {` (x${item.quantity})`}
+                      {item.size && ` - Size: ${item.size}`}
+                      {` - Color: ${item.color || 'null'}`}
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                  <h4 className="font-medium">Total</h4>
+                  <p className="text-sm text-muted-foreground">₹{order.totalPrice.toFixed(2)}</p>
+              </div>
+              <div className="space-y-1">
+                  <h4 className="font-medium">Date</h4>
+                  <p className="text-sm text-muted-foreground">{format(new Date(order.createdAt), 'PPP')}</p>
+              </div>
+              <div className="space-y-1">
+                  <h4 className="font-medium">Status</h4>
+                  <div className="text-sm"><Badge className={`border-none capitalize ${statusStyles[status]}`} variant="secondary">{status}</Badge></div>
+              </div>
+              <div className="space-y-1">
+                  <h4 className="font-medium">Payment</h4>
+                  <p className="text-sm text-muted-foreground">{order.isPaid ? `Paid (${order.paymentMethod})` : `Unpaid (${order.paymentMethod})`}</p>
+              </div>
+              </div>
+
+          </div>
+          </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

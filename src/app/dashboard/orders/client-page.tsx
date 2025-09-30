@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import jsPDF from 'jspdf';
 
 
-import type { Order, Product } from "@/lib/types";
+import type { Order, Product, OrderItem } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { updateOrderStatusAction, deleteOrderAction } from "./actions";
 
@@ -126,6 +126,8 @@ const generateLabelPage = (doc: jsPDF, order: Order, yOffset: number = 10) => {
 
 function OrderDetailsDialog({ order, products }: { order: Order, products: Product[] }) {
   const status = order.status;
+  const [skuDialog, setSkuDialog] = useState<{ open: boolean, item: OrderItem | null, sku: string | null }>({ open: false, item: null, sku: null });
+
 
   const handleDownloadPdf = () => {
     const doc = new jsPDF();
@@ -133,96 +135,103 @@ function OrderDetailsDialog({ order, products }: { order: Order, products: Produ
     doc.save(`shipping-label-${order.id}.pdf`);
   };
 
+  const handleItemClick = (item: OrderItem) => {
+    const product = products.find(p => p.id === item.itemId);
+    const baseSku = product ? product.sku : 'N/A';
+    const colorAbbr = item.color ? item.color.substring(0, 2).toUpperCase() : 'NA';
+    const dynamicSku = `${baseSku}_${colorAbbr}_${item.size || 'NA'}`;
+    setSkuDialog({ open: true, item, sku: dynamicSku });
+  };
+
   return (
-    <DialogContent className="sm:max-w-lg">
-      <DialogHeader>
-        <DialogTitle>Order Details</DialogTitle>
-        <DialogDescription>
-          Viewing details for order ID: {order.id}
-        </DialogDescription>
-      </DialogHeader>
-      <div className="grid gap-4 py-4">
-        <div className="space-y-2">
-          <h4 className="font-medium">Shipping Information</h4>
-          <div className="text-sm text-muted-foreground">
-            {order.shippingAddress.fullName}<br/>
-            {order.shippingAddress.phone}<br/>
-            {order.shippingAddress.address}<br/>
-            {order.shippingAddress.city}, {order.shippingAddress.pincode}
-          </div>
-        </div>
-         <div className="space-y-2">
-            <h4 className="font-medium">Customer ID</h4>
-            <div className="text-sm text-muted-foreground">{order.user}</div>
-        </div>
-        <div className="space-y-2">
-           <h4 className="font-medium">Items Ordered</h4>
-            <TooltipProvider delayDuration={0}>
-              {order.orderItems.map((item, index) => {
-                const product = products.find(p => p.id === item.itemId);
-                const baseSku = product ? product.sku : 'N/A';
-                const colorAbbr = item.color ? item.color.substring(0, 2).toUpperCase() : 'NA';
-                const dynamicSku = `${baseSku}_${colorAbbr}_${item.size || 'NA'}`;
+    <>
+      <Dialog open={skuDialog.open} onOpenChange={(open) => setSkuDialog({ ...skuDialog, open })}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>SKU Details</DialogTitle>
+          </DialogHeader>
+          {skuDialog.item && (
+            <div className="grid gap-4 py-4">
+              <p><span className="font-semibold">Product ID:</span> {skuDialog.item.itemId}</p>
+              <p><span className="font-semibold">SKU:</span> {skuDialog.sku}</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
-                return (
-                    <div key={`${item.itemId}-${item.name}-${index}`} className="text-sm text-muted-foreground">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                        <span className="font-medium cursor-pointer">{item.name}</span>
-                        </TooltipTrigger>
-                        {item.itemId && (
-                        <TooltipContent>
-                            <p>Product ID: {item.itemId}</p>
-                            <p>SKUID: {dynamicSku}</p>
-                        </TooltipContent>
-                        )}
-                    </Tooltip>
-                    {` (x${item.quantity})`}
-                    {item.size && ` - Size: ${item.size}`}
-                    {` - Color: ${item.color || 'null'}`}
-                    </div>
-                )
-              })}
-            </TooltipProvider>
-        </div>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Order Details</DialogTitle>
+          <DialogDescription>
+            Viewing details for order ID: {order.id}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="space-y-2">
+            <h4 className="font-medium">Shipping Information</h4>
+            <div className="text-sm text-muted-foreground">
+              {order.shippingAddress.fullName}<br/>
+              {order.shippingAddress.phone}<br/>
+              {order.shippingAddress.address}<br/>
+              {order.shippingAddress.city}, {order.shippingAddress.pincode}
+            </div>
+          </div>
+          <div className="space-y-2">
+              <h4 className="font-medium">Customer ID</h4>
+              <div className="text-sm text-muted-foreground">{order.user}</div>
+          </div>
+          <div className="space-y-2">
+            <h4 className="font-medium">Items Ordered</h4>
+              {order.orderItems.map((item, index) => (
+                <div key={`${item.itemId}-${item.name}-${index}`} className="text-sm text-muted-foreground cursor-pointer" onClick={() => handleItemClick(item)}>
+                  <span className="font-medium">{item.name}</span>
+                  {` (x${item.quantity})`}
+                  {item.size && ` - Size: ${item.size}`}
+                  {` - Color: ${item.color || 'null'}`}
+                </div>
+              ))}
+          </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <h4 className="font-medium">Total</h4>
-            <div className="text-sm text-muted-foreground">₹{order.totalPrice.toFixed(2)}</div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <h4 className="font-medium">Total</h4>
+              <div className="text-sm text-muted-foreground">₹{order.totalPrice.toFixed(2)}</div>
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-medium">Date</h4>
+              <div className="text-sm text-muted-foreground">{format(new Date(order.createdAt), 'PPP')}</div>
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-medium">Status</h4>
+              <Badge className={`border-none relative -left-px ${statusStyles[status]} capitalize`} variant="secondary">{status}</Badge>
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-medium">Payment</h4>
+              <div className="text-sm text-muted-foreground">{order.isPaid ? `Paid (${order.paymentMethod})` : `Unpaid (${order.paymentMethod})`}</div>
+            </div>
           </div>
-           <div className="space-y-1">
-            <h4 className="font-medium">Date</h4>
-            <div className="text-sm text-muted-foreground">{format(new Date(order.createdAt), 'PPP')}</div>
-          </div>
-          <div className="space-y-1">
-            <h4 className="font-medium">Status</h4>
-            <Badge className={`border-none relative -left-px ${statusStyles[status]} capitalize`} variant="secondary">{status}</Badge>
-          </div>
-           <div className="space-y-1">
-            <h4 className="font-medium">Payment</h4>
-            <div className="text-sm text-muted-foreground">{order.isPaid ? `Paid (${order.paymentMethod})` : `Unpaid (${order.paymentMethod})`}</div>
-          </div>
-        </div>
 
-      </div>
-       <DialogFooter>
-          <Button variant="outline" size="sm" onClick={handleDownloadPdf}>
-            <Download className="mr-2 h-4 w-4" />
-            Download PDF
-          </Button>
-        </DialogFooter>
-    </DialogContent>
+        </div>
+        <DialogFooter>
+            <Button variant="outline" size="sm" onClick={handleDownloadPdf}>
+              <Download className="mr-2 h-4 w-4" />
+              Download PDF
+            </Button>
+          </DialogFooter>
+      </DialogContent>
+    </>
   );
 }
 
 function OrdersTable({ 
   orders,
+  products,
   onViewDetails,
   onStatusChange,
   onDeleteOrder
 }: { 
   orders: Order[],
+  products: Product[],
   onViewDetails: (order: Order) => void,
   onStatusChange: (orderId: string, newStatus: OrderStatus) => void,
   onDeleteOrder: (orderId: string) => void
@@ -483,7 +492,8 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
           </div>
            <Card>
             <OrdersTable 
-                orders={currentOrders} 
+                orders={currentOrders}
+                products={products}
                 onViewDetails={handleViewDetails} 
                 onStatusChange={handleStatusChange} 
                 onDeleteOrder={handleDeleteOrder} 
