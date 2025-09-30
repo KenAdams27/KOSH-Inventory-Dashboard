@@ -49,7 +49,6 @@ export default function LoginPage() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     const result = await loginAction(values);
-    setIsLoading(false);
 
     if (result?.success) {
       router.push('/dashboard');
@@ -59,6 +58,7 @@ export default function LoginPage() {
         title: "Login Failed",
         description: result?.message || 'An unexpected error occurred.',
       });
+      setIsLoading(false);
     }
   };
 
