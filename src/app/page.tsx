@@ -51,12 +51,13 @@ export default function LoginPage() {
     const result = await loginAction(values);
     setIsLoading(false);
 
-    // The server action will redirect on success. We only handle the failure case here.
-    if (result && !result.success) {
+    if (result?.success) {
+      router.push('/dashboard');
+    } else {
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: result.message,
+        description: result?.message || 'An unexpected error occurred.',
       });
     }
   };

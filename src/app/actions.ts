@@ -59,18 +59,15 @@ export async function loginAction(credentials: z.infer<typeof loginSchema>) {
       maxAge: 60 * 60 * 24 * 7, // 1 week
       path: '/',
     });
+    
+    return { success: true };
 
   } catch (error) {
     console.error('[loginAction] Error:', error);
     return { success: false, message: 'An internal server error occurred.' };
   }
-
-  // Redirect to dashboard on successful login
-  // This must be outside the try/catch block
-  redirect('/dashboard');
 }
 
 export async function logoutAction() {
   cookies().delete('session');
-  redirect('/');
 }
