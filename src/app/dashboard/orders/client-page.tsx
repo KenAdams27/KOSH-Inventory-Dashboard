@@ -167,6 +167,7 @@ function OrderDetailsDialog({ order }: { order: Order }) {
                     {item.itemId && (
                       <TooltipContent>
                         <p>Product ID: {item.itemId}</p>
+                        <p>SKUID: {"VN_170" + "_" + "Blue".toUpperCase().substring(0,2) + "_" + item.size}</p>
                       </TooltipContent>
                     )}
                   </Tooltip>
