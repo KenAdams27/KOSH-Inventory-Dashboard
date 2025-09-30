@@ -36,6 +36,7 @@ export type OrderItem = {
   price: number;
   quantity: number;
   size?: string;
+  color?: string;
 };
 
 export type ShippingAddress = {

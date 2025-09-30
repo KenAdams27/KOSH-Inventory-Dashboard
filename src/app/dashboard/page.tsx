@@ -64,6 +64,7 @@ async function getOrders(): Promise<Order[]> {
           };
           if (restOfItem.image) plainItem.image = restOfItem.image;
           if (restOfItem.size) plainItem.size = restOfItem.size;
+          if (restOfItem.color) plainItem.color = restOfItem.color;
           // Check for 'item' or 'itemId' and convert if it's an ObjectId
           if (restOfItem.item && restOfItem.item.toString) plainItem.itemId = restOfItem.item.toString();
           if (restOfItem.itemId && restOfItem.itemId.toString) plainItem.itemId = restOfItem.itemId.toString();

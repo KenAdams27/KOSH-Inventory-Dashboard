@@ -100,6 +100,7 @@ async function getOrders(): Promise<Order[]> {
           };
           if (restOfItem.image) plainItem.image = restOfItem.image;
           if (restOfItem.size) plainItem.size = restOfItem.size;
+          if (restOfItem.color) plainItem.color = restOfItem.color;
           if (restOfItem.itemId) plainItem.itemId = restOfItem.itemId.toString();
           return plainItem;
         }),
