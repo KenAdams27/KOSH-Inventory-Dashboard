@@ -70,5 +70,5 @@ export async function loginAction(credentials: z.infer<typeof loginSchema>) {
 
 export async function logoutAction() {
   cookies().delete('session');
-  // The redirect will now be handled by the client
+  redirect('/');
 }

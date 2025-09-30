@@ -4,7 +4,6 @@
 import { useState } from "react";
 import { Boxes, PanelLeft, User } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,11 +26,9 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const router = useRouter();
 
   const handleLogout = async () => {
     await logoutAction();
-    router.push('/');
   };
 
   return (
