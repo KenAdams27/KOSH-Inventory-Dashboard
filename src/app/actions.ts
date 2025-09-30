@@ -60,12 +60,13 @@ export async function loginAction(credentials: z.infer<typeof loginSchema>) {
       path: '/',
     });
 
-    return { success: true, message: 'Login successful!' };
-
   } catch (error) {
     console.error('[loginAction] Error:', error);
     return { success: false, message: 'An internal server error occurred.' };
   }
+
+  // Redirect to dashboard on successful login
+  redirect('/dashboard');
 }
 
 export async function logoutAction() {

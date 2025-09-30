@@ -51,13 +51,8 @@ export default function LoginPage() {
     const result = await loginAction(values);
     setIsLoading(false);
 
-    if (result.success) {
-      toast({
-        title: "Login Successful",
-        description: "Redirecting to your dashboard...",
-      });
-      router.push('/dashboard');
-    } else {
+    // The server action will redirect on success. We only handle the failure case here.
+    if (result && !result.success) {
       toast({
         variant: "destructive",
         title: "Login Failed",
