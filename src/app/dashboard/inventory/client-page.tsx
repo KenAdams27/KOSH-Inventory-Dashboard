@@ -437,13 +437,17 @@ function ProductDetailsDialog({ product }: { product: Product }) {
                     <div className="space-y-6">
                         {product.reviews
                         .slice(0,4)
-                        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                         .map((review, index) => (
                             <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr_3fr] gap-4">
                                 <div className="space-y-2">
                                     <p className="font-semibold">{review.name}</p>
                                     <p className="text-xs text-muted-foreground">
-                                        {format(new Date(review.createdAt), "PPP")}
+                                        {(new Date(review.date).toLocaleDateString("en-IN", {
+                                                                  year: "numeric",
+                                                                  month: "long",
+                                                                  day: "numeric",
+                                                                }) || "No date")}
                                     </p>
                                 </div>
                                 <div className="space-y-2">
