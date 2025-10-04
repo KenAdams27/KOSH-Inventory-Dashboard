@@ -436,7 +436,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
                 {product.reviews && product.reviews.length > 0 ? (
                     <div className="space-y-6">
                         {product.reviews
-                        .slice(0,4)
+                        .slice(product.reviews.length - 4, product.reviews.length)
                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                         .map((review, index) => (
                             <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr_3fr] gap-4">
