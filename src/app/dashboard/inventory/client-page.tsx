@@ -140,7 +140,7 @@ function ProductForm({
     } : {
       sku: "",
       name: "",
-      brand: "KOSH",
+      brand: "KKOSH",
       description: "",
       category: "ethnicWear",
       subCategory: "sarees",
