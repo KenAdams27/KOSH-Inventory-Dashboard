@@ -5,7 +5,6 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { ObjectId } from 'mongodb';
 import clientPromise from '@/lib/mongodb';
-import type { FormState } from '@/lib/types';
 
 // Helper function to convert files to Base64 Data URIs
 async function filesToBase64(files: File[]) {
@@ -36,9 +35,7 @@ const baseProductSchema = z.object({
   name: z.string().min(1, "Name is required"),
   brand: z.string().min(1, "Brand is required"),
   description: z.string().optional(),
-  category: z.enum(["ethnicWear", "bedsheet"], {
-    required_error: "Category is required.",
-  }),
+  category: z.enum(["ethnicWear", "bedsheet"]),
   subCategory: z.string().optional(),
   colors: z.array(z.string()).min(1, "Please enter at least one color"),
   sizes: z.array(z.string()).min(1, "Please enter at least one size"),
@@ -52,7 +49,7 @@ const baseProductSchema = z.object({
 
 const productSchema = baseProductSchema.refine(data => {
     if (data.category === 'ethnicWear' && data.subCategory) {
-        return ["sarees", "kurtas & suits", "stitched suits", "unstitched material", "dupattas"].includes(data.subCategory);
+        return ["sarees", "kurti tops", "stitched suits", "unstitched material"].includes(data.subCategory);
     }
     if (data.category === 'bedsheet' && data.subCategory) {
         return ["pure cotton", "cotton blend"].includes(data.subCategory);
@@ -77,7 +74,7 @@ async function getDb() {
     return client.db(dbName);
 }
 
-export async function addProductAction(prevState: FormState, formData: FormData): Promise<FormState> {
+export async function addProductAction(formData: FormData) {
   
   const files = [
     formData.get('image1') as File,
@@ -92,12 +89,12 @@ export async function addProductAction(prevState: FormState, formData: FormData)
       brand: formData.get('brand'),
       description: formData.get('description'),
       category: formData.get('category'),
-      subCategory: formData.get('subCategory') || undefined,
+      subCategory: formData.get('subCategory'),
       colors: (formData.get('colors') as string || '').split(',').map((s: string) => s.trim()).filter(Boolean),
       sizes: (formData.get('sizes') as string || '').split(',').map((s: string) => s.trim()).filter(Boolean),
       price: formData.get('price'),
       quantity: formData.get('quantity'),
-      onWebsite: formData.get('onWebsite') === 'on',
+      onWebsite: formData.get('onWebsite') === 'true',
       status: Number(formData.get('quantity')) > 0 ? "In Stock" : "Out of Stock",
   };
 
@@ -132,7 +129,7 @@ export async function addProductAction(prevState: FormState, formData: FormData)
   }
 }
 
-export async function updateProductAction(productId: string, prevState: FormState, formData: FormData): Promise<FormState> {
+export async function updateProductAction(productId: string, formData: FormData) {
     const files = [
       formData.get('image1') as File,
       formData.get('image2') as File,
@@ -146,10 +143,10 @@ export async function updateProductAction(productId: string, prevState: FormStat
       brand: formData.get('brand'),
       description: formData.get('description'),
       category: formData.get('category'),
-      subCategory: formData.get('subCategory') || undefined,
+      subCategory: formData.get('subCategory'),
       price: formData.get('price'),
       quantity: formData.get('quantity'),
-      onWebsite: formData.get('onWebsite') === 'on',
+      onWebsite: formData.get('onWebsite') === 'true',
     };
 
     const colorsStr = formData.get('colors') as string;
@@ -162,7 +159,7 @@ export async function updateProductAction(productId: string, prevState: FormStat
       rawData.sizes = sizesStr.split(',').map((s: string) => s.trim()).filter(Boolean);
     }
 
-    if (rawData.quantity !== undefined && rawData.quantity !== null) {
+    if (rawData.quantity !== undefined) {
       rawData.status = Number(rawData.quantity) > 0 ? "In Stock" : "Out of Stock";
     }
 
@@ -173,10 +170,9 @@ export async function updateProductAction(productId: string, prevState: FormStat
     }
     
     const updateData: any = { ...validation.data };
-     if (validation.data.description) {
-        updateData.desc = validation.data.description;
+    if (updateData.description) {
+        updateData.desc = updateData.description;
     }
-
 
     try {
         const db = await getDb();
