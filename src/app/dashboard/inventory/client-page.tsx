@@ -112,8 +112,8 @@ const productSchema = z.object({
 });
 
 const subCategoryOptions = {
-    ethnicWear: ["Sarees", "Kurti Tops", "Stitched Suits", "Unstitched Material"],
-    bedsheet: ["Pure Cotton", "Cotton Blend"],
+    ethnicWear: ["sarees", "kurtas & suits", "dupattas"],
+    bedsheet: ["pure cotton", "cotton blend"],
 };
 
 
@@ -140,7 +140,7 @@ function ProductForm({
     } : {
       sku: "",
       name: "",
-      brand: "KKOSH",
+      brand: "",
       description: "",
       category: "ethnicWear",
       subCategory: "sarees",
@@ -197,7 +197,7 @@ function ProductForm({
 
       <div className="space-y-2">
         <Label htmlFor="brand">Brand</Label>
-        <Input id="brand" {...form.register("brand")} disabled="true"/>
+        <Input id="brand" {...form.register("brand")} />
         {form.formState.errors.brand && <p className="text-sm text-destructive">{form.formState.errors.brand.message as string}</p>}
       </div>
 
