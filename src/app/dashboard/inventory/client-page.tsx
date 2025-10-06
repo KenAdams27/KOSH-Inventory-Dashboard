@@ -102,7 +102,7 @@ const productSchema = z.object({
   reviews: z.array(reviewSchema).optional(),
 }).refine(data => {
     if (data.category === 'ethnicWear' && data.subCategory) {
-        return ["sarees", "kurti tops", "stitched suits", "unstitched material"].includes(data.subCategory);
+        return ["sarees", "kurtas & suits", "stitched suits", "unstitched material", "dupattas"].includes(data.subCategory);
     }
     if (data.category === 'bedsheet' && data.subCategory) {
         return ["pure cotton", "cotton blend"].includes(data.subCategory);
@@ -115,7 +115,7 @@ const productSchema = z.object({
 
 
 const subCategoryOptions = {
-    ethnicWear: ["sarees", "kurti tops", "stitched suits", "unstitched material"],
+    ethnicWear: ["sarees", "kurtas & suits", "stitched suits", "unstitched material", "dupattas"],
     bedsheet: ["pure cotton", "cotton blend"],
 };
 
@@ -208,7 +208,7 @@ function ProductForm({
 
       <div className="space-y-2">
         <Label htmlFor="brand">Brand</Label>
-        <Input id="brand" {...form.register("brand")} disabled={true} />
+        <Input id="brand" {...form.register("brand")} />
         {form.formState.errors.brand && <p className="text-sm text-destructive">{form.formState.errors.brand.message as string}</p>}
         {formState.errors?.brand && <p className="text-sm text-destructive">{formState.errors.brand[0]}</p>}
       </div>

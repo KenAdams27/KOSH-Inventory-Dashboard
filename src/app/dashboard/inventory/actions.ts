@@ -52,7 +52,7 @@ const baseProductSchema = z.object({
 
 const productSchema = baseProductSchema.refine(data => {
     if (data.category === 'ethnicWear' && data.subCategory) {
-        return ["sarees", "kurti tops", "stitched suits", "unstitched material"].includes(data.subCategory);
+        return ["sarees", "kurtas & suits", "stitched suits", "unstitched material", "dupattas"].includes(data.subCategory);
     }
     if (data.category === 'bedsheet' && data.subCategory) {
         return ["pure cotton", "cotton blend"].includes(data.subCategory);
