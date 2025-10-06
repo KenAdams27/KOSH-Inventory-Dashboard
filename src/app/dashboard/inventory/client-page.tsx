@@ -75,6 +75,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import imageCompression from "browser-image-compression";
 
 
 const reviewSchema = z.object({
@@ -162,14 +163,35 @@ function ProductForm({
   // This function will be called by the parent to trigger form submission
   async function triggerSubmit() {
     const isValid = await form.trigger();
-    if (isValid && formRef.current) {
-        const formData = new FormData(formRef.current);
-        formData.set('category', form.getValues('category'));
-        formData.set('subCategory', form.getValues('subCategory') || '');
-        await onSave(formData);
-        form.reset();
-        onSheetOpenChange(false);
+    if (!isValid || !formRef.current) return;
+  
+    const rawFormData = new FormData(formRef.current);
+  
+    // Replace category/subCategory with current form values
+    rawFormData.set('category', form.getValues('category'));
+    rawFormData.set('subCategory', form.getValues('subCategory') || '');
+  
+    // Compress images client-side before sending
+    const imageFields = ['image1', 'image2', 'image3', 'image4'];
+    for (const fieldName of imageFields) {
+      const file = rawFormData.get(fieldName) as File | null;
+      if (file && file.size > 0) {
+        const compressedFile = await imageCompression(file, {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1280,
+          initialQuality: 0.7,
+          useWebWorker: true,
+        });
+        rawFormData.set(fieldName, compressedFile);
+      }
     }
+  
+    // Call your save handler with compressed FormData
+    await onSave(rawFormData);
+  
+    // Reset form
+    form.reset();
+    onSheetOpenChange(false);
   }
   
   // Expose the triggerSubmit function to the parent component
