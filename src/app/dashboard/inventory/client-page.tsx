@@ -396,7 +396,15 @@ function ProductDetailsDialog({ product }: { product: Product }) {
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 items-start gap-4">
             <Label className="text-right sm:text-left mt-1">Description</Label>
-            <div className="col-span-2 sm:col-span-3">{product.desc || 'N/A'}</div>
+            <div className="col-span-2 sm:col-span-3">
+            <p
+              dangerouslySetInnerHTML={{
+                __html: product.desc || 'N/A'
+                  .replace(/\*(.*?)\*/g, '<strong>$1</strong>')   // *text* → bold
+                  .replace(/_(.*?)_/g, '<em>$1</em>')             // _text_ → italics
+              }}
+            />
+            </div>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
             <Label className="text-right sm:text-left">Category</Label>
