@@ -2,15 +2,14 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useActionState } from "react";
 import Image from "next/image";
 import { MoreHorizontal, PlusCircle, Search, ImageIcon, X, Star } from "lucide-react";
-import { format } from "date-fns";
 import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
-import type { Product, Review } from "@/lib/types";
+import type { Product, Review, FormState } from "@/lib/types";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -101,7 +100,7 @@ const productSchema = z.object({
   reviews: z.array(reviewSchema).optional(),
 }).refine(data => {
     if (data.category === 'ethnicWear' && data.subCategory) {
-        return ["sarees", "kurti tops", "stitched suits", "unstitched material"].includes(data.subCategory);
+        return ["sarees", "kurtas & suits", "stitched suits", "unstitched material"].includes(data.subCategory);
     }
     if (data.category === 'bedsheet' && data.subCategory) {
         return ["pure cotton", "cotton blend"].includes(data.subCategory);
@@ -113,23 +112,19 @@ const productSchema = z.object({
 });
 
 const subCategoryOptions = {
-    ethnicWear: ["sarees", "kurti tops", "stitched suits", "unstitched material"],
+    ethnicWear: ["sarees", "kurtas & suits", "stitched suits", "unstitched material"],
     bedsheet: ["pure cotton", "cotton blend"],
 };
 
 
 function ProductForm({
-  onSave,
   product,
-  onSheetOpenChange,
   formRef,
-  onSubmit,
+  onSheetOpenChange,
 }: {
-  onSave: (data: FormData) => Promise<void>;
   product?: Product | null;
-  onSheetOpenChange: (isOpen: boolean) => void;
   formRef: React.RefObject<HTMLFormElement>;
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSheetOpenChange: (isOpen: boolean) => void;
 }) {
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -160,72 +155,31 @@ function ProductForm({
     }
   }, [selectedCategory, form]);
   
-  // This function will be called by the parent to trigger form submission
-  async function triggerSubmit() {
-    const isValid = await form.trigger();
-    if (!isValid || !formRef.current) return;
-  
-    const rawFormData = new FormData(formRef.current);
-  
-    // Replace category/subCategory with current form values
-    rawFormData.set('category', form.getValues('category'));
-    rawFormData.set('subCategory', form.getValues('subCategory') || '');
-  
-    // Compress images client-side before sending
-    const imageFields = ['image1', 'image2', 'image3', 'image4'];
-    for (const fieldName of imageFields) {
-      const file = rawFormData.get(fieldName) as File | null;
-      if (file && file.size > 0) {
-        const compressedFile = await imageCompression(file, {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1280,
-          initialQuality: 0.7,
-          useWebWorker: true,
-        });
-        rawFormData.set(fieldName, compressedFile);
-      }
-    }
-  
-    // Call your save handler with compressed FormData
-    await onSave(rawFormData);
-  
-    // Reset form
-    form.reset();
-    onSheetOpenChange(false);
-  }
-  
-  // Expose the triggerSubmit function to the parent component
-  useEffect(() => {
-    if(formRef.current) {
-      (formRef.current as any).triggerSubmit = triggerSubmit;
-    }
-  });
-
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="grid gap-6">
+    <div className="grid gap-6">
        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="sku">SKU</Label>
-          <Input id="sku" {...form.register("sku")} />
+          <Input id="sku" {...form.register("sku")} name="sku" />
           {form.formState.errors.sku && <p className="text-sm text-destructive">{form.formState.errors.sku.message as string}</p>}
         </div>
          <div className="space-y-2">
           <Label htmlFor="name">Product Name</Label>
-          <Input id="name" {...form.register("name")} />
+          <Input id="name" {...form.register("name")} name="name" />
           {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message as string}</p>}
         </div>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="brand">Brand</Label>
-        <Input id="brand" {...form.register("brand")} />
+        <Input id="brand" {...form.register("brand")} name="brand" />
         {form.formState.errors.brand && <p className="text-sm text-destructive">{form.formState.errors.brand.message as string}</p>}
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
-        <Textarea id="description" {...form.register("description")} />
+        <Textarea id="description" {...form.register("description")} name="description" />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -235,7 +189,7 @@ function ProductForm({
             control={form.control}
             name="category"
             render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select onValueChange={field.onChange} value={field.value} name="category">
                 <SelectTrigger>
                     <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
@@ -253,7 +207,7 @@ function ProductForm({
                 control={form.control}
                 name="subCategory"
                 render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} name="subCategory">
                     <SelectTrigger>
                         <SelectValue placeholder="Select a sub-category" />
                     </SelectTrigger>
@@ -294,12 +248,12 @@ function ProductForm({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="colors">Colors</Label>
-          <Input id="colors" placeholder="e.g. Red, Blue, Green" {...form.register("colors")} />
+          <Input id="colors" placeholder="e.g. Red, Blue, Green" {...form.register("colors")} name="colors" />
           {form.formState.errors.colors && <p className="text-sm text-destructive">{form.formState.errors.colors.message as string}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="sizes">Sizes</Label>
-          <Input id="sizes" placeholder="e.g. S, M, L" {...form.register("sizes")} />
+          <Input id="sizes" placeholder="e.g. S, M, L" {...form.register("sizes")} name="sizes" />
           {form.formState.errors.sizes && <p className="text-sm text-destructive">{form.formState.errors.sizes.message as string}</p>}
         </div>
       </div>
@@ -307,16 +261,16 @@ function ProductForm({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="price">Price (₹)</Label>
-          <Input id="price" type="number" step="0.01" {...form.register("price")} />
+          <Input id="price" type="number" step="0.01" {...form.register("price")} name="price" />
           {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message as string}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="quantity">Quantity</Label>
-          <Input id="quantity" type="number" {...form.register("quantity")} />
+          <Input id="quantity" type="number" {...form.register("quantity")} name="quantity" />
           {form.formState.errors.quantity && <p className="text-sm text-destructive">{form.formState.errors.quantity.message as string}</p>}
         </div>
       </div>
-    </form>
+    </div>
   );
 }
 
@@ -506,9 +460,66 @@ function ProductDetailsDialog({ product }: { product: Product }) {
 }
 
 
+function AddProductSheet({ children }: { children: React.ReactNode }) {
+  const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const { toast } = useToast();
+  
+  const initialState: FormState = { success: false, message: "" };
+  const [formState, formAction] = useActionState(addProductAction, initialState);
+
+  useEffect(() => {
+    if (formState.success) {
+      toast({
+        title: "Product Added",
+        description: formState.message,
+      });
+      setIsAddSheetOpen(false);
+    } else if (formState.message) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: formState.message,
+      });
+    }
+  }, [formState, toast]);
+
+  return (
+    <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
+      <SheetTrigger asChild>{children}</SheetTrigger>
+      <SheetContent 
+        className="sm:max-w-xl w-full flex flex-col"
+        onInteractOutside={(e) => e.preventDefault()}
+      >
+        <SheetHeader>
+          <SheetTitle>Add a New Product</SheetTitle>
+          <SheetDescription>
+            Fill in the details below to add a new product to your inventory.
+          </SheetDescription>
+        </SheetHeader>
+        <form ref={formRef} action={formAction}>
+          <ScrollArea className="flex-grow h-[calc(100vh-200px)]">
+            <div className="p-6 pt-4">
+              <ProductForm 
+                onSheetOpenChange={setIsAddSheetOpen} 
+                formRef={formRef}
+              />
+            </div>
+          </ScrollArea>
+          <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
+              <Button type="submit">
+                Save Product
+              </Button>
+          </SheetFooter>
+        </form>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+
 export function InventoryClientPage({ products: initialProducts }: { products: Product[] }) {
   const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -518,7 +529,6 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   const productsPerPage = 5;
   const { toast } = useToast();
   
-  const addFormRef = useRef<HTMLFormElement>(null);
   const editFormRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -528,24 +538,6 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery]);
-
-
-  const handleAddProduct = async (data: FormData) => {
-    const result = await addProductAction(data);
-    if (result.success) {
-      toast({
-        title: "Product Added",
-        description: result.message,
-      });
-      setIsAddSheetOpen(false);
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: result.message,
-      });
-    }
-  };
 
   const handleEditClick = (product: Product) => {
     setEditingProduct(product);
@@ -601,12 +593,11 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     );
   };
   
-  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleEditFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const form = event.currentTarget as any;
-    if (form.triggerSubmit) {
-      form.triggerSubmit();
-    }
+    if (!editFormRef.current) return;
+    const formData = new FormData(editFormRef.current);
+    handleEditProduct(formData);
   };
 
   const filteredProducts = products.filter((product) => {
@@ -639,42 +630,14 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   return (
     <>
       <PageHeader title="Inventory" description="Manage your products and stock levels.">
-        <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
-          <SheetTrigger asChild>
-            <Button size="sm" className="gap-1">
-              <PlusCircle className="h-3.5 w-3.5" />
-              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                Add Product
-              </span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent className="sm:max-w-xl w-full flex flex-col">
-            <SheetHeader>
-              <SheetTitle>Add a New Product</SheetTitle>
-              <SheetDescription>
-                Fill in the details below to add a new product to your inventory.
-              </SheetDescription>
-            </SheetHeader>
-            <ScrollArea className="flex-grow">
-              <div className="p-6 pt-4">
-                <ProductForm 
-                  onSave={handleAddProduct} 
-                  onSheetOpenChange={setIsAddSheetOpen} 
-                  formRef={addFormRef}
-                  onSubmit={handleFormSubmit}
-                />
-              </div>
-            </ScrollArea>
-             <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
-                <Button 
-                  type="button" 
-                  onClick={() => addFormRef.current && (addFormRef.current as any).triggerSubmit()}
-                >
-                  Save Product
-                </Button>
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
+        <AddProductSheet>
+          <Button size="sm" className="gap-1">
+            <PlusCircle className="h-3.5 w-3.5" />
+            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+              Add Product
+            </span>
+          </Button>
+        </AddProductSheet>
       </PageHeader>
       
       <Sheet open={isEditSheetOpen} onOpenChange={(isOpen) => {
@@ -688,25 +651,22 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                       Update the details for &quot;{editingProduct?.name}&quot;.
                   </SheetDescription>
               </SheetHeader>
-              <ScrollArea className="flex-grow">
-                <div className="p-6 pt-4">
-                    <ProductForm 
-                      onSave={handleEditProduct} 
-                      product={editingProduct} 
-                      onSheetOpenChange={setIsEditSheetOpen}
-                      formRef={editFormRef}
-                      onSubmit={handleFormSubmit}
-                    />
-                </div>
-              </ScrollArea>
-              <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
-                <Button 
-                  type="button"
-                  onClick={() => editFormRef.current && (editFormRef.current as any).triggerSubmit()}
-                >
-                  Save Changes
-                </Button>
-              </SheetFooter>
+              <form ref={editFormRef} onSubmit={handleEditFormSubmit} >
+                <ScrollArea className="flex-grow h-[calc(100vh-200px)]">
+                  <div className="p-6 pt-4">
+                      <ProductForm 
+                        product={editingProduct} 
+                        onSheetOpenChange={setIsEditSheetOpen}
+                        formRef={editFormRef}
+                      />
+                  </div>
+                </ScrollArea>
+                <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
+                  <Button type="submit">
+                    Save Changes
+                  </Button>
+                </SheetFooter>
+              </form>
           </SheetContent>
       </Sheet>
 
