@@ -40,6 +40,7 @@ const baseProductSchema = z.object({
   colors: z.array(z.string()).min(1, "Please enter at least one color"),
   sizes: z.array(z.string()).min(1, "Please enter at least one size"),
   price: z.coerce.number().min(0, "Price must be a positive number"),
+  mrp: z.coerce.number().min(0, "MRP must be a positive number").optional(),
   quantity: z.coerce.number().int().min(0, "Quantity must be a positive integer"),
   rating: z.coerce.number().min(0).max(5).default(0),
   onWebsite: z.boolean().default(true),
@@ -49,7 +50,7 @@ const baseProductSchema = z.object({
 
 const productSchema = baseProductSchema.refine(data => {
     if (data.category === 'ethnicWear' && data.subCategory) {
-        return ["sarees", "kurti tops", "stitched suits", "unstitched material"].includes(data.subCategory);
+        return ["sarees", "kurtas & suits", "stitched suits", "unstitched material"].includes(data.subCategory);
     }
     if (data.category === 'bedsheet' && data.subCategory) {
         return ["pure cotton", "cotton blend"].includes(data.subCategory);
@@ -74,7 +75,7 @@ async function getDb() {
     return client.db(dbName);
 }
 
-export async function addProductAction(formData: FormData) {
+export async function addProductAction(prevState: any, formData: FormData) {
   
   const files = [
     formData.get('image1') as File,
@@ -89,10 +90,11 @@ export async function addProductAction(formData: FormData) {
       brand: formData.get('brand'),
       description: formData.get('description'),
       category: formData.get('category'),
-      subCategory: formData.get('subCategory'),
+      subCategory: formData.get('subCategory') || undefined,
       colors: (formData.get('colors') as string || '').split(',').map((s: string) => s.trim()).filter(Boolean),
       sizes: (formData.get('sizes') as string || '').split(',').map((s: string) => s.trim()).filter(Boolean),
       price: formData.get('price'),
+      mrp: formData.get('mrp'),
       quantity: formData.get('quantity'),
       onWebsite: formData.get('onWebsite') === 'true',
       status: Number(formData.get('quantity')) > 0 ? "In Stock" : "Out of Stock",
@@ -143,8 +145,9 @@ export async function updateProductAction(productId: string, formData: FormData)
       brand: formData.get('brand'),
       description: formData.get('description'),
       category: formData.get('category'),
-      subCategory: formData.get('subCategory'),
+      subCategory: formData.get('subCategory') || undefined,
       price: formData.get('price'),
+      mrp: formData.get('mrp'),
       quantity: formData.get('quantity'),
       onWebsite: formData.get('onWebsite') === 'true',
     };

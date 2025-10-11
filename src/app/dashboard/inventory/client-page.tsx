@@ -95,6 +95,7 @@ const productSchema = z.object({
   colors: z.string().min(1, "Please enter at least one color"),
   sizes: z.string().min(1, "Please enter at least one size"),
   price: z.coerce.number().min(0, "Price must be a positive number"),
+  mrp: z.coerce.number().min(0, "MRP must be a positive number").optional(),
   quantity: z.coerce.number().int().min(0, "Quantity must be a positive integer"),
   onWebsite: z.boolean().default(true),
   reviews: z.array(reviewSchema).optional(),
@@ -141,6 +142,7 @@ function ProductForm({
       colors: "",
       sizes: "",
       price: 0,
+      mrp: 0,
       quantity: 0,
     },
   });
@@ -262,6 +264,13 @@ function ProductForm({
           <Input id="price" type="number" step="0.01" {...form.register("price")} name="price" />
           {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message as string}</p>}
         </div>
+        <div className="space-y-2">
+          <Label htmlFor="mrp">MRP (₹)</Label>
+          <Input id="mrp" type="number" step="0.01" {...form.register("mrp")} name="mrp" />
+          {form.formState.errors.mrp && <p className="text-sm text-destructive">{form.formState.errors.mrp.message as string}</p>}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="quantity">Quantity</Label>
           <Input id="quantity" type="number" {...form.register("quantity")} name="quantity" />
@@ -419,6 +428,12 @@ function ProductDetailsDialog({ product }: { product: Product }) {
             <Label className="text-right sm:text-left">Price</Label>
             <div className="col-span-2 sm:col-span-3">₹{product.price.toFixed(2)}</div>
           </div>
+           {product.mrp && (
+             <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
+              <Label className="text-right sm:text-left">MRP</Label>
+              <div className="col-span-2 sm:col-span-3">₹{product.mrp.toFixed(2)}</div>
+            </div>
+           )}
           <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
             <Label className="text-right sm:text-left">Quantity</Label>
             <div className="col-span-2 sm:col-span-3">{product.quantity}</div>
@@ -530,6 +545,11 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
             </div>
           </ScrollArea>
           <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
+              <SheetClose asChild>
+                  <Button type="button" variant="outline">
+                      Cancel
+                  </Button>
+              </SheetClose>
               <Button type="submit">
                 Save Product
               </Button>

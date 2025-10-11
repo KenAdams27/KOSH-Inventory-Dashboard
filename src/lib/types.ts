@@ -22,6 +22,7 @@ export type Product = {
   colors: string[];
   sizes: string[];
   price: number;
+  mrp?: number;
   rating: number;
   reviews?: Review[];
   quantity: number;
