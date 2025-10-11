@@ -428,7 +428,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
             <Label className="text-right sm:text-left">Price</Label>
             <div className="col-span-2 sm:col-span-3">₹{product.price.toFixed(2)}</div>
           </div>
-           {product.mrp && (
+           {typeof product.mrp === 'number' && product.mrp > 0 && (
              <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
               <Label className="text-right sm:text-left">MRP</Label>
               <div className="col-span-2 sm:col-span-3">₹{product.mrp.toFixed(2)}</div>
