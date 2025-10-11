@@ -1,8 +1,7 @@
 
-
 "use client";
 
-import { useState, useEffect, useRef, useActionState } from "react";
+import { useState, useEffect, useRef, useActionState, useMemo } from "react";
 import Image from "next/image";
 import { MoreHorizontal, PlusCircle, Search, ImageIcon, X, Star } from "lucide-react";
 import { z } from "zod";
@@ -101,7 +100,7 @@ const productSchema = z.object({
   reviews: z.array(reviewSchema).optional(),
 }).refine(data => {
     if (data.category === 'ethnicWear' && data.subCategory) {
-        return ["sarees", "kurti tops", "stitched suits", "unstitched material"].includes(data.subCategory);
+        return ["sarees", "kurtas & suits", "stitched suits", "unstitched material"].includes(data.subCategory);
     }
     if (data.category === 'bedsheet' && data.subCategory) {
         return ["pure cotton", "cotton blend"].includes(data.subCategory);
@@ -550,6 +549,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortOption, setSortOption] = useState("latest");
   const productsPerPage = 10;
   const { toast } = useToast();
   
@@ -561,7 +561,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, sortOption]);
 
   const handleEditClick = (product: Product) => {
     setEditingProduct(product);
@@ -624,19 +624,31 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     handleEditProduct(formData);
   };
 
-  const filteredProducts = products.filter((product) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      product.name.toLowerCase().includes(query) ||
-      product.id.toLowerCase().includes(query) ||
-      (product.sku && product.sku.toLowerCase().includes(query))
-    );
-  });
+  const sortedAndFilteredProducts = useMemo(() => {
+    let filtered = products.filter((product) => {
+      const query = searchQuery.toLowerCase();
+      return (
+        product.name.toLowerCase().includes(query) ||
+        product.id.toLowerCase().includes(query) ||
+        (product.sku && product.sku.toLowerCase().includes(query))
+      );
+    });
+
+    if (sortOption === "name") {
+      filtered.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortOption === "latest") {
+      // The initial fetch from the server already sorts by latest (_id)
+      // so we just need to preserve that order if products haven't been re-sorted
+      filtered.sort((a, b) => b.id.localeCompare(a.id));
+    }
+    
+    return filtered;
+  }, [products, searchQuery, sortOption]);
   
-  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+  const totalPages = Math.ceil(sortedAndFilteredProducts.length / productsPerPage);
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+  const currentProducts = sortedAndFilteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
@@ -703,15 +715,26 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                     A list of all products in your inventory.
                     </CardDescription>
                 </div>
-                <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        type="search"
-                        placeholder="Search by name, ID, or SKU..."
-                        className="w-full sm:w-64 rounded-lg bg-background pl-8"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+                <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            type="search"
+                            placeholder="Search by name, ID, or SKU..."
+                            className="w-full sm:w-48 rounded-lg bg-background pl-8"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                     <Select value={sortOption} onValueChange={setSortOption}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                            <SelectValue placeholder="Sort by" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="latest">Sort by: Latest</SelectItem>
+                            <SelectItem value="name">Sort by: Alphabetical</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
             </div>
           </CardHeader>
@@ -806,7 +829,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
           </CardContent>
           <CardFooter className="flex items-center justify-between pt-6">
              <div className="text-xs text-muted-foreground">
-              Showing <strong>{indexOfFirstProduct + 1}-{Math.min(indexOfLastProduct, filteredProducts.length)}</strong> of <strong>{filteredProducts.length}</strong> products
+              Showing <strong>{indexOfFirstProduct + 1}-{Math.min(indexOfLastProduct, sortedAndFilteredProducts.length)}</strong> of <strong>{sortedAndFilteredProducts.length}</strong> products
             </div>
             <div className="flex items-center gap-2">
                 <Button

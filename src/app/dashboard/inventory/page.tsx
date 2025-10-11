@@ -21,7 +21,7 @@ async function getProducts(): Promise<Product[]> {
     const productsFromDb = await db
       .collection("items")
       .find({})
-      .sort({ name: 1 })
+      .sort({ _id: -1 }) // Sort by ObjectId descending (latest first)
       .toArray();
       
     const products = JSON.parse(JSON.stringify(productsFromDb)).map((product: any) => ({
