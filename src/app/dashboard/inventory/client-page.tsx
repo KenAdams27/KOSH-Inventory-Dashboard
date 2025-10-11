@@ -144,6 +144,7 @@ function ProductForm({
       price: 0,
       mrp: 0,
       quantity: 0,
+      onWebsite: true,
     },
   });
 
@@ -277,26 +278,28 @@ function ProductForm({
           {form.formState.errors.quantity && <p className="text-sm text-destructive">{form.formState.errors.quantity.message as string}</p>}
         </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="onWebsite">Publish on website</Label>
-        <Controller
-            control={form.control}
-            name="onWebsite"
-            render={({ field }) => (
-                <div className="flex items-center gap-2">
-                    <Switch
-                        id="onWebsite"
-                        name="onWebsite"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                    />
-                    <Badge variant={field.value ? "secondary" : "outline"}>
-                        {field.value ? "Yes" : "No"}
-                    </Badge>
-                </div>
-            )}
-        />
-      </div>
+      {product && (
+        <div className="space-y-2">
+          <Label htmlFor="onWebsite">Publish on website</Label>
+          <Controller
+              control={form.control}
+              name="onWebsite"
+              render={({ field }) => (
+                  <div className="flex items-center gap-2">
+                      <Switch
+                          id="onWebsite"
+                          name="onWebsite"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                      />
+                      <Badge variant={field.value ? "secondary" : "outline"}>
+                          {field.value ? "Yes" : "No"}
+                      </Badge>
+                  </div>
+              )}
+          />
+        </div>
+      )}
     </div>
   );
 }
