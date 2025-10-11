@@ -9,7 +9,7 @@ import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
-import type { Product, Review, FormState } from "@/lib/types";
+import type { Product, Review } from "@/lib/types";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -97,10 +97,11 @@ const productSchema = z.object({
   sizes: z.string().min(1, "Please enter at least one size"),
   price: z.coerce.number().min(0, "Price must be a positive number"),
   quantity: z.coerce.number().int().min(0, "Quantity must be a positive integer"),
+  onWebsite: z.boolean().default(true),
   reviews: z.array(reviewSchema).optional(),
 }).refine(data => {
     if (data.category === 'ethnicWear' && data.subCategory) {
-        return ["sarees", "kurtas & suits", "stitched suits", "unstitched material"].includes(data.subCategory);
+        return ["sarees", "kurti tops", "stitched suits", "unstitched material"].includes(data.subCategory);
     }
     if (data.category === 'bedsheet' && data.subCategory) {
         return ["pure cotton", "cotton blend"].includes(data.subCategory);
@@ -119,11 +120,9 @@ const subCategoryOptions = {
 
 function ProductForm({
   product,
-  formRef,
   onSheetOpenChange,
 }: {
   product?: Product | null;
-  formRef: React.RefObject<HTMLFormElement>;
   onSheetOpenChange: (isOpen: boolean) => void;
 }) {
   const form = useForm<z.infer<typeof productSchema>>({
@@ -269,6 +268,26 @@ function ProductForm({
           <Input id="quantity" type="number" {...form.register("quantity")} name="quantity" />
           {form.formState.errors.quantity && <p className="text-sm text-destructive">{form.formState.errors.quantity.message as string}</p>}
         </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="onWebsite">Publish on website</Label>
+        <Controller
+            control={form.control}
+            name="onWebsite"
+            render={({ field }) => (
+                <div className="flex items-center gap-2">
+                    <Switch
+                        id="onWebsite"
+                        name="onWebsite"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                    />
+                    <Badge variant={field.value ? "secondary" : "outline"}>
+                        {field.value ? "Yes" : "No"}
+                    </Badge>
+                </div>
+            )}
+        />
       </div>
     </div>
   );
@@ -421,13 +440,13 @@ function ProductDetailsDialog({ product }: { product: Product }) {
                     <div className="space-y-6">
                         {product.reviews
                         .slice(product.reviews.length - 4, product.reviews.length)
-                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                         .map((review, index) => (
                             <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr_3fr] gap-4">
                                 <div className="space-y-2">
                                     <p className="font-semibold">{review.name}</p>
                                     <p className="text-xs text-muted-foreground">
-                                        {(new Date(review.date).toLocaleDateString("en-IN", {
+                                        {(new Date(review.createdAt).toLocaleDateString("en-IN", {
                                                                   year: "numeric",
                                                                   month: "long",
                                                                   day: "numeric",
@@ -465,6 +484,12 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
   const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
   
+  type FormState = {
+    success: boolean;
+    message: string;
+    errors?: any;
+  };
+
   const initialState: FormState = { success: false, message: "" };
   const [formState, formAction] = useActionState(addProductAction, initialState);
 
@@ -478,7 +503,7 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
     } else if (formState.message) {
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Error adding product",
         description: formState.message,
       });
     }
@@ -501,8 +526,7 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
           <ScrollArea className="flex-grow h-[calc(100vh-200px)]">
             <div className="p-6 pt-4">
               <ProductForm 
-                onSheetOpenChange={setIsAddSheetOpen} 
-                formRef={formRef}
+                onSheetOpenChange={setIsAddSheetOpen}
               />
             </div>
           </ScrollArea>
@@ -526,7 +550,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 5;
+  const productsPerPage = 10;
   const { toast } = useToast();
   
   const editFormRef = useRef<HTMLFormElement>(null);
@@ -657,7 +681,6 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                       <ProductForm 
                         product={editingProduct} 
                         onSheetOpenChange={setIsEditSheetOpen}
-                        formRef={editFormRef}
                       />
                   </div>
                 </ScrollArea>
