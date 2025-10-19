@@ -207,7 +207,7 @@ function OrderDetailsDialog({ order, products }: { order: Order, products: Produ
             </div>
             <div className="space-y-1">
               <h4 className="font-medium">Payment</h4>
-              <div className="text-sm text-muted-foreground">{order.isPaid ? `Paid (${order.paymentMethod})` : `Unpaid (${order.paymentMethod})`}</div>
+              <div className="text-sm text-muted-foreground">{order.isPaid ? `Paid` : `Unpaid`}</div>
             </div>
           </div>
 
