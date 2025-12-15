@@ -193,7 +193,7 @@ function OrderDetailsDialog({
              <div className="space-y-2">
                 <h4 className="font-medium">Tracking ID</h4>
                 <div className="flex items-center gap-2">
-                    <a href={`https://www.google.com/search?q=${order.tracking_id}`} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline-offset-4 hover:underline">
+                    <a href={`https://parcelsapp.com/en/tracking/${order.tracking_id}`} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline-offset-4 hover:underline">
                       {order.tracking_id}
                     </a>
                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onEditTrackingId(order)}>
