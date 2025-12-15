@@ -189,7 +189,7 @@ function OrderDetailsDialog({
               <h4 className="font-medium">Customer ID</h4>
               <div className="text-sm text-muted-foreground">{order.user}</div>
           </div>
-          {order.tracking_id && (
+          {order.status === 'dispatched' && order.tracking_id && (
              <div className="space-y-2">
                 <h4 className="font-medium">Tracking ID</h4>
                 <div className="flex items-center gap-2">
@@ -655,3 +655,5 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     </>
   );
 }
+
+    
