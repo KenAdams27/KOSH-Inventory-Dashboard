@@ -68,6 +68,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Label } from "@/components/ui/label";
 
 type OrderStatus = "placed" | "dispatched" | "delivered";
 
@@ -180,6 +181,12 @@ function OrderDetailsDialog({ order, products }: { order: Order, products: Produ
               <h4 className="font-medium">Customer ID</h4>
               <div className="text-sm text-muted-foreground">{order.user}</div>
           </div>
+          {order.tracking_id && (
+             <div className="space-y-2">
+              <h4 className="font-medium">Tracking ID</h4>
+              <div className="text-sm text-muted-foreground">{order.tracking_id}</div>
+          </div>
+          )}
           <div className="space-y-2">
             <h4 className="font-medium">Items Ordered</h4>
               {order.orderItems.map((item, index) => (
@@ -233,12 +240,63 @@ function OrdersTable({
   orders: Order[],
   products: Product[],
   onViewDetails: (order: Order) => void,
-  onStatusChange: (orderId: string, newStatus: OrderStatus) => void,
+  onStatusChange: (orderId: string, newStatus: OrderStatus, trackingId?: string) => void,
   onDeleteOrder: (orderId: string) => void
 }) {
+  const [isTrackingDialogOpen, setIsTrackingDialogOpen] = useState(false);
+  const [currentOrderForTracking, setCurrentOrderForTracking] = useState<Order | null>(null);
+  const [trackingId, setTrackingId] = useState("");
+
+  const handleStatusClick = (order: Order, status: OrderStatus) => {
+    if (status === 'dispatched') {
+      setCurrentOrderForTracking(order);
+      setTrackingId(order.tracking_id || "");
+      setIsTrackingDialogOpen(true);
+    } else {
+      onStatusChange(order.id, status);
+    }
+  };
+
+  const handleSaveTrackingId = () => {
+    if (currentOrderForTracking) {
+      onStatusChange(currentOrderForTracking.id, 'dispatched', trackingId);
+      setIsTrackingDialogOpen(false);
+      setCurrentOrderForTracking(null);
+      setTrackingId("");
+    }
+  };
+
 
   return (
     <>
+      <Dialog open={isTrackingDialogOpen} onOpenChange={setIsTrackingDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Tracking ID</DialogTitle>
+            <DialogDescription>
+              Enter the tracking ID for order #{currentOrderForTracking?.id.slice(-6)}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="trackingId" className="text-right">
+                Tracking ID
+              </Label>
+              <Input
+                id="trackingId"
+                value={trackingId}
+                onChange={(e) => setTrackingId(e.target.value)}
+                className="col-span-3"
+                placeholder="Enter tracking ID"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTrackingDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveTrackingId}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <CardContent className="p-0">
         <Table>
           <TableHeader>
@@ -296,9 +354,9 @@ function OrdersTable({
                         <DropdownMenuSub>
                            <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
                            <DropdownMenuSubContent>
-                                <DropdownMenuItem onClick={() => onStatusChange(order.id, 'placed')}>Placed</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onStatusChange(order.id, 'dispatched')}>Dispatched</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onStatusChange(order.id, 'delivered')}>Delivered</DropdownMenuItem>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleStatusClick(order, 'placed')}>Placed</DropdownMenuItem>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleStatusClick(order, 'dispatched')}>Dispatched</DropdownMenuItem>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleStatusClick(order, 'delivered')}>Delivered</DropdownMenuItem>
                            </DropdownMenuSubContent>
                         </DropdownMenuSub>
                         <DropdownMenuSeparator />
@@ -356,20 +414,20 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
         setIsDetailsOpen(true);
     };
 
-    const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+    const handleStatusChange = async (orderId: string, newStatus: OrderStatus, trackingId?: string) => {
       // Optimistically update the UI
       setOrders(prevOrders => 
         prevOrders.map(order => 
-          order.id === orderId ? { ...order, status: newStatus, deliveredAt: newStatus === 'delivered' ? new Date().toISOString() : undefined } : order
+          order.id === orderId ? { ...order, status: newStatus, tracking_id: trackingId ?? order.tracking_id, deliveredAt: newStatus === 'delivered' ? new Date().toISOString() : undefined } : order
         )
       );
 
-      const result = await updateOrderStatusAction(orderId, newStatus);
+      const result = await updateOrderStatusAction(orderId, newStatus, trackingId);
 
       if (result.success) {
         toast({
           title: "Order Status Updated",
-          description: `Order #${orderId.slice(-6)} is now ${newStatus}.`,
+          description: `Order #${orderId.slice(-6)} status has been updated.`,
         });
       } else {
         // Revert the optimistic update on failure

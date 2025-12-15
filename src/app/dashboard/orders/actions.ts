@@ -9,6 +9,7 @@ import clientPromise from '@/lib/mongodb';
 const updateOrderStatusSchema = z.object({
   orderId: z.string().min(1, 'Order ID is required'),
   status: z.enum(['placed', 'dispatched', 'delivered']),
+  trackingId: z.string().optional(),
 });
 
 async function getDb() {
@@ -23,8 +24,8 @@ async function getDb() {
     return client.db(dbName);
 }
 
-export async function updateOrderStatusAction(orderId: string, status: 'placed' | 'dispatched' | 'delivered') {
-  const validation = updateOrderStatusSchema.safeParse({ orderId, status });
+export async function updateOrderStatusAction(orderId: string, status: 'placed' | 'dispatched' | 'delivered', trackingId?: string) {
+  const validation = updateOrderStatusSchema.safeParse({ orderId, status, trackingId });
   if (!validation.success) {
     return { success: false, message: 'Invalid data.', errors: validation.error.flatten().fieldErrors };
   }
@@ -39,24 +40,43 @@ export async function updateOrderStatusAction(orderId: string, status: 'placed' 
 
     if (status === 'delivered') {
       updatePayload.deliveredAt = new Date().toISOString();
-    } else {
-      // If moving away from delivered, unset deliveredAt
-      updatePayload.deliveredAt = undefined;
-    }
+    } else if (status === 'dispatched' && trackingId) {
+      updatePayload.tracking_id = trackingId;
+    } 
+    
+    if (status !== 'delivered') {
+       // If moving away from delivered, unset deliveredAt
+       // Using $unset to remove the field completely
+       const result = await db.collection('orders').updateOne(
+        { _id: new ObjectId(orderId) },
+        { 
+          $set: updatePayload,
+          $unset: { deliveredAt: "" } 
+        }
+      );
 
-    const result = await db.collection('orders').updateOne(
-      { _id: new ObjectId(orderId) },
-      { 
-        $set: updatePayload
+       if (result.modifiedCount > 0) {
+        revalidatePath('/dashboard/orders');
+        return { success: true, message: 'Order status updated successfully.' };
+      } else {
+        return { success: false, message: 'Failed to update order status or no changes were made.' };
       }
-    );
 
-    if (result.modifiedCount > 0) {
-      revalidatePath('/dashboard/orders');
-      return { success: true, message: 'Order status updated successfully.' };
     } else {
-      return { success: false, message: 'Failed to update order status or no changes were made.' };
+       const result = await db.collection('orders').updateOne(
+        { _id: new ObjectId(orderId) },
+        { 
+          $set: updatePayload
+        }
+      );
+      if (result.modifiedCount > 0) {
+        revalidatePath('/dashboard/orders');
+        return { success: true, message: 'Order status updated successfully.' };
+      } else {
+        return { success: false, message: 'Failed to update order status or no changes were made.' };
+      }
     }
+
 
   } catch (error) {
     const message = error instanceof Error ? error.message : 'An unknown error occurred.';
