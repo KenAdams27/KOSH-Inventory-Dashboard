@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MoreHorizontal, Search, Download } from "lucide-react";
+import { MoreHorizontal, Search, Download, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import jsPDF from 'jspdf';
 
@@ -125,7 +125,15 @@ const generateLabelPage = (doc: jsPDF, order: Order, yOffset: number = 10) => {
 };
 
 
-function OrderDetailsDialog({ order, products }: { order: Order, products: Product[] }) {
+function OrderDetailsDialog({
+  order,
+  products,
+  onEditTrackingId,
+}: {
+  order: Order;
+  products: Product[];
+  onEditTrackingId: (order: Order) => void;
+}) {
   const status = order.status;
   const [skuDialog, setSkuDialog] = useState<{ open: boolean, item: OrderItem | null, sku: string | null }>({ open: false, item: null, sku: null });
 
@@ -184,9 +192,15 @@ function OrderDetailsDialog({ order, products }: { order: Order, products: Produ
           {order.tracking_id && (
              <div className="space-y-2">
                 <h4 className="font-medium">Tracking ID</h4>
-                <a href={`https://www.google.com/search?q=${order.tracking_id}`} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline-offset-4 hover:underline">
-                  {order.tracking_id}
-                </a>
+                <div className="flex items-center gap-2">
+                    <a href={`https://www.google.com/search?q=${order.tracking_id}`} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline-offset-4 hover:underline">
+                      {order.tracking_id}
+                    </a>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onEditTrackingId(order)}>
+                        <Pencil className="h-3 w-3" />
+                        <span className="sr-only">Edit Tracking ID</span>
+                    </Button>
+                </div>
             </div>
           )}
           <div className="space-y-2">
@@ -401,6 +415,10 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState<"all" | OrderStatus>("all");
     const [currentPage, setCurrentPage] = useState(1);
+    const [isTrackingDialogOpen, setIsTrackingDialogOpen] = useState(false);
+    const [currentOrderForTracking, setCurrentOrderForTracking] = useState<Order | null>(null);
+    const [trackingId, setTrackingId] = useState("");
+
     const ordersPerPage = 10;
 
      useEffect(() => {
@@ -420,7 +438,7 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
       // Optimistically update the UI
       setOrders(prevOrders => 
         prevOrders.map(order => 
-          order.id === orderId ? { ...order, status: newStatus, tracking_id: trackingId ?? order.tracking_id, deliveredAt: newStatus === 'delivered' ? new Date().toISOString() : undefined } : order
+          order.id === orderId ? { ...order, status: newStatus, tracking_id: trackingId !== undefined ? trackingId : order.tracking_id, deliveredAt: newStatus === 'delivered' ? new Date().toISOString() : undefined } : order
         )
       );
 
@@ -457,6 +475,23 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
             });
         }
     };
+    
+    const handleEditTrackingId = (order: Order) => {
+        setCurrentOrderForTracking(order);
+        setTrackingId(order.tracking_id || "");
+        setIsTrackingDialogOpen(true);
+    };
+    
+    const handleSaveTrackingId = () => {
+        if (currentOrderForTracking) {
+            // Here we update status to dispatched, but we could also just update the ID
+            handleStatusChange(currentOrderForTracking.id, currentOrderForTracking.status, trackingId);
+            setIsTrackingDialogOpen(false);
+            setCurrentOrderForTracking(null);
+            setTrackingId("");
+        }
+    };
+
 
     const searchFilteredOrders = orders.filter(order => {
       const query = searchQuery.toLowerCase();
@@ -524,6 +559,35 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     <>
       <PageHeader title="Orders" description="View and manage all customer orders." />
       
+      <Dialog open={isTrackingDialogOpen} onOpenChange={setIsTrackingDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Tracking ID</DialogTitle>
+            <DialogDescription>
+              Enter the tracking ID for order #{currentOrderForTracking?.id.slice(-6)}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="trackingId" className="text-right">
+                Tracking ID
+              </Label>
+              <Input
+                id="trackingId"
+                value={trackingId}
+                onChange={(e) => setTrackingId(e.target.value)}
+                className="col-span-3"
+                placeholder="Enter tracking ID"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTrackingDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveTrackingId}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <Tabs defaultValue="all" onValueChange={(value) => setActiveTab(value as any)}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
@@ -586,7 +650,7 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
             </CardFooter>
           </Card>
         </Tabs>
-        {selectedOrder && <OrderDetailsDialog order={selectedOrder} products={products} />}
+        {selectedOrder && <OrderDetailsDialog order={selectedOrder} products={products} onEditTrackingId={handleEditTrackingId} />}
       </Dialog>
     </>
   );

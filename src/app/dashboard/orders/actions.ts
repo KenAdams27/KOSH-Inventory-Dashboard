@@ -38,6 +38,10 @@ export async function updateOrderStatusAction(orderId: string, status: 'placed' 
       isDelivered: status === 'delivered'
     };
 
+    if (trackingId !== undefined) {
+      updatePayload.tracking_id = trackingId;
+    }
+    
     if (status === 'delivered') {
       updatePayload.deliveredAt = new Date().toISOString();
     } else if (status === 'dispatched' && trackingId) {
