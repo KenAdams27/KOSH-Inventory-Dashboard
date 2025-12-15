@@ -183,9 +183,11 @@ function OrderDetailsDialog({ order, products }: { order: Order, products: Produ
           </div>
           {order.tracking_id && (
              <div className="space-y-2">
-              <h4 className="font-medium">Tracking ID</h4>
-              <div className="text-sm text-muted-foreground">{order.tracking_id}</div>
-          </div>
+                <h4 className="font-medium">Tracking ID</h4>
+                <a href={`https://www.google.com/search?q=${order.tracking_id}`} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline-offset-4 hover:underline">
+                  {order.tracking_id}
+                </a>
+            </div>
           )}
           <div className="space-y-2">
             <h4 className="font-medium">Items Ordered</h4>
