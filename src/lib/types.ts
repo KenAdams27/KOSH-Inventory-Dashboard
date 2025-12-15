@@ -62,6 +62,7 @@ export type Order = {
   status: 'placed' | 'dispatched' | 'delivered';
   deliveredAt?: string; // ISO date string
   createdAt: string; // ISO date string from timestamps
+  tracking_id?: string;
 };
 
 

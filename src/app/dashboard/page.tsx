@@ -54,6 +54,7 @@ async function getOrders(): Promise<Order[]> {
         id: _id.toString(),
         user: user.toString(),
         status: status,
+        tracking_id: order.tracking_id,
         orderItems: orderItems.map((item: any) => {
           // Ensure item is a plain object without complex types
           const { _id: item_id, ...restOfItem } = item;
