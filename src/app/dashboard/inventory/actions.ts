@@ -5,21 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { ObjectId } from 'mongodb';
 import clientPromise from '@/lib/mongodb';
-
-// Helper function to convert files to Base64 Data URIs
-async function filesToBase64(files: File[]) {
-  const base64Strings: string[] = [];
-
-  for (const file of files) {
-      if (!file || file.size === 0) continue;
-      const buffer = await file.arrayBuffer();
-      const base64 = Buffer.from(buffer).toString('base64');
-      // Create a Data URI
-      base64Strings.push(`data:${file.type};base64,${base64}`);
-  }
-
-  return base64Strings;
-}
+import { uploadImageToCloudinary } from '@/lib/cloudinary';
 
 const reviewSchema = z.object({
     name: z.string(),
@@ -75,6 +61,12 @@ async function getDb() {
     return client.db(dbName);
 }
 
+// Helper to get file buffer
+async function getFileBuffer(file: File) {
+    const arrayBuffer = await file.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+}
+
 export async function addProductAction(prevState: any, formData: FormData) {
   
   const files = [
@@ -108,13 +100,21 @@ export async function addProductAction(prevState: any, formData: FormData) {
   }
 
   try {
-    const imageBase64Strings = await filesToBase64(files);
-
     const db = await getDb();
-    const result = await db.collection('items').insertOne({ 
+    const tempId = new ObjectId().toHexString();
+
+    const imageUrls = await Promise.all(
+        files.map(async (file, index) => {
+            const buffer = await getFileBuffer(file);
+            return uploadImageToCloudinary(buffer, tempId, index + 1);
+        })
+    );
+
+    const result = await db.collection('items').insertOne({
+        _id: new ObjectId(tempId),
         ...validation.data, 
         desc: validation.data.description,
-        images: imageBase64Strings,
+        images: imageUrls,
         reviews: [], // Initialize with an empty array
     });
 
@@ -181,9 +181,13 @@ export async function updateProductAction(productId: string, formData: FormData)
         const db = await getDb();
 
         if (files.length > 0) {
-          const imageBase64Strings = await filesToBase64(files);
-          // Replace existing images with the new ones.
-          updateData.images = imageBase64Strings;
+           const imageUrls = await Promise.all(
+                files.map(async (file, index) => {
+                    const buffer = await getFileBuffer(file);
+                    return uploadImageToCloudinary(buffer, productId, index + 1);
+                })
+            );
+          updateData.images = imageUrls;
         }
 
         const result = await db.collection('items').updateOne(
@@ -195,6 +199,13 @@ export async function updateProductAction(productId: string, formData: FormData)
             revalidatePath('/dashboard/inventory');
             return { success: true, message: 'Product updated successfully.' };
         } else {
+            // Check if there was no change but it was a "success" (e.g., no fields changed)
+            const existingProduct = await db.collection('items').findOne({ _id: new ObjectId(productId) });
+            // A simple check to see if an image upload was attempted could be done here if needed
+            if (existingProduct && files.length > 0) {
+                 revalidatePath('/dashboard/inventory');
+                 return { success: true, message: 'Product updated successfully (images replaced).' };
+            }
             return { success: false, message: 'Failed to update product or no changes were made.' };
         }
     } catch (error) {
