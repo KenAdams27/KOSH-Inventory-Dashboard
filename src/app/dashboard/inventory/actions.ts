@@ -141,7 +141,6 @@ export async function addProductAction(prevState: any, formData: FormData) {
 export async function updateProductAction(productId: string, prevState: any, formData: FormData) {
     
     const db = await getDb();
-    const existingProduct = await db.collection('items').findOne({ _id: new ObjectId(productId) });
     
     const newImageUrls: string[] = [];
     const imageFiles: File[] = [];
@@ -151,15 +150,6 @@ export async function updateProductAction(productId: string, prevState: any, for
         const file = formData.get(`image${i}`) as File | null;
         if (file && file.size > 0) {
             imageFiles.push(file);
-        }
-    }
-
-    // Identify which existing images to keep
-    const imagesToKeep: string[] = [];
-    for (let i = 1; i <= 4; i++) {
-        const existingUrl = formData.get(`existingImage${i}`) as string | null;
-        if (existingUrl) {
-            imagesToKeep.push(existingUrl);
         }
     }
 
@@ -177,8 +167,6 @@ export async function updateProductAction(productId: string, prevState: any, for
         return { success: false, message: `Image Upload Error: ${message}` };
     }
     
-    const finalImages = [...imagesToKeep, ...newImageUrls];
-
     const rawData = {
       sku: formData.get('sku'),
       name: formData.get('name'),
@@ -192,7 +180,7 @@ export async function updateProductAction(productId: string, prevState: any, for
       mrp: formData.get('mrp'),
       quantity: formData.get('quantity'),
       onWebsite: formData.get('onWebsite') === 'on',
-      images: finalImages,
+      // Images will be handled separately
     };
     
     const validation = productSchema.partial().safeParse(rawData);
@@ -202,6 +190,13 @@ export async function updateProductAction(productId: string, prevState: any, for
     }
     
     const updateData: any = { ...validation.data };
+
+    // If new images were uploaded, they replace the old ones.
+    // If no new images were uploaded, the images field is not updated, keeping the existing ones.
+    if (newImageUrls.length > 0) {
+        updateData.images = newImageUrls;
+    }
+
     if (updateData.description !== undefined) {
         updateData.desc = updateData.description;
     }
