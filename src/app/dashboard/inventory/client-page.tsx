@@ -120,10 +120,8 @@ const subCategoryOptions = {
 
 function ProductForm({
   product,
-  onSheetOpenChange,
 }: {
   product?: Product | null;
-  onSheetOpenChange: (isOpen: boolean) => void;
 }) {
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -278,28 +276,26 @@ function ProductForm({
           {form.formState.errors.quantity && <p className="text-sm text-destructive">{form.formState.errors.quantity.message as string}</p>}
         </div>
       </div>
-      {product && (
-        <div className="space-y-2">
-          <Label htmlFor="onWebsite">Publish on website</Label>
-          <Controller
-              control={form.control}
-              name="onWebsite"
-              render={({ field }) => (
-                  <div className="flex items-center gap-2">
-                      <Switch
-                          id="onWebsite"
-                          name="onWebsite"
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                      />
-                      <Badge variant={field.value ? "secondary" : "outline"}>
-                          {field.value ? "Yes" : "No"}
-                      </Badge>
-                  </div>
-              )}
-          />
-        </div>
-      )}
+      <div className="space-y-2">
+        <Label htmlFor="onWebsite">Publish on website</Label>
+        <Controller
+            control={form.control}
+            name="onWebsite"
+            render={({ field }) => (
+                <div className="flex items-center gap-2">
+                    <Switch
+                        id="onWebsite"
+                        name="onWebsite"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                    />
+                    <Badge variant={field.value ? "secondary" : "outline"}>
+                        {field.value ? "Yes" : "No"}
+                    </Badge>
+                </div>
+            )}
+        />
+      </div>
     </div>
   );
 }
@@ -498,7 +494,6 @@ function ProductDetailsDialog({ product }: { product: Product }) {
 
 function AddProductSheet({ children }: { children: React.ReactNode }) {
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
   
   type FormState = {
@@ -539,12 +534,10 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
             Fill in the details below to add a new product to your inventory.
           </SheetDescription>
         </SheetHeader>
-        <form ref={formRef} action={formAction}>
+        <form action={formAction}>
           <ScrollArea className="flex-grow h-[calc(100vh-200px)]">
             <div className="p-6 pt-4">
-              <ProductForm 
-                onSheetOpenChange={setIsAddSheetOpen}
-              />
+              <ProductForm />
             </div>
           </ScrollArea>
           <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
@@ -565,7 +558,6 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
 
 
 function EditProductSheet({ product, open, onOpenChange }: { product: Product | null, open: boolean, onOpenChange: (open: boolean) => void }) {
-    const formRef = useRef<HTMLFormElement>(null);
     const { toast } = useToast();
     
     type FormState = {
@@ -575,7 +567,6 @@ function EditProductSheet({ product, open, onOpenChange }: { product: Product | 
     };
     const initialState: FormState = { success: false, message: "" };
     
-    // Bind the product ID to the server action
     const updateAction = product ? updateProductAction.bind(null, product.id) : () => Promise.resolve(initialState);
     const [formState, formAction] = useActionState(updateAction, initialState);
 
@@ -599,13 +590,10 @@ function EditProductSheet({ product, open, onOpenChange }: { product: Product | 
                         Update the details for &quot;{product.name}&quot;.
                     </SheetDescription>
                 </SheetHeader>
-                <form ref={formRef} action={formAction}>
+                <form action={formAction}>
                     <ScrollArea className="flex-grow h-[calc(100vh-200px)]">
                         <div className="p-6 pt-4">
-                            <ProductForm 
-                                product={product} 
-                                onSheetOpenChange={onOpenChange}
-                            />
+                            <ProductForm product={product} />
                         </div>
                     </ScrollArea>
                     <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
@@ -891,3 +879,5 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
+
+    
