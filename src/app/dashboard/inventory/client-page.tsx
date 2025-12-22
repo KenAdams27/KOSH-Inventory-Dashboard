@@ -564,6 +564,63 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
 }
 
 
+function EditProductSheet({ product, open, onOpenChange }: { product: Product | null, open: boolean, onOpenChange: (open: boolean) => void }) {
+    const formRef = useRef<HTMLFormElement>(null);
+    const { toast } = useToast();
+    
+    type FormState = {
+        success: boolean;
+        message: string;
+        errors?: any;
+    };
+    const initialState: FormState = { success: false, message: "" };
+    
+    // Bind the product ID to the server action
+    const updateAction = product ? updateProductAction.bind(null, product.id) : () => Promise.resolve(initialState);
+    const [formState, formAction] = useActionState(updateAction, initialState);
+
+    useEffect(() => {
+        if (formState.success) {
+            toast({ title: "Product Updated", description: formState.message });
+            onOpenChange(false);
+        } else if (formState.message) {
+            toast({ variant: "destructive", title: "Error", description: formState.message });
+        }
+    }, [formState, toast, onOpenChange]);
+
+    if (!product) return null;
+
+    return (
+        <Sheet open={open} onOpenChange={onOpenChange}>
+            <SheetContent className="sm:max-w-xl w-full flex flex-col">
+                <SheetHeader>
+                    <SheetTitle>Edit Product</SheetTitle>
+                    <SheetDescription>
+                        Update the details for &quot;{product.name}&quot;.
+                    </SheetDescription>
+                </SheetHeader>
+                <form ref={formRef} action={formAction}>
+                    <ScrollArea className="flex-grow h-[calc(100vh-200px)]">
+                        <div className="p-6 pt-4">
+                            <ProductForm 
+                                product={product} 
+                                onSheetOpenChange={onOpenChange}
+                            />
+                        </div>
+                    </ScrollArea>
+                    <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
+                       <SheetClose asChild>
+                           <Button type="button" variant="outline">Cancel</Button>
+                       </SheetClose>
+                       <Button type="submit">Save Changes</Button>
+                    </SheetFooter>
+                </form>
+            </SheetContent>
+        </Sheet>
+    );
+}
+
+
 export function InventoryClientPage({ products: initialProducts }: { products: Product[] }) {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
@@ -575,8 +632,6 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   const [sortOption, setSortOption] = useState("latest");
   const productsPerPage = 10;
   const { toast } = useToast();
-  
-  const editFormRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     setProducts(initialProducts);
@@ -590,25 +645,6 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     setEditingProduct(product);
     setIsEditSheetOpen(true);
   };
-
-  const handleEditProduct = async (data: FormData) => {
-    if (!editingProduct) return;
-    const result = await updateProductAction(editingProduct.id, data);
-    if (result.success) {
-        toast({
-            title: "Product Updated",
-            description: result.message,
-        });
-        setIsEditSheetOpen(false);
-    } else {
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: result.message,
-        });
-    }
-    setEditingProduct(null);
-  }
   
   const handleDeleteProduct = async (productId: string) => {
     const result = await deleteProductAction(productId);
@@ -638,13 +674,6 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
         p.id === productId ? { ...p, onWebsite } : p
       )
     );
-  };
-  
-  const handleEditFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!editFormRef.current) return;
-    const formData = new FormData(editFormRef.current);
-    handleEditProduct(formData);
   };
 
   const sortedAndFilteredProducts = useMemo(() => {
@@ -699,34 +728,14 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
         </AddProductSheet>
       </PageHeader>
       
-      <Sheet open={isEditSheetOpen} onOpenChange={(isOpen) => {
-          setIsEditSheetOpen(isOpen);
-          if (!isOpen) setEditingProduct(null);
-      }}>
-          <SheetContent className="sm:max-w-xl w-full flex flex-col">
-              <SheetHeader>
-                  <SheetTitle>Edit Product</SheetTitle>
-                  <SheetDescription>
-                      Update the details for &quot;{editingProduct?.name}&quot;.
-                  </SheetDescription>
-              </SheetHeader>
-              <form ref={editFormRef} onSubmit={handleEditFormSubmit} >
-                <ScrollArea className="flex-grow h-[calc(100vh-200px)]">
-                  <div className="p-6 pt-4">
-                      <ProductForm 
-                        product={editingProduct} 
-                        onSheetOpenChange={setIsEditSheetOpen}
-                      />
-                  </div>
-                </ScrollArea>
-                <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
-                  <Button type="submit">
-                    Save Changes
-                  </Button>
-                </SheetFooter>
-              </form>
-          </SheetContent>
-      </Sheet>
+      <EditProductSheet 
+          product={editingProduct} 
+          open={isEditSheetOpen}
+          onOpenChange={(isOpen) => {
+              setIsEditSheetOpen(isOpen);
+              if (!isOpen) setEditingProduct(null);
+          }}
+      />
 
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <Card>

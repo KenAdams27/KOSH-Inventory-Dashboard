@@ -131,7 +131,7 @@ export async function addProductAction(prevState: any, formData: FormData) {
   }
 }
 
-export async function updateProductAction(productId: string, formData: FormData) {
+export async function updateProductAction(productId: string, prevState: any, formData: FormData) {
     const files = [
       formData.get('image1') as File,
       formData.get('image2') as File,
