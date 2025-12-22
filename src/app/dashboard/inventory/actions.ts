@@ -142,7 +142,6 @@ export async function updateProductAction(productId: string, prevState: any, for
     
     const db = await getDb();
     const existingProduct = await db.collection('items').findOne({ _id: new ObjectId(productId) });
-    const existingImages = existingProduct?.images || [];
     
     const newImageUrls: string[] = [];
     const imageFiles: File[] = [];
@@ -180,33 +179,21 @@ export async function updateProductAction(productId: string, prevState: any, for
     
     const finalImages = [...imagesToKeep, ...newImageUrls];
 
-    const rawData: any = {
+    const rawData = {
       sku: formData.get('sku'),
       name: formData.get('name'),
       brand: formData.get('brand'),
       description: formData.get('description'),
       category: formData.get('category'),
       subCategory: formData.get('subCategory') || undefined,
+      colors: (formData.get('colors') as string || '').split(',').map(s => s.trim()).filter(Boolean),
+      sizes: (formData.get('sizes') as string || '').split(',').map(s => s.trim()).filter(Boolean),
       price: formData.get('price'),
       mrp: formData.get('mrp'),
       quantity: formData.get('quantity'),
       onWebsite: formData.get('onWebsite') === 'on',
       images: finalImages,
     };
-
-    const colorsStr = formData.get('colors') as string;
-    if (colorsStr) {
-      rawData.colors = colorsStr.split(',').map(s => s.trim()).filter(Boolean);
-    }
-    
-    const sizesStr = formData.get('sizes') as string;
-    if (sizesStr) {
-      rawData.sizes = sizesStr.split(',').map(s => s.trim()).filter(Boolean);
-    }
-
-    if (rawData.quantity !== undefined) {
-      rawData.status = Number(rawData.quantity) > 0 ? "In Stock" : "Out of Stock";
-    }
     
     const validation = productSchema.partial().safeParse(rawData);
 
@@ -215,8 +202,11 @@ export async function updateProductAction(productId: string, prevState: any, for
     }
     
     const updateData: any = { ...validation.data };
-    if (updateData.description) {
+    if (updateData.description !== undefined) {
         updateData.desc = updateData.description;
+    }
+    if (updateData.quantity !== undefined) {
+      updateData.status = Number(updateData.quantity) > 0 ? "In Stock" : "Out of Stock";
     }
 
     try {
@@ -229,6 +219,7 @@ export async function updateProductAction(productId: string, prevState: any, for
             revalidatePath('/dashboard/inventory');
             return { success: true, message: 'Product updated successfully.' };
         } else {
+            revalidatePath('/dashboard/inventory');
             return { success: true, message: 'No changes were made to the product.' };
         }
     } catch (error) {
