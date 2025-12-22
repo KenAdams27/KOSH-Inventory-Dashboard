@@ -180,7 +180,6 @@ export async function updateProductAction(productId: string, prevState: any, for
       mrp: formData.get('mrp'),
       quantity: formData.get('quantity'),
       onWebsite: formData.get('onWebsite') === 'on',
-      // Images will be handled separately
     };
     
     const validation = productSchema.partial().safeParse(rawData);
@@ -192,7 +191,6 @@ export async function updateProductAction(productId: string, prevState: any, for
     const updateData: any = { ...validation.data };
 
     // If new images were uploaded, they replace the old ones.
-    // If no new images were uploaded, the images field is not updated, keeping the existing ones.
     if (newImageUrls.length > 0) {
         updateData.images = newImageUrls;
     }

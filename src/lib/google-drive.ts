@@ -1,25 +1,46 @@
-
 import { google } from 'googleapis';
 import { Readable } from 'stream';
+import type { OAuth2Client } from 'google-auth-library';
 
-const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
 const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
-async function getAuthenticatedClient() {
-  if (!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
-    throw new Error('Google service account credentials are not set in environment variables.');
+const REDIRECT_URI = process.env.NODE_ENV === 'production'
+  ? 'https://your-production-url.com/api/auth/google/drive/callback' // IMPORTANT: Change this to your production URL
+  : 'http://localhost:9002/api/auth/google/drive/callback';
+
+export function getOAuth2Client(): OAuth2Client {
+  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } = process.env;
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    throw new Error('Google OAuth credentials are not set in environment variables.');
+  }
+  return new google.auth.OAuth2(
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    REDIRECT_URI
+  );
+}
+
+async function getAuthenticatedClient(): Promise<OAuth2Client> {
+  const oauth2Client = getOAuth2Client();
+  const { GOOGLE_DRIVE_REFRESH_TOKEN } = process.env;
+
+  if (!GOOGLE_DRIVE_REFRESH_TOKEN) {
+    throw new Error('Google Drive refresh token is not set. Please authenticate via /api/auth/google/drive');
   }
 
-  const auth = new google.auth.GoogleAuth({
-    credentials: {
-      client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    },
-    scopes: SCOPES,
+  oauth2Client.setCredentials({
+    refresh_token: GOOGLE_DRIVE_REFRESH_TOKEN,
   });
 
-  const client = await auth.getClient();
-  return google.drive({ version: 'v3', auth: client });
+  // Test the connection by getting a new access token
+  try {
+    await oauth2Client.getAccessToken();
+  } catch (error) {
+    console.error('Failed to refresh access token:', error);
+    throw new Error('Could not refresh access token. The refresh token might be expired or invalid. Please re-authenticate.');
+  }
+
+  return oauth2Client;
 }
 
 export async function uploadImageToDrive(buffer: Buffer, fileName: string): Promise<string | null> {
@@ -27,7 +48,9 @@ export async function uploadImageToDrive(buffer: Buffer, fileName: string): Prom
     throw new Error('GOOGLE_DRIVE_FOLDER_ID is not set in environment variables.');
   }
 
-  const drive = await getAuthenticatedClient();
+  const auth = await getAuthenticatedClient();
+  const drive = google.drive({ version: 'v3', auth });
+
   const readableStream = new Readable();
   readableStream.push(buffer);
   readableStream.push(null);
@@ -46,7 +69,7 @@ export async function uploadImageToDrive(buffer: Buffer, fileName: string): Prom
     const file = await drive.files.create({
       requestBody: fileMetadata,
       media: media,
-      fields: 'id, webViewLink, webContentLink',
+      fields: 'id',
     });
 
     if (!file.data.id) {
@@ -62,11 +85,16 @@ export async function uploadImageToDrive(buffer: Buffer, fileName: string): Prom
         },
     });
 
-    // To get a direct media link, you must format it this way
-    return `https://lh3.googleusercontent.com/d/${file.data.id}`;
+    // Return the direct link for viewing/embedding
+    return `https://drive.google.com/uc?id=${file.data.id}`;
 
   } catch (error) {
     console.error('Error uploading to Google Drive:', error);
-    throw new Error(`Failed to upload image to Google Drive: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    const gaxiosError = error as any;
+    if (gaxiosError.response?.data?.error) {
+        console.error('Google API Error Details:', gaxiosError.response.data.error);
+        throw new Error(`Google API Error: ${gaxiosError.response.data.error.message}`);
+    }
+    throw new Error(`Failed to upload image to Google Drive: ${gaxiosError.message || 'Unknown error'}`);
   }
 }
