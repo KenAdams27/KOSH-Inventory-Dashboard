@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { ObjectId } from 'mongodb';
 import clientPromise from '@/lib/mongodb';
 import type { Product } from '@/lib/types';
-
+import { uploadImageToDrive } from '@/lib/google-drive';
 
 const reviewSchema = z.object({
     name: z.string(),
@@ -61,8 +61,38 @@ async function getDb() {
     return client.db(dbName);
 }
 
+const getFileBuffer = async (file: File) => {
+    const arrayBuffer = await file.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+};
+
 
 export async function addProductAction(prevState: any, formData: FormData) {
+  const imageUrls: string[] = [];
+  const imageFiles: File[] = [];
+
+  // Collect image files
+  for (let i = 1; i <= 4; i++) {
+    const file = formData.get(`image${i}`) as File | null;
+    if (file && file.size > 0) {
+      imageFiles.push(file);
+    }
+  }
+
+  // Upload images and collect URLs
+  try {
+    for (const file of imageFiles) {
+      const buffer = await getFileBuffer(file);
+      const url = await uploadImageToDrive(buffer, file.name);
+      if (url) {
+        imageUrls.push(url);
+      }
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred during image upload.';
+    return { success: false, message: `Image Upload Error: ${message}` };
+  }
+
   const rawData = {
     sku: formData.get('sku'),
     name: formData.get('name'),
@@ -75,14 +105,9 @@ export async function addProductAction(prevState: any, formData: FormData) {
     price: formData.get('price'),
     mrp: formData.get('mrp'),
     quantity: formData.get('quantity'),
-    onWebsite: formData.get('onWebsite') === 'true',
+    onWebsite: formData.get('onWebsite') === 'on', // Checkbox value is 'on'
     status: Number(formData.get('quantity')) > 0 ? "In Stock" : "Out of Stock",
-    images: [
-      formData.get('image1') as string,
-      formData.get('image2') as string,
-      formData.get('image3') as string,
-      formData.get('image4') as string,
-    ].filter(Boolean),
+    images: imageUrls,
   };
   
   const validation = productSchema.safeParse(rawData);
@@ -115,6 +140,46 @@ export async function addProductAction(prevState: any, formData: FormData) {
 
 export async function updateProductAction(productId: string, prevState: any, formData: FormData) {
     
+    const db = await getDb();
+    const existingProduct = await db.collection('items').findOne({ _id: new ObjectId(productId) });
+    const existingImages = existingProduct?.images || [];
+    
+    const newImageUrls: string[] = [];
+    const imageFiles: File[] = [];
+
+    // Collect new image files from the form
+    for (let i = 1; i <= 4; i++) {
+        const file = formData.get(`image${i}`) as File | null;
+        if (file && file.size > 0) {
+            imageFiles.push(file);
+        }
+    }
+
+    // Identify which existing images to keep
+    const imagesToKeep: string[] = [];
+    for (let i = 1; i <= 4; i++) {
+        const existingUrl = formData.get(`existingImage${i}`) as string | null;
+        if (existingUrl) {
+            imagesToKeep.push(existingUrl);
+        }
+    }
+
+    // Upload new images and collect their URLs
+    try {
+        for (const file of imageFiles) {
+            const buffer = await getFileBuffer(file);
+            const url = await uploadImageToDrive(buffer, file.name);
+            if (url) {
+                newImageUrls.push(url);
+            }
+        }
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'An unknown error occurred during image upload.';
+        return { success: false, message: `Image Upload Error: ${message}` };
+    }
+    
+    const finalImages = [...imagesToKeep, ...newImageUrls];
+
     const rawData: any = {
       sku: formData.get('sku'),
       name: formData.get('name'),
@@ -125,7 +190,8 @@ export async function updateProductAction(productId: string, prevState: any, for
       price: formData.get('price'),
       mrp: formData.get('mrp'),
       quantity: formData.get('quantity'),
-      onWebsite: formData.get('onWebsite') === 'true',
+      onWebsite: formData.get('onWebsite') === 'on',
+      images: finalImages,
     };
 
     const colorsStr = formData.get('colors') as string;
@@ -141,18 +207,7 @@ export async function updateProductAction(productId: string, prevState: any, for
     if (rawData.quantity !== undefined) {
       rawData.status = Number(rawData.quantity) > 0 ? "In Stock" : "Out of Stock";
     }
-
-    const images = [
-      formData.get('image1') as string,
-      formData.get('image2') as string,
-      formData.get('image3') as string,
-      formData.get('image4') as string,
-    ].filter(Boolean);
-
-    if (images.length > 0) {
-        rawData.images = images;
-    }
-
+    
     const validation = productSchema.partial().safeParse(rawData);
 
     if (!validation.success) {
@@ -165,7 +220,6 @@ export async function updateProductAction(productId: string, prevState: any, for
     }
 
     try {
-        const db = await getDb();
         const result = await db.collection('items').updateOne(
             { _id: new ObjectId(productId) },
             { $set: updateData }

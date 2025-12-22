@@ -73,8 +73,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import imageCompression from "browser-image-compression";
-
 
 const reviewSchema = z.object({
     name: z.string(),
@@ -120,10 +118,8 @@ const subCategoryOptions = {
 
 function ProductForm({
   product,
-  onSheetOpenChange,
 }: {
   product?: Product | null;
-  onSheetOpenChange: (isOpen: boolean) => void;
 }) {
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -132,6 +128,7 @@ function ProductForm({
       description: product.desc,
       colors: product.colors?.join(', ') || '',
       sizes: product.sizes?.join(', ') || '',
+      onWebsite: product.onWebsite,
     } : {
       sku: "",
       name: "",
@@ -149,92 +146,66 @@ function ProductForm({
   });
 
   const selectedCategory = form.watch("category");
-  const formRef = useRef<HTMLFormElement>(null);
+  
+  // local state for new file objects and existing image URLs
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [existingImageUrls, setExistingImageUrls] = useState<string[]>(product?.images || []);
   const [imagePreviews, setImagePreviews] = useState<string[]>(product?.images || []);
-  const [hiddenImageInputs, setHiddenImageInputs] = useState<{[key: string]: string}>({});
+
+  useEffect(() => {
+    if (product?.images) {
+      setExistingImageUrls(product.images);
+      setImagePreviews(product.images);
+    }
+  }, [product]);
 
   useEffect(() => {
     if (selectedCategory) {
         form.setValue("subCategory", subCategoryOptions[selectedCategory][0]);
     }
   }, [selectedCategory, form]);
-  
-  useEffect(() => {
-    if (product?.images) {
-      setImagePreviews(product.images);
-      const initialHiddenInputs = product.images.reduce((acc, img, index) => ({
-        ...acc,
-        [`image${index + 1}`]: img,
-      }), {});
-      setHiddenImageInputs(initialHiddenInputs);
-    }
-  }, [product]);
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const file = e.target.files?.[0];
     if (file) {
-      const options = {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1920,
-        useWebWorker: true,
-      };
-      try {
-        const compressedFile = await imageCompression(file, options);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64String = reader.result as string;
-          const newPreviews = [...imagePreviews];
-          newPreviews[index] = base64String;
-          setImagePreviews(newPreviews);
-          setHiddenImageInputs(prev => ({...prev, [`image${index + 1}`]: base64String}));
-        };
-        reader.readAsDataURL(compressedFile);
-      } catch (error) {
-        console.error("Image compression error: ", error);
-      }
+      const newImageFiles = [...imageFiles];
+      newImageFiles[index] = file;
+      setImageFiles(newImageFiles);
+
+      const newPreviews = [...imagePreviews];
+      newPreviews[index] = URL.createObjectURL(file);
+      setImagePreviews(newPreviews);
     }
   };
 
   const removeImage = (index: number) => {
+    // This could be a new file or an existing URL
+    const isExistingUrl = index < existingImageUrls.length && imagePreviews[index] === existingImageUrls[index];
+
     const newPreviews = [...imagePreviews];
     newPreviews.splice(index, 1);
     setImagePreviews(newPreviews);
 
-    const newHiddenInputs = {...hiddenImageInputs};
-    delete newHiddenInputs[`image${index + 1}`];
-    // This is tricky, we need to shift subsequent images
-    for (let i = index + 1; i < 5; i++) {
-        if (newHiddenInputs[`image${i + 1}`]) {
-            newHiddenInputs[`image${i}`] = newHiddenInputs[`image${i + 1}`];
-            delete newHiddenInputs[`image${i + 1}`];
-        }
+    if (isExistingUrl) {
+      const newExistingUrls = [...existingImageUrls];
+      newExistingUrls.splice(index, 1);
+      setExistingImageUrls(newExistingUrls);
+    } else {
+      const newImageFiles = [...imageFiles];
+      // This mapping is tricky if files and urls are mixed. Let's find the corresponding file.
+      const fileIndex = imageFiles.findIndex(f => f && URL.createObjectURL(f) === imagePreviews[index]);
+      if (fileIndex > -1) {
+        newImageFiles.splice(fileIndex, 1);
+        setImageFiles(newImageFiles);
+      }
     }
-    setHiddenImageInputs(newHiddenInputs);
   };
 
 
   return (
-    <form 
-        ref={formRef}
-        action={async (formData) => {
-            Object.entries(hiddenImageInputs).forEach(([key, value]) => {
-                formData.append(key, value);
-            });
-            
-            const action = product ? updateProductAction.bind(null, product.id) : addProductAction;
-            
-            // We are manually handling the action logic in parent components
-            // This is just to demonstrate how to pass the data up.
-            const parentForm = (formRef.current?.closest('form'));
-            if(parentForm) {
-                 const parentFormData = new FormData(parentForm);
-                 Object.entries(hiddenImageInputs).forEach(([key, value]) => {
-                    parentFormData.append(key, value);
-                 });
-                 // This part is complex due to RHF. Let's rely on parent state.
-            }
-        }}
-    >
+    // The parent form will handle the submission.
+    // We pass data up via hidden inputs.
+    <>
         <div className="grid gap-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -326,18 +297,24 @@ function ProductForm({
                         </Button>
                         </>
                     ) : (
-                        <Label htmlFor={`image${index + 1}`} className="cursor-pointer flex flex-col items-center gap-1 text-center">
-                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">Image {index + 1}</span>
+                        <Label htmlFor={`image-upload-${index}`} className="cursor-pointer flex flex-col items-center gap-1 text-center">
+                          <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">Image {index + 1}</span>
                         </Label>
                     )}
-                    <Input id={`image${index + 1}`} type="file" className="sr-only" onChange={(e) => handleImageChange(e, index)} />
+                    <Input 
+                      id={`image-upload-${index}`} 
+                      type="file" 
+                      className="sr-only" 
+                      name={`image${index + 1}`}
+                      onChange={(e) => handleImageChange(e, index)}
+                    />
                     </div>
                 ))}
                 </div>
-                 {/* Hidden inputs to hold base64 strings */}
-                {Object.entries(hiddenImageInputs).map(([key, value]) => (
-                   <input key={key} type="hidden" name={key} value={value} />
+                {/* Hidden inputs to preserve existing images on edit */}
+                {product && existingImageUrls.map((url, index) => (
+                    <input key={`existing-${index}`} type="hidden" name={`existingImage${index+1}`} value={url} />
                 ))}
             </div>
 
@@ -373,30 +350,29 @@ function ProductForm({
                 {form.formState.errors.quantity && <p className="text-sm text-destructive">{form.formState.errors.quantity.message as string}</p>}
                 </div>
             </div>
-             {!product && (
-              <div className="space-y-2">
-                <Label htmlFor="onWebsite">Publish on website</Label>
-                <Controller
-                    control={form.control}
-                    name="onWebsite"
-                    render={({ field }) => (
-                        <div className="flex items-center gap-2">
-                            <Switch
-                                id="onWebsite"
-                                name="onWebsite"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                            />
-                            <Badge variant={field.value ? "secondary" : "outline"}>
-                                {field.value ? "Yes" : "No"}
-                            </Badge>
-                        </div>
-                    )}
-                />
-              </div>
-            )}
+             <div className="space-y-2">
+               <Controller
+                  control={form.control}
+                  name="onWebsite"
+                  render={({ field }) => (
+                      <div className="flex items-center gap-2">
+                          <input type="hidden" name="onWebsite" value={field.value ? "on" : "off"} />
+                          <Switch
+                              id="onWebsite"
+                              name="onWebsite"
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                          />
+                          <Label htmlFor="onWebsite" className="cursor-pointer">Publish on website</Label>
+                          <Badge variant={field.value ? "secondary" : "outline"}>
+                              {field.value ? "Yes" : "No"}
+                          </Badge>
+                      </div>
+                  )}
+              />
+            </div>
         </div>
-    </form>
+    </>
   );
 }
 
@@ -596,35 +572,25 @@ function ProductDetailsDialog({ product }: { product: Product }) {
 function AddProductSheet({ children }: { children: React.ReactNode }) {
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
   const { toast } = useToast();
-  const formRef = useRef<HTMLFormElement>(null);
-  
-  type FormState = {
-    success: boolean;
-    message: string;
-    errors?: any;
-  };
 
-  const initialState: FormState = { success: false, message: "" };
+  const initialState = { success: false, message: "", errors: null };
+  const [state, formAction] = useActionState(addProductAction, initialState);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const result = await addProductAction(null, formData);
-
-    if (result.success) {
+  useEffect(() => {
+    if (state.success) {
       toast({
         title: "Product Added",
-        description: result.message,
+        description: state.message,
       });
       setIsAddSheetOpen(false);
-    } else {
+    } else if (state.message) {
       toast({
         variant: "destructive",
         title: "Error adding product",
-        description: result.message,
+        description: state.message,
       });
     }
-  };
+  }, [state, toast]);
 
 
   return (
@@ -640,10 +606,10 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
             Fill in the details below to add a new product to your inventory.
           </SheetDescription>
         </SheetHeader>
-        <form onSubmit={handleSubmit} ref={formRef}>
+        <form action={formAction}>
           <ScrollArea className="flex-grow h-[calc(100vh-200px)]">
             <div className="p-6 pt-4">
-              <ProductForm onSheetOpenChange={setIsAddSheetOpen} />
+              <ProductForm />
             </div>
           </ScrollArea>
           <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
@@ -665,21 +631,18 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
 
 function EditProductSheet({ product, open, onOpenChange }: { product: Product | null, open: boolean, onOpenChange: (open: boolean) => void }) {
     const { toast } = useToast();
-    const formRef = useRef<HTMLFormElement>(null);
     
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      if (!product) return;
-      const formData = new FormData(e.currentTarget);
-      const result = await updateProductAction(product.id, null, formData);
+    const initialState = { success: false, message: "", errors: null };
+    const [state, formAction] = useActionState(updateProductAction.bind(null, product?.id || ""), initialState);
 
-      if (result.success) {
-        toast({ title: "Product Updated", description: result.message });
-        onOpenChange(false);
-      } else {
-        toast({ variant: "destructive", title: "Error", description: result.message });
-      }
-    };
+    useEffect(() => {
+        if (state.success) {
+          toast({ title: "Product Updated", description: state.message });
+          onOpenChange(false);
+        } else if (state.message) {
+          toast({ variant: "destructive", title: "Error", description: state.message });
+        }
+    }, [state, toast, onOpenChange]);
 
     if (!product) return null;
 
@@ -692,10 +655,10 @@ function EditProductSheet({ product, open, onOpenChange }: { product: Product | 
                         Update the details for &quot;{product.name}&quot;.
                     </SheetDescription>
                 </SheetHeader>
-                <form onSubmit={handleSubmit} ref={formRef}>
+                <form action={formAction}>
                     <ScrollArea className="flex-grow h-[calc(100vh-200px)]">
                         <div className="p-6 pt-4">
-                            <ProductForm product={product} onSheetOpenChange={onOpenChange} />
+                            <ProductForm product={product} />
                         </div>
                     </ScrollArea>
                     <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
@@ -981,5 +944,3 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
-
-    
