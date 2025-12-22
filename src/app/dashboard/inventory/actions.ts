@@ -5,7 +5,8 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { ObjectId } from 'mongodb';
 import clientPromise from '@/lib/mongodb';
-import { uploadImageToCloudinary } from '@/lib/cloudinary';
+import type { Product } from '@/lib/types';
+
 
 const reviewSchema = z.object({
     name: z.string(),
@@ -47,7 +48,6 @@ const productSchema = baseProductSchema.refine(data => {
     path: ["subCategory"],
 });
 
-const updateProductSchema = baseProductSchema.partial();
 
 async function getDb() {
     if (!clientPromise) {
@@ -61,68 +61,50 @@ async function getDb() {
     return client.db(dbName);
 }
 
-// Helper to get file buffer
-async function getFileBuffer(file: File) {
-    const arrayBuffer = await file.arrayBuffer();
-    return Buffer.from(arrayBuffer);
-}
 
 export async function addProductAction(prevState: any, formData: FormData) {
-  
-  const files = [
-    formData.get('image1') as File,
-    formData.get('image2') as File,
-    formData.get('image3') as File,
-    formData.get('image4') as File,
-  ].filter(file => file && file.size > 0);
-
   const rawData = {
-      sku: formData.get('sku'),
-      name: formData.get('name'),
-      brand: formData.get('brand'),
-      description: formData.get('description'),
-      category: formData.get('category'),
-      subCategory: formData.get('subCategory') || undefined,
-      colors: (formData.get('colors') as string || '').split(',').map((s: string) => s.trim()).filter(Boolean),
-      sizes: (formData.get('sizes') as string || '').split(',').map((s: string) => s.trim()).filter(Boolean),
-      price: formData.get('price'),
-      mrp: formData.get('mrp'),
-      quantity: formData.get('quantity'),
-      onWebsite: formData.get('onWebsite') === 'true',
-      status: Number(formData.get('quantity')) > 0 ? "In Stock" : "Out of Stock",
+    sku: formData.get('sku'),
+    name: formData.get('name'),
+    brand: formData.get('brand'),
+    description: formData.get('description'),
+    category: formData.get('category'),
+    subCategory: formData.get('subCategory') || undefined,
+    colors: (formData.get('colors') as string || '').split(',').map(s => s.trim()).filter(Boolean),
+    sizes: (formData.get('sizes') as string || '').split(',').map(s => s.trim()).filter(Boolean),
+    price: formData.get('price'),
+    mrp: formData.get('mrp'),
+    quantity: formData.get('quantity'),
+    onWebsite: formData.get('onWebsite') === 'true',
+    status: Number(formData.get('quantity')) > 0 ? "In Stock" : "Out of Stock",
+    images: [
+      formData.get('image1') as string,
+      formData.get('image2') as string,
+      formData.get('image3') as string,
+      formData.get('image4') as string,
+    ].filter(Boolean),
   };
-
+  
   const validation = productSchema.safeParse(rawData);
 
   if (!validation.success) {
-    console.error("Validation Errors:", validation.error.flatten().fieldErrors);
     return { success: false, message: 'Invalid data.', errors: validation.error.flatten().fieldErrors };
   }
 
   try {
     const db = await getDb();
-    const tempId = new ObjectId().toHexString();
-
-    const imageUrls = await Promise.all(
-        files.map(async (file, index) => {
-            const buffer = await getFileBuffer(file);
-            return uploadImageToCloudinary(buffer, tempId, index + 1);
-        })
-    );
-
-    const result = await db.collection('items').insertOne({
-        _id: new ObjectId(tempId),
-        ...validation.data, 
-        desc: validation.data.description,
-        images: imageUrls,
-        reviews: [], // Initialize with an empty array
+    
+    const result = await db.collection('items').insertOne({ 
+      ...validation.data, 
+      desc: validation.data.description,
+      reviews: [], // Initialize with an empty array
     });
-
+    
     if (result.acknowledged) {
-        revalidatePath('/dashboard/inventory');
-        return { success: true, message: 'Product added successfully.' };
+      revalidatePath('/dashboard/inventory');
+      return { success: true, message: 'Product added successfully.' };
     } else {
-        return { success: false, message: 'Failed to add product.' };
+      return { success: false, message: 'Failed to add product.' };
     }
 
   } catch (error) {
@@ -132,13 +114,7 @@ export async function addProductAction(prevState: any, formData: FormData) {
 }
 
 export async function updateProductAction(productId: string, prevState: any, formData: FormData) {
-    const files = [
-      formData.get('image1') as File,
-      formData.get('image2') as File,
-      formData.get('image3') as File,
-      formData.get('image4') as File,
-    ].filter(file => file && file.size > 0);
-
+    
     const rawData: any = {
       sku: formData.get('sku'),
       name: formData.get('name'),
@@ -154,21 +130,32 @@ export async function updateProductAction(productId: string, prevState: any, for
 
     const colorsStr = formData.get('colors') as string;
     if (colorsStr) {
-      rawData.colors = colorsStr.split(',').map((s: string) => s.trim()).filter(Boolean);
+      rawData.colors = colorsStr.split(',').map(s => s.trim()).filter(Boolean);
     }
     
     const sizesStr = formData.get('sizes') as string;
     if (sizesStr) {
-      rawData.sizes = sizesStr.split(',').map((s: string) => s.trim()).filter(Boolean);
+      rawData.sizes = sizesStr.split(',').map(s => s.trim()).filter(Boolean);
     }
 
     if (rawData.quantity !== undefined) {
       rawData.status = Number(rawData.quantity) > 0 ? "In Stock" : "Out of Stock";
     }
 
-    const validation = updateProductSchema.safeParse(rawData);
+    const images = [
+      formData.get('image1') as string,
+      formData.get('image2') as string,
+      formData.get('image3') as string,
+      formData.get('image4') as string,
+    ].filter(Boolean);
+
+    if (images.length > 0) {
+        rawData.images = images;
+    }
+
+    const validation = productSchema.partial().safeParse(rawData);
+
     if (!validation.success) {
-        console.error("Validation Errors:", validation.error.flatten().fieldErrors);
         return { success: false, message: 'Invalid data.', errors: validation.error.flatten().fieldErrors };
     }
     
@@ -179,17 +166,6 @@ export async function updateProductAction(productId: string, prevState: any, for
 
     try {
         const db = await getDb();
-
-        if (files.length > 0) {
-           const imageUrls = await Promise.all(
-                files.map(async (file, index) => {
-                    const buffer = await getFileBuffer(file);
-                    return uploadImageToCloudinary(buffer, productId, index + 1);
-                })
-            );
-          updateData.images = imageUrls;
-        }
-
         const result = await db.collection('items').updateOne(
             { _id: new ObjectId(productId) },
             { $set: updateData }
@@ -199,14 +175,7 @@ export async function updateProductAction(productId: string, prevState: any, for
             revalidatePath('/dashboard/inventory');
             return { success: true, message: 'Product updated successfully.' };
         } else {
-            // Check if there was no change but it was a "success" (e.g., no fields changed)
-            const existingProduct = await db.collection('items').findOne({ _id: new ObjectId(productId) });
-            // A simple check to see if an image upload was attempted could be done here if needed
-            if (existingProduct && files.length > 0) {
-                 revalidatePath('/dashboard/inventory');
-                 return { success: true, message: 'Product updated successfully (images replaced).' };
-            }
-            return { success: false, message: 'Failed to update product or no changes were made.' };
+            return { success: true, message: 'No changes were made to the product.' };
         }
     } catch (error) {
         const message = error instanceof Error ? error.message : 'An unknown error occurred.';

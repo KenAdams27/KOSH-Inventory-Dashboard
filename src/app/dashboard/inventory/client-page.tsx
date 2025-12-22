@@ -120,8 +120,10 @@ const subCategoryOptions = {
 
 function ProductForm({
   product,
+  onSheetOpenChange,
 }: {
   product?: Product | null;
+  onSheetOpenChange: (isOpen: boolean) => void;
 }) {
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -147,6 +149,9 @@ function ProductForm({
   });
 
   const selectedCategory = form.watch("category");
+  const formRef = useRef<HTMLFormElement>(null);
+  const [imagePreviews, setImagePreviews] = useState<string[]>(product?.images || []);
+  const [hiddenImageInputs, setHiddenImageInputs] = useState<{[key: string]: string}>({});
 
   useEffect(() => {
     if (selectedCategory) {
@@ -154,151 +159,247 @@ function ProductForm({
     }
   }, [selectedCategory, form]);
   
+  useEffect(() => {
+    if (product?.images) {
+      setImagePreviews(product.images);
+      const initialHiddenInputs = product.images.reduce((acc, img, index) => ({
+        ...acc,
+        [`image${index + 1}`]: img,
+      }), {});
+      setHiddenImageInputs(initialHiddenInputs);
+    }
+  }, [product]);
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      };
+      try {
+        const compressedFile = await imageCompression(file, options);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          const newPreviews = [...imagePreviews];
+          newPreviews[index] = base64String;
+          setImagePreviews(newPreviews);
+          setHiddenImageInputs(prev => ({...prev, [`image${index + 1}`]: base64String}));
+        };
+        reader.readAsDataURL(compressedFile);
+      } catch (error) {
+        console.error("Image compression error: ", error);
+      }
+    }
+  };
+
+  const removeImage = (index: number) => {
+    const newPreviews = [...imagePreviews];
+    newPreviews.splice(index, 1);
+    setImagePreviews(newPreviews);
+
+    const newHiddenInputs = {...hiddenImageInputs};
+    delete newHiddenInputs[`image${index + 1}`];
+    // This is tricky, we need to shift subsequent images
+    for (let i = index + 1; i < 5; i++) {
+        if (newHiddenInputs[`image${i + 1}`]) {
+            newHiddenInputs[`image${i}`] = newHiddenInputs[`image${i + 1}`];
+            delete newHiddenInputs[`image${i + 1}`];
+        }
+    }
+    setHiddenImageInputs(newHiddenInputs);
+  };
+
 
   return (
-    <div className="grid gap-6">
-       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor="sku">SKU</Label>
-          <Input id="sku" {...form.register("sku")} name="sku" />
-          {form.formState.errors.sku && <p className="text-sm text-destructive">{form.formState.errors.sku.message as string}</p>}
-        </div>
-         <div className="space-y-2">
-          <Label htmlFor="name">Product Name</Label>
-          <Input id="name" {...form.register("name")} name="name" />
-          {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message as string}</p>}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="brand">Brand</Label>
-        <Input id="brand" {...form.register("brand")} name="brand" />
-        {form.formState.errors.brand && <p className="text-sm text-destructive">{form.formState.errors.brand.message as string}</p>}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <Textarea id="description" {...form.register("description")} name="description" />
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <Controller
-            control={form.control}
-            name="category"
-            render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value} name="category">
-                <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="ethnicWear">Ethnic Wear</SelectItem>
-                    <SelectItem value="bedsheet">Bedsheet</SelectItem>
-                </SelectContent>
-                </Select>
-            )}
-            />
-        </div>
-         <div className="space-y-2">
-            <Label htmlFor="subCategory">Sub-category</Label>
-            <Controller
-                control={form.control}
-                name="subCategory"
-                render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value} name="subCategory">
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select a sub-category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {selectedCategory && subCategoryOptions[selectedCategory].map(sub => (
-                            <SelectItem key={sub} value={sub}>{sub}</SelectItem>
-                        ))}
-                    </SelectContent>
-                    </Select>
-                )}
-            />
-            {form.formState.errors.subCategory && <p className="text-sm text-destructive">{form.formState.errors.subCategory.message as string}</p>}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label>Product Images</Label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="image1" className="text-sm font-normal text-muted-foreground">Image 1</Label>
-            <Input id="image1" name="image1" type="file" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="image2" className="text-sm font-normal text-muted-foreground">Image 2</Label>
-            <Input id="image2" name="image2" type="file" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="image3" className="text-sm font-normal text-muted-foreground">Image 3</Label>
-            <Input id="image3" name="image3" type="file" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="image4" className="text-sm font-normal text-muted-foreground">Image 4</Label>
-            <Input id="image4" name="image4" type="file" />
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor="colors">Colors</Label>
-          <Input id="colors" placeholder="e.g. Red, Blue, Green" {...form.register("colors")} name="colors" />
-          {form.formState.errors.colors && <p className="text-sm text-destructive">{form.formState.errors.colors.message as string}</p>}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="sizes">Sizes</Label>
-          <Input id="sizes" placeholder="e.g. S, M, L" {...form.register("sizes")} name="sizes" />
-          {form.formState.errors.sizes && <p className="text-sm text-destructive">{form.formState.errors.sizes.message as string}</p>}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor="price">Price (₹)</Label>
-          <Input id="price" type="number" step="0.01" {...form.register("price")} name="price" />
-          {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message as string}</p>}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="mrp">MRP (₹)</Label>
-          <Input id="mrp" type="number" step="0.01" {...form.register("mrp")} name="mrp" />
-          {form.formState.errors.mrp && <p className="text-sm text-destructive">{form.formState.errors.mrp.message as string}</p>}
-        </div>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor="quantity">Quantity</Label>
-          <Input id="quantity" type="number" {...form.register("quantity")} name="quantity" />
-          {form.formState.errors.quantity && <p className="text-sm text-destructive">{form.formState.errors.quantity.message as string}</p>}
-        </div>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="onWebsite">Publish on website</Label>
-        <Controller
-            control={form.control}
-            name="onWebsite"
-            render={({ field }) => (
-                <div className="flex items-center gap-2">
-                    <Switch
-                        id="onWebsite"
-                        name="onWebsite"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                    />
-                    <Badge variant={field.value ? "secondary" : "outline"}>
-                        {field.value ? "Yes" : "No"}
-                    </Badge>
+    <form 
+        ref={formRef}
+        action={async (formData) => {
+            Object.entries(hiddenImageInputs).forEach(([key, value]) => {
+                formData.append(key, value);
+            });
+            
+            const action = product ? updateProductAction.bind(null, product.id) : addProductAction;
+            
+            // We are manually handling the action logic in parent components
+            // This is just to demonstrate how to pass the data up.
+            const parentForm = (formRef.current?.closest('form'));
+            if(parentForm) {
+                 const parentFormData = new FormData(parentForm);
+                 Object.entries(hiddenImageInputs).forEach(([key, value]) => {
+                    parentFormData.append(key, value);
+                 });
+                 // This part is complex due to RHF. Let's rely on parent state.
+            }
+        }}
+    >
+        <div className="grid gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                <Label htmlFor="sku">SKU</Label>
+                <Input id="sku" {...form.register("sku")} name="sku" />
+                {form.formState.errors.sku && <p className="text-sm text-destructive">{form.formState.errors.sku.message as string}</p>}
                 </div>
+                <div className="space-y-2">
+                <Label htmlFor="name">Product Name</Label>
+                <Input id="name" {...form.register("name")} name="name" />
+                {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message as string}</p>}
+                </div>
+            </div>
+
+            <div className="space-y-2">
+                <Label htmlFor="brand">Brand</Label>
+                <Input id="brand" {...form.register("brand")} name="brand" />
+                {form.formState.errors.brand && <p className="text-sm text-destructive">{form.formState.errors.brand.message as string}</p>}
+            </div>
+
+            <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea id="description" {...form.register("description")} name="description" />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                    <Label htmlFor="category">Category</Label>
+                    <Controller
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value} name="category">
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ethnicWear">Ethnic Wear</SelectItem>
+                            <SelectItem value="bedsheet">Bedsheet</SelectItem>
+                        </SelectContent>
+                        </Select>
+                    )}
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="subCategory">Sub-category</Label>
+                    <Controller
+                        control={form.control}
+                        name="subCategory"
+                        render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value} name="subCategory">
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a sub-category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {selectedCategory && subCategoryOptions[selectedCategory].map(sub => (
+                                    <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                        )}
+                    />
+                    {form.formState.errors.subCategory && <p className="text-sm text-destructive">{form.formState.errors.subCategory.message as string}</p>}
+                </div>
+            </div>
+
+            <div className="space-y-2">
+                <Label>Product Images</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, index) => (
+                    <div key={index} className="relative aspect-square border-2 border-dashed rounded-md flex items-center justify-center">
+                    {imagePreviews[index] ? (
+                        <>
+                        <Image
+                            src={imagePreviews[index]}
+                            alt={`Preview ${index + 1}`}
+                            layout="fill"
+                            objectFit="cover"
+                            className="rounded-md"
+                        />
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                            onClick={() => removeImage(index)}
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                        </>
+                    ) : (
+                        <Label htmlFor={`image${index + 1}`} className="cursor-pointer flex flex-col items-center gap-1 text-center">
+                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Image {index + 1}</span>
+                        </Label>
+                    )}
+                    <Input id={`image${index + 1}`} type="file" className="sr-only" onChange={(e) => handleImageChange(e, index)} />
+                    </div>
+                ))}
+                </div>
+                 {/* Hidden inputs to hold base64 strings */}
+                {Object.entries(hiddenImageInputs).map(([key, value]) => (
+                   <input key={key} type="hidden" name={key} value={value} />
+                ))}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                <Label htmlFor="colors">Colors</Label>
+                <Input id="colors" placeholder="e.g. Red, Blue, Green" {...form.register("colors")} name="colors" />
+                {form.formState.errors.colors && <p className="text-sm text-destructive">{form.formState.errors.colors.message as string}</p>}
+                </div>
+                <div className="space-y-2">
+                <Label htmlFor="sizes">Sizes</Label>
+                <Input id="sizes" placeholder="e.g. S, M, L" {...form.register("sizes")} name="sizes" />
+                {form.formState.errors.sizes && <p className="text-sm text-destructive">{form.formState.errors.sizes.message as string}</p>}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                <Label htmlFor="price">Price (₹)</Label>
+                <Input id="price" type="number" step="0.01" {...form.register("price")} name="price" />
+                {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message as string}</p>}
+                </div>
+                <div className="space-y-2">
+                <Label htmlFor="mrp">MRP (₹)</Label>
+                <Input id="mrp" type="number" step="0.01" {...form.register("mrp")} name="mrp" />
+                {form.formState.errors.mrp && <p className="text-sm text-destructive">{form.formState.errors.mrp.message as string}</p>}
+                </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                <Label htmlFor="quantity">Quantity</Label>
+                <Input id="quantity" type="number" {...form.register("quantity")} name="quantity" />
+                {form.formState.errors.quantity && <p className="text-sm text-destructive">{form.formState.errors.quantity.message as string}</p>}
+                </div>
+            </div>
+             {!product && (
+              <div className="space-y-2">
+                <Label htmlFor="onWebsite">Publish on website</Label>
+                <Controller
+                    control={form.control}
+                    name="onWebsite"
+                    render={({ field }) => (
+                        <div className="flex items-center gap-2">
+                            <Switch
+                                id="onWebsite"
+                                name="onWebsite"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                            />
+                            <Badge variant={field.value ? "secondary" : "outline"}>
+                                {field.value ? "Yes" : "No"}
+                            </Badge>
+                        </div>
+                    )}
+                />
+              </div>
             )}
-        />
-      </div>
-    </div>
+        </div>
+    </form>
   );
 }
+
 
 function PublishToggle({ product, onStatusChange }: { product: Product, onStatusChange: (productId: string, onWebsite: boolean) => void }) {
   const { toast } = useToast();
@@ -495,6 +596,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
 function AddProductSheet({ children }: { children: React.ReactNode }) {
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
   const { toast } = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
   
   type FormState = {
     success: boolean;
@@ -503,23 +605,27 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
   };
 
   const initialState: FormState = { success: false, message: "" };
-  const [formState, formAction] = useActionState(addProductAction, initialState);
 
-  useEffect(() => {
-    if (formState.success) {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const result = await addProductAction(null, formData);
+
+    if (result.success) {
       toast({
         title: "Product Added",
-        description: formState.message,
+        description: result.message,
       });
       setIsAddSheetOpen(false);
-    } else if (formState.message) {
+    } else {
       toast({
         variant: "destructive",
         title: "Error adding product",
-        description: formState.message,
+        description: result.message,
       });
     }
-  }, [formState, toast]);
+  };
+
 
   return (
     <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
@@ -534,10 +640,10 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
             Fill in the details below to add a new product to your inventory.
           </SheetDescription>
         </SheetHeader>
-        <form action={formAction}>
+        <form onSubmit={handleSubmit} ref={formRef}>
           <ScrollArea className="flex-grow h-[calc(100vh-200px)]">
             <div className="p-6 pt-4">
-              <ProductForm />
+              <ProductForm onSheetOpenChange={setIsAddSheetOpen} />
             </div>
           </ScrollArea>
           <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
@@ -559,25 +665,21 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
 
 function EditProductSheet({ product, open, onOpenChange }: { product: Product | null, open: boolean, onOpenChange: (open: boolean) => void }) {
     const { toast } = useToast();
+    const formRef = useRef<HTMLFormElement>(null);
     
-    type FormState = {
-        success: boolean;
-        message: string;
-        errors?: any;
-    };
-    const initialState: FormState = { success: false, message: "" };
-    
-    const updateAction = product ? updateProductAction.bind(null, product.id) : () => Promise.resolve(initialState);
-    const [formState, formAction] = useActionState(updateAction, initialState);
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      if (!product) return;
+      const formData = new FormData(e.currentTarget);
+      const result = await updateProductAction(product.id, null, formData);
 
-    useEffect(() => {
-        if (formState.success) {
-            toast({ title: "Product Updated", description: formState.message });
-            onOpenChange(false);
-        } else if (formState.message) {
-            toast({ variant: "destructive", title: "Error", description: formState.message });
-        }
-    }, [formState, toast, onOpenChange]);
+      if (result.success) {
+        toast({ title: "Product Updated", description: result.message });
+        onOpenChange(false);
+      } else {
+        toast({ variant: "destructive", title: "Error", description: result.message });
+      }
+    };
 
     if (!product) return null;
 
@@ -590,10 +692,10 @@ function EditProductSheet({ product, open, onOpenChange }: { product: Product | 
                         Update the details for &quot;{product.name}&quot;.
                     </SheetDescription>
                 </SheetHeader>
-                <form action={formAction}>
+                <form onSubmit={handleSubmit} ref={formRef}>
                     <ScrollArea className="flex-grow h-[calc(100vh-200px)]">
                         <div className="p-6 pt-4">
-                            <ProductForm product={product} />
+                            <ProductForm product={product} onSheetOpenChange={onOpenChange} />
                         </div>
                     </ScrollArea>
                     <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
