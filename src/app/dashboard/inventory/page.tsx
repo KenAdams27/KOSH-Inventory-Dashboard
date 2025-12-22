@@ -1,6 +1,8 @@
+
 import { InventoryClientPage } from "./client-page";
 import clientPromise from "@/lib/mongodb";
 import type { Product } from "@/lib/types";
+import { ObjectId } from "mongodb";
 
 export const dynamic = 'force-dynamic';
 
@@ -24,10 +26,18 @@ async function getProducts(): Promise<Product[]> {
       .sort({ _id: -1 }) // Sort by ObjectId descending (latest first)
       .toArray();
       
-    const products = JSON.parse(JSON.stringify(productsFromDb)).map((product: any) => ({
-      ...product,
-      id: product._id.toString(),
-    }));
+    const products = productsFromDb.map((product) => {
+      const { _id, reviews, ...rest } = product;
+      return {
+        ...rest,
+        id: _id.toString(),
+        // Ensure nested review objects are also serialized if they contain ObjectIDs
+        reviews: reviews ? reviews.map((review: any) => {
+          const { _id: reviewId, ...reviewRest } = review;
+          return { ...reviewRest, id: reviewId ? reviewId.toString() : undefined };
+        }) : [],
+      } as Product;
+    });
 
     return products;
 
