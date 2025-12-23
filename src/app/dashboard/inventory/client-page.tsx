@@ -637,7 +637,9 @@ function EditProductSheet({ product, open, onOpenChange }: { product: Product | 
 
     useEffect(() => {
         if (state.success) {
-          toast({ title: "Product Updated", description: state.message });
+          if (state.message !== 'No changes were made to the product.') {
+            toast({ title: "Product Updated", description: state.message });
+          }
           onOpenChange(false);
         } else if (state.message) {
           toast({ variant: "destructive", title: "Error", description: state.message });

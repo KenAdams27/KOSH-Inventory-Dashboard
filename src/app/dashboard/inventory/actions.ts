@@ -219,7 +219,8 @@ export async function updateProductAction(productId: string, prevState: any, for
             revalidatePath('/dashboard/inventory');
             return { success: true, message: 'Product updated successfully.' };
         } else {
-            revalidatePath('/dashboard/inventory');
+            // By not revalidating here, we can avoid a flash of old data if the client is already up to date.
+            // A specific message allows the client to decide not to show a toast.
             return { success: true, message: 'No changes were made to the product.' };
         }
     } catch (error) {
