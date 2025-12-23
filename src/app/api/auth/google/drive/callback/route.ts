@@ -7,7 +7,10 @@ export async function GET(req: NextRequest) {
   const code = searchParams.get('code');
 
   if (typeof code !== 'string') {
-    return NextResponse.json({ error: 'Invalid authorization code' }, { status: 400 });
+    return NextResponse.json({ 
+      error: 'Invalid Request: Authorization code is missing.',
+      message: 'This page is a callback for Google Authentication and should not be visited directly. Please start the process by navigating to /api/auth/google/drive.',
+    }, { status: 400 });
   }
 
   try {
@@ -25,7 +28,7 @@ export async function GET(req: NextRequest) {
       console.log('*******************************************************************');
 
       return NextResponse.json({
-        message: 'Authentication successful! Refresh token has been printed to the server console. Please copy it to your .env file and restart the server.',
+        message: 'Authentication successful! Refresh token has been printed to the server console (e.g., Netlify Function logs). Please copy it to your environment variables and restart/re-deploy the server.',
         refreshToken: 'Printed to server console for security.',
       });
     }
