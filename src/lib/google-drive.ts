@@ -1,3 +1,4 @@
+
 import { google } from 'googleapis';
 import { Readable } from 'stream';
 import type { OAuth2Client } from 'google-auth-library';
@@ -6,15 +7,23 @@ const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
 // Dynamically determine the redirect URI based on the environment
 const getRedirectUri = () => {
-  if (process.env.NODE_ENV === 'production') {
-    // Firebase Hosting automatically sets this environment variable
-    const siteId = process.env.FIREBASE_SITE_ID;
-    if (siteId) {
-      return `https://${siteId}.web.app/api/auth/google/drive/callback`;
+  if (process.env.NETLIFY) {
+    // Netlify provides this environment variable with the site's primary URL.
+    const siteUrl = process.env.URL;
+    if (siteUrl) {
+      return `${siteUrl}/api/auth/google/drive/callback`;
     }
-    // Fallback if not on Firebase or custom domain is used
-    return 'https://your-production-url.com/api/auth/google/drive/callback';
   }
+  
+  if (process.env.NODE_ENV === 'production') {
+    // A generic fallback for other production environments.
+    // You might need to set NEXT_PUBLIC_SITE_URL environment variable.
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+     if (siteUrl) {
+      return `https://${siteUrl}/api/auth/google/drive/callback`;
+    }
+  }
+
   // Development environment
   return 'http://localhost:9002/api/auth/google/drive/callback';
 };
