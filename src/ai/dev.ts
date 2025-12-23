@@ -1,4 +1,5 @@
 import { config } from 'dotenv';
 config();
 
-import '@/ai/flows/real-time-stock-updates.ts';
+// This file is intentionally left blank.
+// You can add imports to your Genkit flows here as you create them.
