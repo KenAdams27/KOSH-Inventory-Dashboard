@@ -35,7 +35,7 @@ const baseProductSchema = z.object({
   reviews: z.array(reviewSchema).optional(),
 });
 
-const productSchema = baseProductSchema.refine(data => {
+const refinement = (data: z.infer<typeof baseProductSchema> | z.infer<ReturnType<typeof baseProductSchema.partial>>) => {
     if (data.category === 'ethnicWear' && data.subCategory) {
         return ["sarees", "kurtas & suits", "stitched suits", "unstitched material"].includes(data.subCategory);
     }
@@ -43,7 +43,14 @@ const productSchema = baseProductSchema.refine(data => {
         return ["pure cotton", "cotton blend"].includes(data.subCategory);
     }
     return true;
-}, {
+};
+
+const productSchema = baseProductSchema.refine(refinement, {
+    message: "Sub-category is not valid for the selected category",
+    path: ["subCategory"],
+});
+
+const updateProductSchema = baseProductSchema.partial().refine(refinement, {
     message: "Sub-category is not valid for the selected category",
     path: ["subCategory"],
 });
@@ -182,7 +189,7 @@ export async function updateProductAction(productId: string, prevState: any, for
       onWebsite: formData.get('onWebsite') === 'on',
     };
     
-    const validation = productSchema.partial().safeParse(rawData);
+    const validation = updateProductSchema.safeParse(rawData);
 
     if (!validation.success) {
         return { success: false, message: 'Invalid data.', errors: validation.error.flatten().fieldErrors };
