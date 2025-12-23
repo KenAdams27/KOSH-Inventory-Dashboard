@@ -629,11 +629,11 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
 }
 
 
-function EditProductSheet({ product, open, onOpenChange }: { product: Product | null, open: boolean, onOpenChange: (open: boolean) => void }) {
+function EditProductSheet({ product, open, onOpenChange }: { product: Product, open: boolean, onOpenChange: (open: boolean) => void }) {
     const { toast } = useToast();
     
     const initialState = { success: false, message: "", errors: null };
-    const [state, formAction] = useActionState(updateProductAction.bind(null, product?.id || ""), initialState);
+    const [state, formAction] = useActionState(updateProductAction.bind(null, product.id), initialState);
 
     useEffect(() => {
         if (state.success) {
@@ -646,7 +646,6 @@ function EditProductSheet({ product, open, onOpenChange }: { product: Product | 
         }
     }, [state, toast, onOpenChange]);
 
-    if (!product) return null;
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
@@ -783,14 +782,17 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
         </AddProductSheet>
       </PageHeader>
       
-      <EditProductSheet 
-          product={editingProduct} 
-          open={isEditSheetOpen}
-          onOpenChange={(isOpen) => {
-              setIsEditSheetOpen(isOpen);
-              if (!isOpen) setEditingProduct(null);
-          }}
-      />
+      {editingProduct && (
+        <EditProductSheet 
+            key={editingProduct.id}
+            product={editingProduct} 
+            open={isEditSheetOpen}
+            onOpenChange={(isOpen) => {
+                setIsEditSheetOpen(isOpen);
+                if (!isOpen) setEditingProduct(null);
+            }}
+        />
+      )}
 
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <Card>
