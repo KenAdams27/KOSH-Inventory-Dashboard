@@ -148,6 +148,10 @@ export async function addProductAction(prevState: any, formData: FormData) {
 export async function updateProductAction(productId: string, prevState: any, formData: FormData) {
     
     const db = await getDb();
+    const existingProduct = await db.collection('items').findOne({ _id: new ObjectId(productId) });
+    if (!existingProduct) {
+        return { success: false, message: 'Product not found.' };
+    }
     
     const newImageUrls: string[] = [];
     const imageFiles: File[] = [];
@@ -197,10 +201,16 @@ export async function updateProductAction(productId: string, prevState: any, for
     
     const updateData: any = { ...validation.data };
 
-    // If new images were uploaded, they replace the old ones.
-    if (newImageUrls.length > 0) {
+    const clearImages = formData.get('clearImages') === 'true';
+
+    if (clearImages) {
+        updateData.images = [];
+    } else if (newImageUrls.length > 0) {
+        // This logic can be improved. For now, new uploads replace existing.
+        // A more robust solution would handle individual additions/deletions.
         updateData.images = newImageUrls;
     }
+
 
     if (updateData.description !== undefined) {
         updateData.desc = updateData.description;
@@ -219,8 +229,11 @@ export async function updateProductAction(productId: string, prevState: any, for
             revalidatePath('/dashboard/inventory');
             return { success: true, message: 'Product updated successfully.' };
         } else {
-            // By not revalidating here, we can avoid a flash of old data if the client is already up to date.
-            // A specific message allows the client to decide not to show a toast.
+            // Check if there were pending image uploads, which would count as a change
+            if (newImageUrls.length > 0) {
+                 revalidatePath('/dashboard/inventory');
+                 return { success: true, message: 'Product images updated.' };
+            }
             return { success: true, message: 'No changes were made to the product.' };
         }
     } catch (error) {

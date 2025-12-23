@@ -151,6 +151,7 @@ function ProductForm({
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [existingImageUrls, setExistingImageUrls] = useState<string[]>(product?.images || []);
   const [imagePreviews, setImagePreviews] = useState<string[]>(product?.images || []);
+  const [imagesCleared, setImagesCleared] = useState(false);
 
   useEffect(() => {
     if (product?.images) {
@@ -175,30 +176,28 @@ function ProductForm({
       const newPreviews = [...imagePreviews];
       newPreviews[index] = URL.createObjectURL(file);
       setImagePreviews(newPreviews);
+      setImagesCleared(false); // New image added, so not cleared
     }
   };
 
   const removeImage = (index: number) => {
-    // This could be a new file or an existing URL
-    const isExistingUrl = index < existingImageUrls.length && imagePreviews[index] === existingImageUrls[index];
-
     const newPreviews = [...imagePreviews];
-    newPreviews.splice(index, 1);
+    newPreviews[index] = ''; // Keep placeholder
     setImagePreviews(newPreviews);
 
-    if (isExistingUrl) {
-      const newExistingUrls = [...existingImageUrls];
-      newExistingUrls.splice(index, 1);
-      setExistingImageUrls(newExistingUrls);
-    } else {
-      const newImageFiles = [...imageFiles];
-      // This mapping is tricky if files and urls are mixed. Let's find the corresponding file.
-      const fileIndex = imageFiles.findIndex(f => f && URL.createObjectURL(f) === imagePreviews[index]);
-      if (fileIndex > -1) {
-        newImageFiles.splice(fileIndex, 1);
-        setImageFiles(newImageFiles);
-      }
-    }
+    const newImageFiles = [...imageFiles];
+    newImageFiles[index] = new File([], "");
+    setImageFiles(newImageFiles);
+    
+    // To signal removal, we can check for empty URLs on submit
+    // Or add a hidden field
+  };
+  
+  const handleRemoveAllImages = () => {
+    setImageFiles([]);
+    setExistingImageUrls([]);
+    setImagePreviews([]);
+    setImagesCleared(true);
   };
 
 
@@ -273,7 +272,12 @@ function ProductForm({
             </div>
 
             <div className="space-y-2">
-                <Label>Product Images</Label>
+                <div className="flex items-center justify-between">
+                    <Label>Product Images</Label>
+                    <Button type="button" variant="destructive" size="sm" onClick={handleRemoveAllImages}>
+                        Remove All Images
+                    </Button>
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[...Array(4)].map((_, index) => (
                     <div key={index} className="relative aspect-square border-2 border-dashed rounded-md flex items-center justify-center">
@@ -316,6 +320,7 @@ function ProductForm({
                 {product && existingImageUrls.map((url, index) => (
                     <input key={`existing-${index}`} type="hidden" name={`existingImage${index+1}`} value={url} />
                 ))}
+                 <input type="hidden" name="clearImages" value={imagesCleared ? "true" : "false"} />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
