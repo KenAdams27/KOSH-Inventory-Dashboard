@@ -7,21 +7,9 @@ const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
 // Dynamically determine the redirect URI based on the environment
 const getRedirectUri = () => {
-  if (process.env.NETLIFY) {
-    // Netlify provides this environment variable with the site's primary URL.
-    const siteUrl = process.env.URL;
-    if (siteUrl) {
-      return `${siteUrl}/api/auth/google/drive/callback`;
-    }
-  }
-  
   if (process.env.NODE_ENV === 'production') {
-    // A generic fallback for other production environments.
-    // You might need to set NEXT_PUBLIC_SITE_URL environment variable.
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-     if (siteUrl) {
-      return `https://${siteUrl}/api/auth/google/drive/callback`;
-    }
+    // Use the explicit production URL for Netlify to avoid any ambiguity.
+    return 'https://koshinventory.netlify.app/api/auth/google/drive/callback';
   }
 
   // Development environment
@@ -50,9 +38,6 @@ async function getAuthenticatedClient(): Promise<OAuth2Client> {
   if (!GOOGLE_DRIVE_REFRESH_TOKEN) {
     throw new Error('Google Drive refresh token is not set. Please authenticate via /api/auth/google/drive');
   }
-
-  // The private key needs to be correctly formatted.
-  const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
   oauth2Client.setCredentials({
     refresh_token: GOOGLE_DRIVE_REFRESH_TOKEN,
