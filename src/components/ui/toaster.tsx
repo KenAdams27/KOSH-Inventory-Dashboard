@@ -1,5 +1,7 @@
+
 "use client"
 
+import * as ToastPrimitives from "@radix-ui/react-toast"
 import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
@@ -25,7 +27,9 @@ export function Toaster() {
               )}
             </div>
             {action}
-            <ToastClose />
+            <ToastPrimitives.Action asChild altText="Close toast">
+                <ToastClose />
+            </ToastPrimitives.Action>
           </Toast>
         )
       })}
