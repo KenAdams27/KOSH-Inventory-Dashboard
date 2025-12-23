@@ -4,9 +4,23 @@ import type { OAuth2Client } from 'google-auth-library';
 
 const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
-const REDIRECT_URI = process.env.NODE_ENV === 'production'
-  ? 'https://your-production-url.com/api/auth/google/drive/callback' // IMPORTANT: Change this to your production URL
-  : 'http://localhost:9002/api/auth/google/drive/callback';
+// Dynamically determine the redirect URI based on the environment
+const getRedirectUri = () => {
+  if (process.env.NODE_ENV === 'production') {
+    // Firebase Hosting automatically sets this environment variable
+    const siteId = process.env.FIREBASE_SITE_ID;
+    if (siteId) {
+      return `https://${siteId}.web.app/api/auth/google/drive/callback`;
+    }
+    // Fallback if not on Firebase or custom domain is used
+    return 'https://your-production-url.com/api/auth/google/drive/callback';
+  }
+  // Development environment
+  return 'http://localhost:9002/api/auth/google/drive/callback';
+};
+
+const REDIRECT_URI = getRedirectUri();
+
 
 export function getOAuth2Client(): OAuth2Client {
   const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } = process.env;
@@ -27,6 +41,9 @@ async function getAuthenticatedClient(): Promise<OAuth2Client> {
   if (!GOOGLE_DRIVE_REFRESH_TOKEN) {
     throw new Error('Google Drive refresh token is not set. Please authenticate via /api/auth/google/drive');
   }
+
+  // The private key needs to be correctly formatted.
+  const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
   oauth2Client.setCredentials({
     refresh_token: GOOGLE_DRIVE_REFRESH_TOKEN,
