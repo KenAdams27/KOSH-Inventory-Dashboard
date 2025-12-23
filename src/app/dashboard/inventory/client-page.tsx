@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useActionState, useMemo } from "react";
 import Image from "next/image";
-import { MoreHorizontal, PlusCircle, Search, ImageIcon, X, Star } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Search, ImageIcon, X, Star, Loader2 } from "lucide-react";
 import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -579,7 +579,7 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   const initialState = { success: false, message: "", errors: null };
-  const [state, formAction] = useActionState(addProductAction, initialState);
+  const [state, formAction, isPending] = useActionState(addProductAction, initialState);
 
   useEffect(() => {
     if (state.success) {
@@ -619,12 +619,17 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
           </ScrollArea>
           <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
               <SheetClose asChild>
-                  <Button type="button" variant="outline">
+                  <Button type="button" variant="outline" disabled={isPending}>
                       Cancel
                   </Button>
               </SheetClose>
-              <Button type="submit">
-                Save Product
+              <Button type="submit" disabled={isPending}>
+                {isPending ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                    </>
+                ) : "Save Product" }
               </Button>
           </SheetFooter>
         </form>
@@ -638,7 +643,7 @@ function EditProductSheet({ product, open, onOpenChange }: { product: Product, o
     const { toast } = useToast();
     
     const initialState = { success: false, message: "", errors: null };
-    const [state, formAction] = useActionState(updateProductAction.bind(null, product.id), initialState);
+    const [state, formAction, isPending] = useActionState(updateProductAction.bind(null, product.id), initialState);
 
     useEffect(() => {
         if (state.success) {
@@ -669,9 +674,16 @@ function EditProductSheet({ product, open, onOpenChange }: { product: Product, o
                     </ScrollArea>
                     <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
                        <SheetClose asChild>
-                           <Button type="button" variant="outline">Cancel</Button>
+                           <Button type="button" variant="outline" disabled={isPending}>Cancel</Button>
                        </SheetClose>
-                       <Button type="submit">Save Changes</Button>
+                       <Button type="submit" disabled={isPending}>
+                         {isPending ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Saving...
+                            </>
+                         ) : "Save Changes" }
+                       </Button>
                     </SheetFooter>
                 </form>
             </SheetContent>
@@ -953,3 +965,5 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
+
+    
