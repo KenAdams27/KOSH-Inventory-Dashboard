@@ -75,31 +75,6 @@ const getFileBuffer = async (file: File) => {
 
 
 export async function addProductAction(prevState: any, formData: FormData) {
-  const imageUrls: string[] = [];
-  const imageFiles: File[] = [];
-
-  // Collect image files
-  for (let i = 1; i <= 4; i++) {
-    const file = formData.get(`image${i}`) as File | null;
-    if (file && file.size > 0) {
-      imageFiles.push(file);
-    }
-  }
-
-  // Upload images and collect URLs
-  try {
-    for (const file of imageFiles) {
-      const buffer = await getFileBuffer(file);
-      const url = await uploadImageToDrive(buffer, file.name);
-      if (url) {
-        imageUrls.push(url);
-      }
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'An unknown error occurred during image upload.';
-    return { success: false, message: `Image Upload Error: ${message}` };
-  }
-
   const rawData = {
     sku: formData.get('sku'),
     name: formData.get('name'),
@@ -114,7 +89,7 @@ export async function addProductAction(prevState: any, formData: FormData) {
     quantity: formData.get('quantity'),
     onWebsite: formData.get('onWebsite') === 'on', // Checkbox value is 'on'
     status: Number(formData.get('quantity')) > 0 ? "In Stock" : "Out of Stock",
-    images: imageUrls,
+    images: [], // Images are handled separately now
   };
   
   const validation = productSchema.safeParse(rawData);
@@ -134,7 +109,8 @@ export async function addProductAction(prevState: any, formData: FormData) {
     
     if (result.acknowledged) {
       revalidatePath('/dashboard/inventory');
-      return { success: true, message: 'Product added successfully.' };
+      // Return the new product's ID so we can transition to edit mode for image uploads
+      return { success: true, message: 'Product added successfully.', product: { id: result.insertedId.toString(), ...validation.data, images: [] } };
     } else {
       return { success: false, message: 'Failed to add product.' };
     }
@@ -145,6 +121,48 @@ export async function addProductAction(prevState: any, formData: FormData) {
   }
 }
 
+export async function uploadProductImageAction(productId: string, formData: FormData): Promise<{ success: boolean; message: string; images?: string[] }> {
+    const file = formData.get('image') as File | null;
+    if (!file || file.size === 0) {
+        return { success: false, message: 'No image file provided.' };
+    }
+
+    try {
+        const db = await getDb();
+        const existingProduct = await db.collection('items').findOne({ _id: new ObjectId(productId) });
+
+        if (!existingProduct) {
+            return { success: false, message: 'Product not found.' };
+        }
+
+        const buffer = await getFileBuffer(file);
+        const imageUrl = await uploadImageToDrive(buffer, file.name);
+
+        if (!imageUrl) {
+            throw new Error("Failed to get URL from image upload.");
+        }
+
+        const newImages = [...(existingProduct.images || []), imageUrl];
+
+        const result = await db.collection('items').updateOne(
+            { _id: new ObjectId(productId) },
+            { $set: { images: newImages } }
+        );
+
+        if (result.modifiedCount > 0) {
+            revalidatePath('/dashboard/inventory');
+            return { success: true, message: 'Image uploaded successfully.', images: newImages };
+        } else {
+            return { success: false, message: 'Failed to update product with new image.' };
+        }
+
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'An unknown error occurred.';
+        return { success: false, message: `Image Upload Error: ${message}` };
+    }
+}
+
+
 export async function updateProductAction(productId: string, prevState: any, formData: FormData) {
     
     const db = await getDb();
@@ -152,31 +170,6 @@ export async function updateProductAction(productId: string, prevState: any, for
 
     if (!existingProduct) {
         return { success: false, message: 'Product not found.' };
-    }
-    
-    const newImageUrls: string[] = [];
-    const imageFiles: File[] = [];
-
-    // Collect new image files from the form
-    for (let i = 1; i <= 4; i++) {
-        const file = formData.get(`image${i}`) as File | null;
-        if (file && file.size > 0) {
-            imageFiles.push(file);
-        }
-    }
-
-    // Upload new images and collect their URLs
-    try {
-        for (const file of imageFiles) {
-            const buffer = await getFileBuffer(file);
-            const url = await uploadImageToDrive(buffer, file.name);
-            if (url) {
-                newImageUrls.push(url);
-            }
-        }
-    } catch (error) {
-        const message = error instanceof Error ? error.message : 'An unknown error occurred during image upload.';
-        return { success: false, message: `Image Upload Error: ${message}` };
     }
     
     const rawData = {
@@ -200,27 +193,14 @@ export async function updateProductAction(productId: string, prevState: any, for
         return { success: false, message: 'Invalid data.', errors: validation.error.flatten().fieldErrors };
     }
     
-    // Create a clean object with only the validated fields that were submitted.
     const updateData: any = Object.fromEntries(
         Object.entries(validation.data).filter(([_, v]) => v !== undefined)
     );
 
-    const clearImages = formData.get('clearImages') === 'true';
-
-    // Handle image updates logic
-    if (clearImages) {
+    if (formData.get('clearImages') === 'true') {
         updateData.images = [];
-    } else if (newImageUrls.length > 0) {
-        // Here, we decide how to merge. A simple strategy is to append.
-        // A more complex one might replace existing ones based on index.
-        // For now, let's append new images to existing ones.
-        updateData.images = [...(existingProduct.images || []), ...newImageUrls];
-    } else {
-        // No new images and not clearing, keep existing images
-        updateData.images = existingProduct.images;
     }
-
-
+    
     if (updateData.description !== undefined) {
         updateData.desc = updateData.description;
     }
@@ -234,16 +214,20 @@ export async function updateProductAction(productId: string, prevState: any, for
             { _id: new ObjectId(productId) },
             { $set: updateData }
         );
+        
+        const hasChanges = Object.keys(updateData).some(key => {
+            if (key === 'desc' || key === 'status') return false; // these are derived
+            if (Array.isArray(updateData[key])) {
+                return JSON.stringify(updateData[key]) !== JSON.stringify(existingProduct[key]);
+            }
+            return updateData[key] !== existingProduct[key];
+        });
 
-        if (result.modifiedCount > 0) {
+
+        if (result.modifiedCount > 0 || hasChanges) {
             revalidatePath('/dashboard/inventory');
             return { success: true, message: 'Product updated successfully.' };
         } else {
-             // Check if there were pending image uploads, which would count as a change even if other data is the same
-            if (newImageUrls.length > 0) {
-                 revalidatePath('/dashboard/inventory');
-                 return { success: true, message: 'Product images updated.' };
-            }
             return { success: true, message: 'No changes were made to the product.' };
         }
     } catch (error) {
@@ -289,4 +273,23 @@ export async function updateProductWebsiteStatus(productId: string, onWebsite: b
     }
 }
 
+export async function removeAllProductImagesAction(productId: string) {
+    try {
+        const db = await getDb();
+        const result = await db.collection('items').updateOne(
+            { _id: new ObjectId(productId) },
+            { $set: { images: [] } }
+        );
+
+        if (result.modifiedCount > 0) {
+            revalidatePath('/dashboard/inventory');
+            return { success: true, message: 'All images removed successfully.', images: [] };
+        } else {
+            return { success: false, message: 'Failed to remove images or no images to remove.' };
+        }
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'An unknown error occurred.';
+        return { success: false, message: `Database Error: ${message}` };
+    }
+}
     

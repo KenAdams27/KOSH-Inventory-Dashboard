@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState, useEffect, useActionState, useMemo } from "react";
+import { useState, useEffect, useActionState, useMemo, startTransition } from "react";
 import Image from "next/image";
-import { MoreHorizontal, PlusCircle, Search, ImageIcon, X, Star, Loader2 } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Search, ImageIcon, X, Star, Loader2, Upload } from "lucide-react";
 import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -63,7 +63,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { addProductAction, updateProductAction, deleteProductAction, updateProductWebsiteStatus } from "./actions";
+import { addProductAction, updateProductAction, deleteProductAction, updateProductWebsiteStatus, uploadProductImageAction, removeAllProductImagesAction } from "./actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -118,23 +118,7 @@ const subCategoryOptions = {
 };
 
 
-function ProductForm({
-  product,
-  imageFiles,
-  setImageFiles,
-  imagePreviews,
-  setImagePreviews,
-  imagesCleared,
-  setImagesCleared,
-}: {
-  product?: Product | null;
-  imageFiles: File[];
-  setImageFiles: React.Dispatch<React.SetStateAction<File[]>>;
-  imagePreviews: string[];
-  setImagePreviews: React.Dispatch<React.SetStateAction<string[]>>;
-  imagesCleared: boolean;
-  setImagesCleared: React.Dispatch<React.SetStateAction<boolean>>;
-}) {
+function ProductForm({ product, onProductUpdate }: { product?: Product | null; onProductUpdate: (updatedProduct: Product) => void; }) {
   const { toast } = useToast();
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -161,19 +145,27 @@ function ProductForm({
   });
 
   const selectedCategory = form.watch("category");
-  
+
+  // Local state for image previews and files
+  const [imagePreviews, setImagePreviews] = useState<(string | null)[]>([]);
+  const [imageFiles, setImageFiles] = useState<(File | null)[]>(Array(4).fill(null));
+  const [uploading, setUploading] = useState<boolean[]>(Array(4).fill(false));
+
   useEffect(() => {
-    if (product?.images) {
-      setImagePreviews(product.images);
+    const existingImages = product?.images || [];
+    const previews = [...existingImages];
+    while (previews.length < 4) {
+      previews.push(null);
     }
-  }, [product, setImagePreviews]);
+    setImagePreviews(previews);
+  }, [product]);
 
   useEffect(() => {
     if (selectedCategory) {
         form.setValue("subCategory", subCategoryOptions[selectedCategory][0]);
     }
   }, [selectedCategory, form]);
-
+  
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -186,15 +178,16 @@ function ProductForm({
         toast({ title: 'Compressing image...', description: 'Please wait.' });
         const compressedFile = await imageCompression(file, options);
 
+        // Update file in state
         const newImageFiles = [...imageFiles];
         newImageFiles[index] = compressedFile;
         setImageFiles(newImageFiles);
 
+        // Update preview
         const newPreviews = [...imagePreviews];
         newPreviews[index] = URL.createObjectURL(compressedFile);
         setImagePreviews(newPreviews);
-        setImagesCleared(false);
-        // toast({ title: 'Image ready!', description: 'Image has been compressed and is ready for upload.' });
+
       } catch (error) {
         console.error('Image compression error:', error);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to compress image.' });
@@ -202,22 +195,56 @@ function ProductForm({
     }
   };
 
-  const removeImage = (index: number) => {
-    const newPreviews = [...imagePreviews];
-    newPreviews[index] = '';
-    setImagePreviews(newPreviews);
+  const handleImageUpload = async (index: number) => {
+    const file = imageFiles[index];
+    if (!file || !product?.id) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No file selected or product not saved yet.' });
+        return;
+    }
 
-    const newImageFiles = [...imageFiles];
-    newImageFiles[index] = new File([], "");
-    setImageFiles(newImageFiles);
+    setUploading(prev => {
+        const newUploading = [...prev];
+        newUploading[index] = true;
+        return newUploading;
+    });
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const result = await uploadProductImageAction(product.id, formData);
+
+    setUploading(prev => {
+        const newUploading = [...prev];
+        newUploading[index] = false;
+        return newUploading;
+    });
+
+    if (result.success && result.images) {
+        toast({ title: 'Success', description: 'Image uploaded successfully.' });
+        const updatedProduct = { ...product, images: result.images };
+        onProductUpdate(updatedProduct);
+        
+        // Clear the file from state after successful upload
+        const newImageFiles = [...imageFiles];
+        newImageFiles[index] = null;
+        setImageFiles(newImageFiles);
+
+    } else {
+        toast({ variant: 'destructive', title: 'Upload Failed', description: result.message });
+    }
   };
   
-  const handleRemoveAllImages = () => {
-    setImageFiles(Array(4).fill(new File([], "")));
-    setImagePreviews(Array(4).fill(''));
-    setImagesCleared(true);
+  const handleRemoveAllImages = async () => {
+    if (!product?.id) return;
+    const result = await removeAllProductImagesAction(product.id);
+    if (result.success) {
+      toast({ title: "Images Removed", description: result.message });
+      const updatedProduct = { ...product, images: [] };
+      onProductUpdate(updatedProduct);
+    } else {
+      toast({ variant: "destructive", title: "Error", description: result.message });
+    }
   };
-
 
   return (
     <>
@@ -290,52 +317,56 @@ function ProductForm({
             <div className="space-y-2">
                 <div className="flex items-center justify-between">
                     <Label>Product Images</Label>
-                    <Button type="button" variant="destructive" size="sm" onClick={handleRemoveAllImages}>
-                        Remove All Images
-                    </Button>
+                    {product?.images && product.images.length > 0 && (
+                        <Button type="button" variant="destructive" size="sm" onClick={handleRemoveAllImages} disabled={!product?.id}>
+                            Remove All Images
+                        </Button>
+                    )}
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[...Array(4)].map((_, index) => (
-                    <div key={index} className="relative aspect-square border-2 border-dashed rounded-md flex items-center justify-center">
-                    {imagePreviews[index] ? (
-                        <>
-                        <Image
-                            src={imagePreviews[index]}
-                            alt={`Preview ${index + 1}`}
-                            layout="fill"
-                            objectFit="cover"
-                            className="rounded-md"
-                        />
+                    <div key={index} className="space-y-2">
+                        <div className="relative aspect-square border-2 border-dashed rounded-md flex items-center justify-center">
+                            {imagePreviews[index] ? (
+                                <Image
+                                    src={imagePreviews[index]!}
+                                    alt={`Preview ${index + 1}`}
+                                    layout="fill"
+                                    objectFit="cover"
+                                    className="rounded-md"
+                                />
+                            ) : (
+                                <Label htmlFor={`image-upload-${index}`} className="cursor-pointer flex flex-col items-center gap-1 text-center">
+                                <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">Image {index + 1}</span>
+                                </Label>
+                            )}
+                             <Input 
+                                id={`image-upload-${index}`} 
+                                type="file" 
+                                accept="image/*"
+                                className="sr-only" 
+                                onChange={(e) => handleImageChange(e, index)}
+                                disabled={!product?.id}
+                            />
+                        </div>
                         <Button
                             type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                            onClick={() => removeImage(index)}
+                            size="sm"
+                            className="w-full"
+                            onClick={() => handleImageUpload(index)}
+                            disabled={!imageFiles[index] || uploading[index] || !product?.id}
                         >
-                            <X className="h-4 w-4" />
+                            {uploading[index] ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Upload className="h-4 w-4 mr-2" />
+                            )}
+                            Upload
                         </Button>
-                        </>
-                    ) : (
-                        <Label htmlFor={`image-upload-${index}`} className="cursor-pointer flex flex-col items-center gap-1 text-center">
-                          <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">Image {index + 1}</span>
-                        </Label>
-                    )}
-                    <Input 
-                      id={`image-upload-${index}`} 
-                      type="file" 
-                      accept="image/*"
-                      className="sr-only" 
-                      onChange={(e) => handleImageChange(e, index)}
-                    />
                     </div>
                 ))}
                 </div>
-                {product && product.images?.map((url, index) => (
-                    <input key={`existing-${index}`} type="hidden" name={`existingImage${index+1}`} value={url} />
-                ))}
-                 <input type="hidden" name="clearImages" value={imagesCleared ? "true" : "false"} />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -589,46 +620,50 @@ function ProductDetailsDialog({ product }: { product: Product }) {
 }
 
 
-function AddProductSheet({ children }: { children: React.ReactNode }) {
+function AddProductSheet({ children, onProductAdded }: { children: React.ReactNode, onProductAdded: (product: Product) => void }) {
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
-  const [imageFiles, setImageFiles] = useState<File[]>(Array(4).fill(new File([], "")));
-  const [imagePreviews, setImagePreviews] = useState<string[]>(Array(4).fill(''));
-  const [imagesCleared, setImagesCleared] = useState(false);
+  const [newProduct, setNewProduct] = useState<Product | null>(null);
   const { toast } = useToast();
 
-  const initialState = { success: false, message: "", errors: null };
+  const initialState = { success: false, message: "", errors: null, product: null };
   const [state, formAction, isPending] = useActionState(addProductAction, initialState);
 
   useEffect(() => {
-    if (state.success) {
+    if (state.success && state.product) {
       toast({
-        title: "Product Added",
-        description: state.message,
+        title: "Product Created",
+        description: "You can now upload images for your new product.",
       });
-      setIsAddSheetOpen(false);
-      setImageFiles(Array(4).fill(new File([], "")));
-      setImagePreviews(Array(4).fill(''));
-    } else if (state.message) {
+      // Don't close the sheet. Instead, switch to an "edit" like mode for the new product.
+      setNewProduct(state.product);
+      onProductAdded(state.product);
+
+    } else if (state.message && !state.success) {
       toast({
         variant: "destructive",
         title: "Error adding product",
         description: state.message,
       });
     }
-  }, [state, toast]);
+  }, [state, toast, onProductAdded]);
 
-  const handleFormAction = (formData: FormData) => {
-    imageFiles.forEach((file, index) => {
-        if (file.size > 0) {
-            formData.append(`image${index + 1}`, file, file.name);
-        }
-    });
-    formAction(formData);
+  const handleProductUpdate = (updatedProduct: Product) => {
+    setNewProduct(updatedProduct);
+    onProductAdded(updatedProduct);
+  }
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isPending && !isOpen) return; // Prevent closing while pending
+    setIsAddSheetOpen(isOpen);
+    if (!isOpen) {
+      // Reset state when closing
+      setNewProduct(null);
+    }
   };
 
 
   return (
-    <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
+    <Sheet open={isAddSheetOpen} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent 
         className="sm:max-w-xl w-full flex flex-col"
@@ -639,39 +674,37 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
         }}
       >
         <SheetHeader>
-          <SheetTitle>Add a New Product</SheetTitle>
+          <SheetTitle>{newProduct ? 'Add Images & Finalize Product' : 'Add a New Product'}</SheetTitle>
           <SheetDescription>
-            Fill in the details below to add a new product to your inventory.
+            {newProduct ? `Editing "${newProduct.name}". Add images below.` : 'Fill in the details below to add a new product to your inventory.'}
           </SheetDescription>
         </SheetHeader>
-        <form action={handleFormAction}>
+        <form action={formAction}>
           <ScrollArea className="flex-grow h-[calc(100vh-200px)]">
             <div className="p-6 pt-4">
               <ProductForm 
-                imageFiles={imageFiles}
-                setImageFiles={setImageFiles}
-                imagePreviews={imagePreviews}
-                setImagePreviews={setImagePreviews}
-                imagesCleared={imagesCleared}
-                setImagesCleared={setImagesCleared}
+                product={newProduct}
+                onProductUpdate={handleProductUpdate}
               />
             </div>
           </ScrollArea>
-          <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
-              <SheetClose asChild>
-                  <Button type="button" variant="outline" disabled={isPending}>
-                      Cancel
-                  </Button>
-              </SheetClose>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? (
-                    <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                    </>
-                ) : "Save Product" }
-              </Button>
-          </SheetFooter>
+           {!newProduct && (
+            <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
+                <SheetClose asChild>
+                    <Button type="button" variant="outline" disabled={isPending}>
+                        Cancel
+                    </Button>
+                </SheetClose>
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? (
+                      <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                      </>
+                  ) : "Save and Add Images" }
+                </Button>
+            </SheetFooter>
+           )}
         </form>
       </SheetContent>
     </Sheet>
@@ -679,12 +712,8 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
 }
 
 
-function EditProductSheet({ product, open, onOpenChange }: { product: Product, open: boolean, onOpenChange: (open: boolean) => void }) {
+function EditProductSheet({ product, open, onOpenChange, onProductUpdate }: { product: Product, open: boolean, onOpenChange: (open: boolean) => void, onProductUpdate: (updatedProduct: Product) => void }) {
     const { toast } = useToast();
-    const [imageFiles, setImageFiles] = useState<File[]>(Array(4).fill(new File([], "")));
-    const [imagePreviews, setImagePreviews] = useState<string[]>(product.images || Array(4).fill(''));
-    const [imagesCleared, setImagesCleared] = useState(false);
-    
     const initialState = { success: false, message: "", errors: null };
     const [state, formAction, isPending] = useActionState(updateProductAction.bind(null, product.id), initialState);
 
@@ -699,19 +728,9 @@ function EditProductSheet({ product, open, onOpenChange }: { product: Product, o
         }
     }, [state, toast, onOpenChange]);
 
-    const handleFormAction = (formData: FormData) => {
-        imageFiles.forEach((file, index) => {
-            if (file.size > 0) {
-                formData.append(`image${index + 1}`, file, file.name);
-            }
-        });
-        formAction(formData);
-    };
-
-
     return (
         <Sheet open={open} onOpenChange={(isOpen) => {
-            if (isPending && !isOpen) return; // Prevent closing while pending
+            if (isPending && !isOpen) return;
             onOpenChange(isOpen);
         }}>
             <SheetContent 
@@ -728,17 +747,12 @@ function EditProductSheet({ product, open, onOpenChange }: { product: Product, o
                         Update the details for &quot;{product.name}&quot;.
                     </SheetDescription>
                 </SheetHeader>
-                <form action={handleFormAction}>
+                <form action={formAction}>
                     <ScrollArea className="flex-grow h-[calc(100vh-200px)]">
                         <div className="p-6 pt-4">
                             <ProductForm 
                                 product={product} 
-                                imageFiles={imageFiles}
-                                setImageFiles={setImageFiles}
-                                imagePreviews={imagePreviews}
-                                setImagePreviews={setImagePreviews}
-                                imagesCleared={imagesCleared}
-                                setImagesCleared={setImagesCleared}
+                                onProductUpdate={onProductUpdate}
                             />
                         </div>
                     </ScrollArea>
@@ -817,6 +831,23 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     );
   };
 
+  const handleProductUpdate = (updatedProduct: Product) => {
+    startTransition(() => {
+        setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+        if (editingProduct?.id === updatedProduct.id) {
+            setEditingProduct(updatedProduct);
+        }
+    });
+  };
+
+  const handleProductAdded = (newProduct: Product) => {
+     startTransition(() => {
+        setProducts(prev => [newProduct, ...prev]);
+        setEditingProduct(newProduct);
+        setIsEditSheetOpen(true);
+    });
+  }
+
   const sortedAndFilteredProducts = useMemo(() => {
     let filtered = products.filter((product) => {
       const query = searchQuery.toLowerCase();
@@ -859,7 +890,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   return (
     <>
       <PageHeader title="Inventory" description="Manage your products and stock levels.">
-        <AddProductSheet>
+        <AddProductSheet onProductAdded={handleProductAdded}>
           <Button size="sm" className="gap-1">
             <PlusCircle className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
@@ -878,6 +909,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                 setIsEditSheetOpen(isOpen);
                 if (!isOpen) setEditingProduct(null);
             }}
+            onProductUpdate={handleProductUpdate}
         />
       )}
 
