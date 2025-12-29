@@ -175,7 +175,6 @@ function ProductForm({ product, onProductUpdate }: { product?: Product | null; o
         useWebWorker: true,
       };
       try {
-        toast({ title: 'Compressing image...', description: 'Please wait.' });
         const compressedFile = await imageCompression(file, options);
 
         // Update file in state
@@ -1072,3 +1071,4 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     
 
     
+
