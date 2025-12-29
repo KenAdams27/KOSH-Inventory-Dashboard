@@ -35,7 +35,7 @@ const baseProductSchema = z.object({
   reviews: z.array(reviewSchema).optional(),
 });
 
-const refinement = (data: z.infer<typeof baseProductSchema> | z.infer<ReturnType<typeof baseProductSchema.partial>>) => {
+const refinement = (data: Partial<z.infer<typeof baseProductSchema>>) => {
     if (data.category === 'ethnicWear' && data.subCategory) {
         return ["sarees", "kurtas & suits", "stitched suits", "unstitched material"].includes(data.subCategory);
     }
@@ -106,7 +106,7 @@ export async function addProductAction(prevState: any, formData: FormData) {
     brand: formData.get('brand'),
     description: formData.get('description'),
     category: formData.get('category'),
-    subCategory: formData.get('subCategory') || undefined,
+    subCategory: formData.get('subCategory'),
     colors: (formData.get('colors') as string || '').split(',').map(s => s.trim()).filter(Boolean),
     sizes: (formData.get('sizes') as string || '').split(',').map(s => s.trim()).filter(Boolean),
     price: formData.get('price'),
@@ -149,6 +149,7 @@ export async function updateProductAction(productId: string, prevState: any, for
     
     const db = await getDb();
     const existingProduct = await db.collection('items').findOne({ _id: new ObjectId(productId) });
+
     if (!existingProduct) {
         return { success: false, message: 'Product not found.' };
     }
@@ -184,7 +185,7 @@ export async function updateProductAction(productId: string, prevState: any, for
       brand: formData.get('brand'),
       description: formData.get('description'),
       category: formData.get('category'),
-      subCategory: formData.get('subCategory') || undefined,
+      subCategory: formData.get('subCategory'),
       colors: (formData.get('colors') as string || '').split(',').map(s => s.trim()).filter(Boolean),
       sizes: (formData.get('sizes') as string || '').split(',').map(s => s.trim()).filter(Boolean),
       price: formData.get('price'),
@@ -199,22 +200,31 @@ export async function updateProductAction(productId: string, prevState: any, for
         return { success: false, message: 'Invalid data.', errors: validation.error.flatten().fieldErrors };
     }
     
-    const updateData: any = { ...validation.data };
+    // Create a clean object with only the validated fields that were submitted.
+    const updateData: any = Object.fromEntries(
+        Object.entries(validation.data).filter(([_, v]) => v !== undefined)
+    );
 
     const clearImages = formData.get('clearImages') === 'true';
 
+    // Handle image updates logic
     if (clearImages) {
         updateData.images = [];
     } else if (newImageUrls.length > 0) {
-        // This logic can be improved. For now, new uploads replace existing.
-        // A more robust solution would handle individual additions/deletions.
-        updateData.images = newImageUrls;
+        // Here, we decide how to merge. A simple strategy is to append.
+        // A more complex one might replace existing ones based on index.
+        // For now, let's append new images to existing ones.
+        updateData.images = [...(existingProduct.images || []), ...newImageUrls];
+    } else {
+        // No new images and not clearing, keep existing images
+        updateData.images = existingProduct.images;
     }
 
 
     if (updateData.description !== undefined) {
         updateData.desc = updateData.description;
     }
+
     if (updateData.quantity !== undefined) {
       updateData.status = Number(updateData.quantity) > 0 ? "In Stock" : "Out of Stock";
     }
@@ -229,7 +239,7 @@ export async function updateProductAction(productId: string, prevState: any, for
             revalidatePath('/dashboard/inventory');
             return { success: true, message: 'Product updated successfully.' };
         } else {
-            // Check if there were pending image uploads, which would count as a change
+             // Check if there were pending image uploads, which would count as a change even if other data is the same
             if (newImageUrls.length > 0) {
                  revalidatePath('/dashboard/inventory');
                  return { success: true, message: 'Product images updated.' };
@@ -278,3 +288,5 @@ export async function updateProductWebsiteStatus(productId: string, onWebsite: b
         return { success: false, message: `Database Error: ${message}` };
     }
 }
+
+    
