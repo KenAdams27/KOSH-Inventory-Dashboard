@@ -652,7 +652,6 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
   }
 
   const handleOpenChange = (isOpen: boolean) => {
-    if (isPending && !isOpen) return; // Prevent closing while pending
     setIsAddSheetOpen(isOpen);
     if (!isOpen) {
       // Reset state when closing
@@ -667,9 +666,7 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
       <SheetContent 
         className="sm:max-w-xl w-full flex flex-col"
         onInteractOutside={(e) => {
-          if (isPending) {
-            e.preventDefault();
-          }
+          e.preventDefault();
         }}
       >
         <SheetHeader>
@@ -728,16 +725,11 @@ function EditProductSheet({ product, open, onOpenChange, onProductUpdate }: { pr
     }, [state, toast, onOpenChange]);
 
     return (
-        <Sheet open={open} onOpenChange={(isOpen) => {
-            if (isPending && !isOpen) return;
-            onOpenChange(isOpen);
-        }}>
+        <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent 
                 className="sm:max-w-xl w-full flex flex-col"
                 onInteractOutside={(e) => {
-                    if (isPending) {
-                      e.preventDefault();
-                    }
+                    e.preventDefault();
                 }}
             >
                 <SheetHeader>
@@ -1066,9 +1058,3 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
-
-    
-    
-
-    
-
