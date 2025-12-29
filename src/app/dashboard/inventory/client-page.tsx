@@ -633,7 +633,9 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
       <SheetContent 
         className="sm:max-w-xl w-full flex flex-col"
         onInteractOutside={(e) => {
-          if (isPending) e.preventDefault();
+          if (isPending) {
+            e.preventDefault();
+          }
         }}
       >
         <SheetHeader>
@@ -715,7 +717,9 @@ function EditProductSheet({ product, open, onOpenChange }: { product: Product, o
             <SheetContent 
                 className="sm:max-w-xl w-full flex flex-col"
                 onInteractOutside={(e) => {
-                    if (isPending) e.preventDefault();
+                    if (isPending) {
+                      e.preventDefault();
+                    }
                 }}
             >
                 <SheetHeader>
@@ -1032,4 +1036,5 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   );
 }
 
+    
     
