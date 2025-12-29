@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef, useActionState, useMemo } from "react";
+import { useState, useEffect, useActionState, useMemo } from "react";
 import Image from "next/image";
 import { MoreHorizontal, PlusCircle, Search, ImageIcon, X, Star, Loader2 } from "lucide-react";
 import { z } from "zod";
@@ -9,6 +9,8 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import type { Product, Review } from "@/lib/types";
+import imageCompression from 'browser-image-compression';
+
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -118,9 +120,22 @@ const subCategoryOptions = {
 
 function ProductForm({
   product,
+  imageFiles,
+  setImageFiles,
+  imagePreviews,
+  setImagePreviews,
+  imagesCleared,
+  setImagesCleared,
 }: {
   product?: Product | null;
+  imageFiles: File[];
+  setImageFiles: React.Dispatch<React.SetStateAction<File[]>>;
+  imagePreviews: string[];
+  setImagePreviews: React.Dispatch<React.SetStateAction<string[]>>;
+  imagesCleared: boolean;
+  setImagesCleared: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
+  const { toast } = useToast();
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: product ? {
@@ -147,18 +162,11 @@ function ProductForm({
 
   const selectedCategory = form.watch("category");
   
-  // local state for new file objects and existing image URLs
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [existingImageUrls, setExistingImageUrls] = useState<string[]>(product?.images || []);
-  const [imagePreviews, setImagePreviews] = useState<string[]>(product?.images || []);
-  const [imagesCleared, setImagesCleared] = useState(false);
-
   useEffect(() => {
     if (product?.images) {
-      setExistingImageUrls(product.images);
       setImagePreviews(product.images);
     }
-  }, [product]);
+  }, [product, setImagePreviews]);
 
   useEffect(() => {
     if (selectedCategory) {
@@ -166,44 +174,52 @@ function ProductForm({
     }
   }, [selectedCategory, form]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const file = e.target.files?.[0];
     if (file) {
-      const newImageFiles = [...imageFiles];
-      newImageFiles[index] = file;
-      setImageFiles(newImageFiles);
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      };
+      try {
+        toast({ title: 'Compressing image...', description: 'Please wait.' });
+        const compressedFile = await imageCompression(file, options);
 
-      const newPreviews = [...imagePreviews];
-      newPreviews[index] = URL.createObjectURL(file);
-      setImagePreviews(newPreviews);
-      setImagesCleared(false); // New image added, so not cleared
+        const newImageFiles = [...imageFiles];
+        newImageFiles[index] = compressedFile;
+        setImageFiles(newImageFiles);
+
+        const newPreviews = [...imagePreviews];
+        newPreviews[index] = URL.createObjectURL(compressedFile);
+        setImagePreviews(newPreviews);
+        setImagesCleared(false);
+        toast({ title: 'Image ready!', description: 'Image has been compressed and is ready for upload.' });
+      } catch (error) {
+        console.error('Image compression error:', error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to compress image.' });
+      }
     }
   };
 
   const removeImage = (index: number) => {
     const newPreviews = [...imagePreviews];
-    newPreviews[index] = ''; // Keep placeholder
+    newPreviews[index] = '';
     setImagePreviews(newPreviews);
 
     const newImageFiles = [...imageFiles];
     newImageFiles[index] = new File([], "");
     setImageFiles(newImageFiles);
-    
-    // To signal removal, we can check for empty URLs on submit
-    // Or add a hidden field
   };
   
   const handleRemoveAllImages = () => {
-    setImageFiles([]);
-    setExistingImageUrls([]);
-    setImagePreviews([]);
+    setImageFiles(Array(4).fill(new File([], "")));
+    setImagePreviews(Array(4).fill(''));
     setImagesCleared(true);
   };
 
 
   return (
-    // The parent form will handle the submission.
-    // We pass data up via hidden inputs.
     <>
         <div className="grid gap-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -309,15 +325,14 @@ function ProductForm({
                     <Input 
                       id={`image-upload-${index}`} 
                       type="file" 
+                      accept="image/*"
                       className="sr-only" 
-                      name={`image${index + 1}`}
                       onChange={(e) => handleImageChange(e, index)}
                     />
                     </div>
                 ))}
                 </div>
-                {/* Hidden inputs to preserve existing images on edit */}
-                {product && existingImageUrls.map((url, index) => (
+                {product && product.images?.map((url, index) => (
                     <input key={`existing-${index}`} type="hidden" name={`existingImage${index+1}`} value={url} />
                 ))}
                  <input type="hidden" name="clearImages" value={imagesCleared ? "true" : "false"} />
@@ -576,6 +591,9 @@ function ProductDetailsDialog({ product }: { product: Product }) {
 
 function AddProductSheet({ children }: { children: React.ReactNode }) {
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
+  const [imageFiles, setImageFiles] = useState<File[]>(Array(4).fill(new File([], "")));
+  const [imagePreviews, setImagePreviews] = useState<string[]>(Array(4).fill(''));
+  const [imagesCleared, setImagesCleared] = useState(false);
   const { toast } = useToast();
 
   const initialState = { success: false, message: "", errors: null };
@@ -588,6 +606,8 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
         description: state.message,
       });
       setIsAddSheetOpen(false);
+      setImageFiles(Array(4).fill(new File([], "")));
+      setImagePreviews(Array(4).fill(''));
     } else if (state.message) {
       toast({
         variant: "destructive",
@@ -596,6 +616,15 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
       });
     }
   }, [state, toast]);
+
+  const handleFormAction = (formData: FormData) => {
+    imageFiles.forEach((file, index) => {
+        if (file.size > 0) {
+            formData.append(`image${index + 1}`, file, file.name);
+        }
+    });
+    formAction(formData);
+  };
 
 
   return (
@@ -613,10 +642,17 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
             Fill in the details below to add a new product to your inventory.
           </SheetDescription>
         </SheetHeader>
-        <form action={formAction}>
+        <form action={handleFormAction}>
           <ScrollArea className="flex-grow h-[calc(100vh-200px)]">
             <div className="p-6 pt-4">
-              <ProductForm />
+              <ProductForm 
+                imageFiles={imageFiles}
+                setImageFiles={setImageFiles}
+                imagePreviews={imagePreviews}
+                setImagePreviews={setImagePreviews}
+                imagesCleared={imagesCleared}
+                setImagesCleared={setImagesCleared}
+              />
             </div>
           </ScrollArea>
           <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
@@ -643,6 +679,9 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
 
 function EditProductSheet({ product, open, onOpenChange }: { product: Product, open: boolean, onOpenChange: (open: boolean) => void }) {
     const { toast } = useToast();
+    const [imageFiles, setImageFiles] = useState<File[]>(Array(4).fill(new File([], "")));
+    const [imagePreviews, setImagePreviews] = useState<string[]>(product.images || Array(4).fill(''));
+    const [imagesCleared, setImagesCleared] = useState(false);
     
     const initialState = { success: false, message: "", errors: null };
     const [state, formAction, isPending] = useActionState(updateProductAction.bind(null, product.id), initialState);
@@ -657,6 +696,15 @@ function EditProductSheet({ product, open, onOpenChange }: { product: Product, o
           toast({ variant: "destructive", title: "Error", description: state.message });
         }
     }, [state, toast, onOpenChange]);
+
+    const handleFormAction = (formData: FormData) => {
+        imageFiles.forEach((file, index) => {
+            if (file.size > 0) {
+                formData.append(`image${index + 1}`, file, file.name);
+            }
+        });
+        formAction(formData);
+    };
 
 
     return (
@@ -676,10 +724,18 @@ function EditProductSheet({ product, open, onOpenChange }: { product: Product, o
                         Update the details for &quot;{product.name}&quot;.
                     </SheetDescription>
                 </SheetHeader>
-                <form action={formAction}>
+                <form action={handleFormAction}>
                     <ScrollArea className="flex-grow h-[calc(100vh-200px)]">
                         <div className="p-6 pt-4">
-                            <ProductForm product={product} />
+                            <ProductForm 
+                                product={product} 
+                                imageFiles={imageFiles}
+                                setImageFiles={setImageFiles}
+                                imagePreviews={imagePreviews}
+                                setImagePreviews={setImagePreviews}
+                                imagesCleared={imagesCleared}
+                                setImagesCleared={setImagesCleared}
+                            />
                         </div>
                     </ScrollArea>
                     <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
@@ -975,3 +1031,5 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
+
+    
