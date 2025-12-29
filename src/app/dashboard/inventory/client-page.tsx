@@ -194,7 +194,7 @@ function ProductForm({
         newPreviews[index] = URL.createObjectURL(compressedFile);
         setImagePreviews(newPreviews);
         setImagesCleared(false);
-        toast({ title: 'Image ready!', description: 'Image has been compressed and is ready for upload.' });
+        // toast({ title: 'Image ready!', description: 'Image has been compressed and is ready for upload.' });
       } catch (error) {
         console.error('Image compression error:', error);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to compress image.' });
@@ -1037,4 +1037,6 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
 }
 
     
+    
+
     
