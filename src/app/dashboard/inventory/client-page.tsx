@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useActionState, useMemo, startTransition } from "react";
@@ -621,9 +622,8 @@ function ProductDetailsDialog({ product }: { product: Product }) {
 
 function AddProductSheet({ children, onProductAdded }: { children: React.ReactNode, onProductAdded: (product: Product) => void }) {
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
-  const [newProduct, setNewProduct] = useState<Product | null>(null);
   const { toast } = useToast();
-
+  
   const initialState = { success: false, message: "", errors: null, product: null };
   const [state, formAction, isPending] = useActionState(addProductAction, initialState);
 
@@ -631,12 +631,10 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
     if (state.success && state.product) {
       toast({
         title: "Product Created",
-        description: "You can now upload images for your new product.",
+        description: "Your new product has been added successfully.",
       });
-      // Don't close the sheet. Instead, switch to an "edit" like mode for the new product.
-      setNewProduct(state.product);
       onProductAdded(state.product);
-
+      setIsAddSheetOpen(false); // Close sheet on success
     } else if (state.message && !state.success) {
       toast({
         variant: "destructive",
@@ -646,45 +644,33 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
     }
   }, [state, toast, onProductAdded]);
 
-  const handleProductUpdate = (updatedProduct: Product) => {
-    setNewProduct(updatedProduct);
-    onProductAdded(updatedProduct);
-  }
-
   const handleOpenChange = (isOpen: boolean) => {
+    if (isPending) return; // Prevent closing while form is submitting
     setIsAddSheetOpen(isOpen);
-    if (!isOpen) {
-      // Reset state when closing
-      setNewProduct(null);
-    }
   };
-
 
   return (
     <Sheet open={isAddSheetOpen} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent 
         className="sm:max-w-xl w-full flex flex-col"
-        onInteractOutside={(e) => {
-          e.preventDefault();
-        }}
       >
         <SheetHeader>
-          <SheetTitle>{newProduct ? 'Add Images & Finalize Product' : 'Add a New Product'}</SheetTitle>
+          <SheetTitle>Add a New Product</SheetTitle>
           <SheetDescription>
-            {newProduct ? `Editing "${newProduct.name}". Add images below.` : 'Fill in the details below to add a new product to your inventory.'}
+            Fill in the details below to add a new product to your inventory. Images can be added after creation by editing the product.
           </SheetDescription>
         </SheetHeader>
         <form action={formAction}>
           <ScrollArea className="flex-grow h-[calc(100vh-200px)]">
             <div className="p-6 pt-4">
+              {/* Passing null for product and a no-op function for onProductUpdate */}
               <ProductForm 
-                product={newProduct}
-                onProductUpdate={handleProductUpdate}
+                product={null}
+                onProductUpdate={() => {}}
               />
             </div>
           </ScrollArea>
-           {!newProduct && (
             <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
                 <SheetClose asChild>
                     <Button type="button" variant="outline" disabled={isPending}>
@@ -697,10 +683,9 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Saving...
                       </>
-                  ) : "Save and Add Images" }
+                  ) : "Save Product" }
                 </Button>
             </SheetFooter>
-           )}
         </form>
       </SheetContent>
     </Sheet>
@@ -728,9 +713,6 @@ function EditProductSheet({ product, open, onOpenChange, onProductUpdate }: { pr
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent 
                 className="sm:max-w-xl w-full flex flex-col"
-                onInteractOutside={(e) => {
-                    e.preventDefault();
-                }}
             >
                 <SheetHeader>
                     <SheetTitle>Edit Product</SheetTitle>
@@ -834,8 +816,6 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   const handleProductAdded = (newProduct: Product) => {
      startTransition(() => {
         setProducts(prev => [newProduct, ...prev]);
-        setEditingProduct(newProduct);
-        setIsEditSheetOpen(true);
     });
   }
 
@@ -1058,3 +1038,4 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
+
