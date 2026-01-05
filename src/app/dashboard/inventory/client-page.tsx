@@ -620,7 +620,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
 }
 
 
-function AddProductSheet({ children, onProductAdded }: { children: React.ReactNode, onProductAdded: (product: Product) => void }) {
+function AddProductSheet({ children }: { children: React.ReactNode }) {
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
   const { toast } = useToast();
   
@@ -633,7 +633,6 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
         title: "Product Created",
         description: "Your new product has been added successfully.",
       });
-      onProductAdded(state.product);
       setIsAddSheetOpen(false); // Close sheet on success
     } else if (state.message && !state.success) {
       toast({
@@ -642,7 +641,7 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
         description: state.message,
       });
     }
-  }, [state, toast, onProductAdded]);
+  }, [state, toast]);
 
   const handleOpenChange = (isOpen: boolean) => {
     if (isPending) return; // Prevent closing while form is submitting
@@ -654,6 +653,9 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent 
         className="sm:max-w-xl w-full flex flex-col"
+        onInteractOutside={(e) => {
+          e.preventDefault();
+        }}
       >
         <SheetHeader>
           <SheetTitle>Add a New Product</SheetTitle>
@@ -713,6 +715,9 @@ function EditProductSheet({ product, open, onOpenChange, onProductUpdate }: { pr
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent 
                 className="sm:max-w-xl w-full flex flex-col"
+                onInteractOutside={(e) => {
+                  e.preventDefault();
+                }}
             >
                 <SheetHeader>
                     <SheetTitle>Edit Product</SheetTitle>
@@ -814,9 +819,8 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   };
 
   const handleProductAdded = (newProduct: Product) => {
-     startTransition(() => {
-        setProducts(prev => [newProduct, ...prev]);
-    });
+    // This function is no longer needed to prevent duplicate key errors.
+    // The list is updated via server revalidation.
   }
 
   const sortedAndFilteredProducts = useMemo(() => {
@@ -861,7 +865,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   return (
     <>
       <PageHeader title="Inventory" description="Manage your products and stock levels.">
-        <AddProductSheet onProductAdded={handleProductAdded}>
+        <AddProductSheet>
           <Button size="sm" className="gap-1">
             <PlusCircle className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
@@ -1039,3 +1043,6 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   );
 }
 
+
+
+    
