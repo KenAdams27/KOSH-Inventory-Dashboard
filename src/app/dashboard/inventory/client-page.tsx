@@ -1,7 +1,7 @@
 
-
 "use client";
 
+import * as React from "react";
 import { useState, useEffect, useActionState, useMemo, startTransition } from "react";
 import Image from "next/image";
 import { MoreHorizontal, PlusCircle, Search, ImageIcon, X, Star, Loader2, Upload } from "lucide-react";
@@ -191,7 +191,6 @@ function ProductForm({ product, onProductUpdate }: { product?: Product | null; o
         newPreviews[index] = URL.createObjectURL(compressedFile);
         setImagePreviews(newPreviews);
         
-        toast({ title: 'Image ready!', description: 'Image has been compressed and is ready for upload.' });
       } catch (error) {
         console.error('Image compression error:', error);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to compress image.' });
@@ -639,7 +638,7 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
         title: "Product Created",
         description: "Your new product has been added successfully.",
       });
-      setIsAddSheetOpen(false); // Close sheet on success
+      setIsAddSheetOpen(false);
     } else if (state.message && !state.success) {
       toast({
         variant: "destructive",
@@ -650,7 +649,7 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
   }, [state, toast, onProductAdded]);
 
   const handleOpenChange = (isOpen: boolean) => {
-    if (isPending) return; // Prevent closing while form is submitting
+    if (isPending) return;
     setIsAddSheetOpen(isOpen);
   };
 
@@ -659,6 +658,7 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent 
         className="sm:max-w-xl w-full flex flex-col"
+        onInteractOutside={(e) => { e.preventDefault(); }}
       >
         <SheetHeader>
           <SheetTitle>Add a New Product</SheetTitle>
@@ -1046,7 +1046,5 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
-
-
 
     
