@@ -666,7 +666,7 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
       <SheetContent 
         className="sm:max-w-xl w-full flex flex-col"
         onInteractOutside={(e) => {
-           if(isPending) e.preventDefault();
+           e.preventDefault();
         }}
       >
         <SheetHeader>
@@ -726,7 +726,7 @@ function EditProductSheet({ product, open, onOpenChange, onProductUpdate }: { pr
             <SheetContent 
                 className="sm:max-w-xl w-full flex flex-col"
                 onInteractOutside={(e) => {
-                  if (isPending) e.preventDefault();
+                  e.preventDefault();
                 }}
             >
                 <SheetHeader>
@@ -878,7 +878,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   return (
     <>
       <PageHeader title="Inventory" description="Manage your products and stock levels.">
-        <AddProductSheet onProductAdded={handleProductAdded}>
+        <AddProductSheet onProductAdded={() => {}}>
           <Button size="sm" className="gap-1">
             <PlusCircle className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
