@@ -627,30 +627,37 @@ function ProductDetailsDialog({ product }: { product: Product }) {
 
 function AddProductSheet({ children, onProductAdded }: { children: React.ReactNode, onProductAdded: (product: Product) => void }) {
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
+  const [toastShown, setToastShown] = useState(false);
   const { toast } = useToast();
   
-  const initialState = { success: false, message: "", errors: null, product: null };
+  const initialState = { success: false, message: "", errors: null };
   const [state, formAction, isPending] = useActionState(addProductAction, initialState);
 
   useEffect(() => {
-    if (state.success) {
+    if (state.success && !toastShown) {
       toast({
         title: "Product Created",
         description: "Your new product has been added successfully.",
       });
       setIsAddSheetOpen(false);
-    } else if (state.message && !state.success) {
+      setToastShown(true); 
+    } else if (state.message && !state.success && !toastShown) {
       toast({
         variant: "destructive",
         title: "Error adding product",
         description: state.message,
       });
+      setToastShown(true);
     }
-  }, [state, toast, onProductAdded]);
+  }, [state, toast, onProductAdded, toastShown]);
 
   const handleOpenChange = (isOpen: boolean) => {
     if (isPending) return;
     setIsAddSheetOpen(isOpen);
+    if (isOpen) {
+      // Reset toast shown state when sheet is opened
+      setToastShown(false);
+    }
   };
 
   return (
@@ -658,7 +665,9 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent 
         className="sm:max-w-xl w-full flex flex-col"
-        onInteractOutside={(e) => { e.preventDefault(); }}
+        onInteractOutside={(e) => {
+           if(isPending) e.preventDefault();
+        }}
       >
         <SheetHeader>
           <SheetTitle>Add a New Product</SheetTitle>
@@ -717,7 +726,7 @@ function EditProductSheet({ product, open, onOpenChange, onProductUpdate }: { pr
             <SheetContent 
                 className="sm:max-w-xl w-full flex flex-col"
                 onInteractOutside={(e) => {
-                  e.preventDefault();
+                  if (isPending) e.preventDefault();
                 }}
             >
                 <SheetHeader>
@@ -1046,5 +1055,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
+
+    
 
     
