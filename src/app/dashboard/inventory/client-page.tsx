@@ -121,6 +121,9 @@ const subCategoryOptions = {
 
 function ProductForm({ product, onProductUpdate }: { product?: Product | null; onProductUpdate: (updatedProduct: Product) => void; }) {
   const { toast } = useToast();
+  const formRef = React.useRef<HTMLFormElement>(null);
+  const isEditMode = !!product;
+
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: product ? {
@@ -187,7 +190,8 @@ function ProductForm({ product, onProductUpdate }: { product?: Product | null; o
         const newPreviews = [...imagePreviews];
         newPreviews[index] = URL.createObjectURL(compressedFile);
         setImagePreviews(newPreviews);
-
+        
+        toast({ title: 'Image ready!', description: 'Image has been compressed and is ready for upload.' });
       } catch (error) {
         console.error('Image compression error:', error);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to compress image.' });
@@ -317,7 +321,7 @@ function ProductForm({ product, onProductUpdate }: { product?: Product | null; o
             <div className="space-y-2">
                 <div className="flex items-center justify-between">
                     <Label>Product Images</Label>
-                    {product?.images && product.images.length > 0 && (
+                    {isEditMode && product?.images && product.images.length > 0 && (
                         <Button type="button" variant="destructive" size="sm" onClick={handleRemoveAllImages} disabled={!product?.id}>
                             Remove All Images
                         </Button>
@@ -343,27 +347,29 @@ function ProductForm({ product, onProductUpdate }: { product?: Product | null; o
                             )}
                              <Input 
                                 id={`image-upload-${index}`} 
+                                name="images"
                                 type="file" 
                                 accept="image/*"
                                 className="sr-only" 
                                 onChange={(e) => handleImageChange(e, index)}
-                                disabled={!product?.id}
                             />
                         </div>
-                        <Button
-                            type="button"
-                            size="sm"
-                            className="w-full"
-                            onClick={() => handleImageUpload(index)}
-                            disabled={!imageFiles[index] || uploading[index] || !product?.id}
-                        >
-                            {uploading[index] ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                <Upload className="h-4 w-4 mr-2" />
-                            )}
-                            Upload
-                        </Button>
+                        {isEditMode && (
+                          <Button
+                              type="button"
+                              size="sm"
+                              className="w-full"
+                              onClick={() => handleImageUpload(index)}
+                              disabled={!imageFiles[index] || uploading[index] || !product?.id}
+                          >
+                              {uploading[index] ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                  <Upload className="h-4 w-4 mr-2" />
+                              )}
+                              Upload
+                          </Button>
+                        )}
                     </div>
                 ))}
                 </div>
@@ -620,7 +626,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
 }
 
 
-function AddProductSheet({ children }: { children: React.ReactNode }) {
+function AddProductSheet({ children, onProductAdded }: { children: React.ReactNode, onProductAdded: (product: Product) => void }) {
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
   const { toast } = useToast();
   
@@ -628,7 +634,7 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
   const [state, formAction, isPending] = useActionState(addProductAction, initialState);
 
   useEffect(() => {
-    if (state.success && state.product) {
+    if (state.success) {
       toast({
         title: "Product Created",
         description: "Your new product has been added successfully.",
@@ -641,7 +647,7 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
         description: state.message,
       });
     }
-  }, [state, toast]);
+  }, [state, toast, onProductAdded]);
 
   const handleOpenChange = (isOpen: boolean) => {
     if (isPending) return; // Prevent closing while form is submitting
@@ -653,22 +659,17 @@ function AddProductSheet({ children }: { children: React.ReactNode }) {
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent 
         className="sm:max-w-xl w-full flex flex-col"
-        onInteractOutside={(e) => {
-          e.preventDefault();
-        }}
       >
         <SheetHeader>
           <SheetTitle>Add a New Product</SheetTitle>
           <SheetDescription>
-            Fill in the details below to add a new product to your inventory. Images can be added after creation by editing the product.
+            Fill in the details below to add a new product to your inventory.
           </SheetDescription>
         </SheetHeader>
         <form action={formAction}>
           <ScrollArea className="flex-grow h-[calc(100vh-200px)]">
             <div className="p-6 pt-4">
-              {/* Passing null for product and a no-op function for onProductUpdate */}
               <ProductForm 
-                product={null}
                 onProductUpdate={() => {}}
               />
             </div>
@@ -819,8 +820,11 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   };
 
   const handleProductAdded = (newProduct: Product) => {
-    // This function is no longer needed to prevent duplicate key errors.
-    // The list is updated via server revalidation.
+    setProducts(prev => [newProduct, ...prev]);
+    // Re-sort if necessary
+    if (sortOption === "name") {
+        setProducts(prev => [...prev].sort((a, b) => a.name.localeCompare(b.name)));
+    }
   }
 
   const sortedAndFilteredProducts = useMemo(() => {
@@ -865,7 +869,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   return (
     <>
       <PageHeader title="Inventory" description="Manage your products and stock levels.">
-        <AddProductSheet>
+        <AddProductSheet onProductAdded={handleProductAdded}>
           <Button size="sm" className="gap-1">
             <PlusCircle className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">

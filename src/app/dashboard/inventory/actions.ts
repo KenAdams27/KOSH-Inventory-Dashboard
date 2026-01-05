@@ -87,9 +87,9 @@ export async function addProductAction(prevState: any, formData: FormData) {
     price: formData.get('price'),
     mrp: formData.get('mrp'),
     quantity: formData.get('quantity'),
-    onWebsite: formData.get('onWebsite') === 'on', // Checkbox value is 'on'
+    onWebsite: formData.get('onWebsite') === 'on',
     status: Number(formData.get('quantity')) > 0 ? "In Stock" : "Out of Stock",
-    images: [], // Images are handled separately now
+    images: [],
   };
   
   const validation = productSchema.safeParse(rawData);
@@ -98,19 +98,34 @@ export async function addProductAction(prevState: any, formData: FormData) {
     return { success: false, message: 'Invalid data.', errors: validation.error.flatten().fieldErrors };
   }
 
+  const imageFiles = formData.getAll('images').filter(f => (f as File).size > 0) as File[];
+  const imageUrls: string[] = [];
+
   try {
     const db = await getDb();
+
+    // 1. Upload images to Google Drive
+    for (const file of imageFiles) {
+        const buffer = await getFileBuffer(file);
+        const imageUrl = await uploadImageToDrive(buffer, file.name);
+        if (imageUrl) {
+            imageUrls.push(imageUrl);
+        } else {
+            throw new Error(`Failed to upload image: ${file.name}`);
+        }
+    }
     
+    // 2. Insert product into database with image URLs
     const result = await db.collection('items').insertOne({ 
       ...validation.data, 
+      images: imageUrls,
       desc: validation.data.description,
       reviews: [], // Initialize with an empty array
     });
     
     if (result.acknowledged) {
       revalidatePath('/dashboard/inventory');
-      // Return the new product's ID so we can transition to edit mode for image uploads
-      return { success: true, message: 'Product added successfully.', product: { id: result.insertedId.toString(), ...validation.data, images: [] } };
+      return { success: true, message: 'Product added successfully.' };
     } else {
       return { success: false, message: 'Failed to add product.' };
     }
