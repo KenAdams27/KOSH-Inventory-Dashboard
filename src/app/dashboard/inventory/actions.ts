@@ -7,6 +7,8 @@ import { ObjectId } from 'mongodb';
 import clientPromise from '@/lib/mongodb';
 import type { Product } from '@/lib/types';
 import { uploadImageToDrive } from '@/lib/google-drive';
+import { calculateProductStatus } from "@/lib/productstatus";
+
 
 const reviewSchema = z.object({
     name: z.string(),
@@ -88,7 +90,6 @@ export async function addProductAction(prevState: any, formData: FormData) {
     mrp: formData.get('mrp'),
     quantity: formData.get('quantity'),
     onWebsite: formData.get('onWebsite') === 'on',
-    status: Number(formData.get('quantity')) > 0 ? "In Stock" : "Out of Stock",
     images: [],
   };
   
@@ -116,11 +117,12 @@ export async function addProductAction(prevState: any, formData: FormData) {
     }
     
     // 2. Insert product into database with image URLs
-    const result = await db.collection('items').insertOne({ 
-      ...validation.data, 
-      images: imageUrls,
-      desc: validation.data.description,
-      reviews: [], // Initialize with an empty array
+    const result = await db.collection('items').insertOne({
+    ...validation.data,
+    images: imageUrls,
+    desc: validation.data.description,
+    reviews: [],
+    status: calculateProductStatus(validation.data.quantity),
     });
     
     if (result.acknowledged) {
@@ -221,7 +223,9 @@ export async function updateProductAction(productId: string, prevState: any, for
     }
 
     if (updateData.quantity !== undefined) {
-      updateData.status = Number(updateData.quantity) > 0 ? "In Stock" : "Out of Stock";
+    updateData.status = calculateProductStatus(
+        Number(updateData.quantity)
+    );
     }
 
     try {
