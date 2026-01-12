@@ -639,7 +639,10 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
         title: "Product Created",
         description: state.message,
       });
-      setIsAddSheetOpen(false);
+      // Do not close the sheet automatically.
+      if (formRef.current) {
+        formRef.current.reset();
+      }
     } else if (state.message && !state.success) {
       toast({
         variant: "destructive",
@@ -653,8 +656,6 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
     if (isPending) return;
     setIsAddSheetOpen(isOpen);
     if (isOpen && formRef.current) {
-      // Reset the form action state and the form itself when the sheet is opened.
-      // A native `form.reset()` is needed here to clear the React Hook Form state as well.
       formRef.current.reset();
     }
   };
@@ -665,7 +666,12 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
       <SheetContent 
         className="sm:max-w-xl w-full flex flex-col"
         onInteractOutside={(e) => {
-           if (isPending) e.preventDefault();
+           // Prevent closing on outside click
+           e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          // Prevent closing on Escape key
+          e.preventDefault();
         }}
       >
         <SheetHeader>
