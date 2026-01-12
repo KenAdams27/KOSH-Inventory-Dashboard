@@ -33,6 +33,7 @@ const baseProductSchema = z.object({
   onWebsite: z.boolean().default(true),
   images: z.array(z.string()).optional(),
   reviews: z.array(reviewSchema).optional(),
+  status: z.enum(["In Stock", "Out of Stock", "Low Stock"]),
 });
 
 const refinement = (data: Partial<z.infer<typeof baseProductSchema>>) => {
@@ -90,6 +91,8 @@ export async function addProductAction(prevState: any, formData: FormData) {
     onWebsite: formData.get('onWebsite') === 'on',
     status: Number(formData.get('quantity')) > 0 ? "In Stock" : "Out of Stock",
     images: [],
+    rating: 0, // default
+    reviews: [], //default
   };
   
   const validation = productSchema.safeParse(rawData);
@@ -120,7 +123,6 @@ export async function addProductAction(prevState: any, formData: FormData) {
       ...validation.data, 
       images: imageUrls,
       desc: validation.data.description,
-      reviews: [], // Initialize with an empty array
     });
     
     if (result.acknowledged) {
@@ -307,4 +309,6 @@ export async function removeAllProductImagesAction(productId: string) {
         return { success: false, message: `Database Error: ${message}` };
     }
 }
+    
+
     

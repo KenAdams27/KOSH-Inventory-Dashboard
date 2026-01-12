@@ -639,7 +639,6 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
         title: "Product Created",
         description: state.message,
       });
-      // Do not close the sheet automatically.
       if (formRef.current) {
         formRef.current.reset();
       }
@@ -653,11 +652,7 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
   }, [state, toast]);
 
   const handleOpenChange = (isOpen: boolean) => {
-    if (isPending) return;
     setIsAddSheetOpen(isOpen);
-    if (isOpen && formRef.current) {
-      formRef.current.reset();
-    }
   };
 
   return (
@@ -666,11 +661,9 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
       <SheetContent 
         className="sm:max-w-xl w-full flex flex-col"
         onInteractOutside={(e) => {
-           // Prevent closing on outside click
            e.preventDefault();
         }}
         onEscapeKeyDown={(e) => {
-          // Prevent closing on Escape key
           e.preventDefault();
         }}
       >
@@ -689,11 +682,9 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
             </div>
           </ScrollArea>
             <SheetFooter className="mt-auto p-6 pt-0 sticky bottom-0 bg-background border-t border-border">
-                <SheetClose asChild>
-                    <Button type="button" variant="outline" disabled={isPending}>
-                        Cancel
-                    </Button>
-                </SheetClose>
+                <Button type="button" variant="outline" disabled={isPending} onClick={() => setIsAddSheetOpen(false)}>
+                    Cancel
+                </Button>
                 <Button type="submit" disabled={isPending}>
                   {isPending ? (
                       <>
@@ -1060,3 +1051,5 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
+
+    
