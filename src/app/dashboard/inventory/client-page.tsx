@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useEffect, useActionState, useMemo, startTransition } from "react";
+import { useState, useEffect, useActionState, useMemo, startTransition, useRef } from "react";
 import Image from "next/image";
 import { MoreHorizontal, PlusCircle, Search, ImageIcon, X, Star, Loader2, Upload } from "lucide-react";
 import { z } from "zod";
@@ -627,36 +627,35 @@ function ProductDetailsDialog({ product }: { product: Product }) {
 
 function AddProductSheet({ children, onProductAdded }: { children: React.ReactNode, onProductAdded: (product: Product) => void }) {
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
-  const [toastShown, setToastShown] = useState(false);
   const { toast } = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
   
-  const initialState = { success: false, message: "", errors: null };
+  const initialState: { success: boolean, message: string, errors: any } = { success: false, message: "", errors: null };
   const [state, formAction, isPending] = useActionState(addProductAction, initialState);
 
   useEffect(() => {
-    if (state.success && !toastShown) {
+    if (state.success) {
       toast({
         title: "Product Created",
-        description: "Your new product has been added successfully.",
+        description: state.message,
       });
       setIsAddSheetOpen(false);
-      setToastShown(true); 
-    } else if (state.message && !state.success && !toastShown) {
+    } else if (state.message && !state.success) {
       toast({
         variant: "destructive",
         title: "Error adding product",
         description: state.message,
       });
-      setToastShown(true);
     }
-  }, [state, toast, onProductAdded, toastShown]);
+  }, [state, toast]);
 
   const handleOpenChange = (isOpen: boolean) => {
     if (isPending) return;
     setIsAddSheetOpen(isOpen);
-    if (isOpen) {
-      // Reset toast shown state when sheet is opened
-      setToastShown(false);
+    if (isOpen && formRef.current) {
+      // Reset the form action state and the form itself when the sheet is opened.
+      // A native `form.reset()` is needed here to clear the React Hook Form state as well.
+      formRef.current.reset();
     }
   };
 
@@ -666,7 +665,7 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
       <SheetContent 
         className="sm:max-w-xl w-full flex flex-col"
         onInteractOutside={(e) => {
-           e.preventDefault();
+           if (isPending) e.preventDefault();
         }}
       >
         <SheetHeader>
@@ -675,7 +674,7 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
             Fill in the details below to add a new product to your inventory.
           </SheetDescription>
         </SheetHeader>
-        <form action={formAction}>
+        <form ref={formRef} action={formAction}>
           <ScrollArea className="flex-grow h-[calc(100vh-200px)]">
             <div className="p-6 pt-4">
               <ProductForm 
@@ -726,7 +725,7 @@ function EditProductSheet({ product, open, onOpenChange, onProductUpdate }: { pr
             <SheetContent 
                 className="sm:max-w-xl w-full flex flex-col"
                 onInteractOutside={(e) => {
-                  e.preventDefault();
+                  if (isPending) e.preventDefault();
                 }}
             >
                 <SheetHeader>
@@ -1055,7 +1054,3 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
-
-    
-
-    
