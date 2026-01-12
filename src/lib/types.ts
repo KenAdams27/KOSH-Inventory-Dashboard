@@ -59,7 +59,7 @@ export type Order = {
   totalPrice: number;
   isPaid: boolean;
   paidAt?: string; // ISO date string
-  status: 'placed' | 'dispatched' | 'delivered';
+  status: 'placed' | 'dispatched' | 'delivered' | 'Refund Initiated' | 'Refund Complete';
   deliveredAt?: string; // ISO date string
   createdAt: string; // ISO date string from timestamps
   tracking_id?: string;

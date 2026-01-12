@@ -31,7 +31,7 @@ async function getOrders(): Promise<Order[]> {
       const { _id, user, orderItems, isDelivered, ...rest } = order;
       
       // Backward compatibility for old schema
-      let status: 'placed' | 'dispatched' | 'delivered' = 'placed';
+      let status: 'placed' | 'dispatched' | 'delivered' | 'Refund Initiated' | 'Refund Complete' = 'placed';
       if (order.status) {
         status = order.status;
       } else if (isDelivered) {

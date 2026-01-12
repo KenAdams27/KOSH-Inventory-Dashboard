@@ -70,13 +70,15 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 
-type OrderStatus = "placed" | "dispatched" | "delivered";
+type OrderStatus = "placed" | "dispatched" | "delivered" | "Refund Initiated" | "Refund Complete";
 
 
 const statusStyles: Record<OrderStatus, string> = {
     delivered: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
     placed: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300",
     dispatched: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300",
+    "Refund Initiated": "bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300",
+    "Refund Complete": "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
 };
 
 
@@ -373,6 +375,8 @@ function OrdersTable({
                                 <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleStatusClick(order, 'placed')}>Placed</DropdownMenuItem>
                                 <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleStatusClick(order, 'dispatched')}>Dispatched</DropdownMenuItem>
                                 <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleStatusClick(order, 'delivered')}>Delivered</DropdownMenuItem>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleStatusClick(order, 'Refund Initiated')}>Refund Initiated</DropdownMenuItem>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleStatusClick(order, 'Refund Complete')}>Refund Complete</DropdownMenuItem>
                            </DropdownMenuSubContent>
                         </DropdownMenuSub>
                         <DropdownMenuSeparator />
@@ -591,11 +595,13 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <Tabs defaultValue="all" onValueChange={(value) => setActiveTab(value as any)}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-            <TabsList className="grid w-full grid-cols-4 sm:w-auto sm:grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3 sm:w-auto sm:grid-cols-6">
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="placed">Placed</TabsTrigger>
               <TabsTrigger value="dispatched">Dispatched</TabsTrigger>
               <TabsTrigger value="delivered">Delivered</TabsTrigger>
+              <TabsTrigger value="Refund Initiated">Refund Initiated</TabsTrigger>
+              <TabsTrigger value="Refund Complete">Refund Complete</TabsTrigger>
             </TabsList>
              <div className="flex flex-col sm:flex-row items-center gap-2">
                 <div className="relative w-full sm:w-auto">
@@ -655,7 +661,3 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     </>
   );
 }
-
-    
-
-    

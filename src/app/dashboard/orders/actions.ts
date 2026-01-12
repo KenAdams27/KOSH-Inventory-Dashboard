@@ -8,7 +8,7 @@ import clientPromise from '@/lib/mongodb';
 
 const updateOrderStatusSchema = z.object({
   orderId: z.string().min(1, 'Order ID is required'),
-  status: z.enum(['placed', 'dispatched', 'delivered']),
+  status: z.enum(['placed', 'dispatched', 'delivered', 'Refund Initiated', 'Refund Complete']),
   trackingId: z.string().optional(),
 });
 
@@ -24,7 +24,7 @@ async function getDb() {
     return client.db(dbName);
 }
 
-export async function updateOrderStatusAction(orderId: string, status: 'placed' | 'dispatched' | 'delivered', trackingId?: string) {
+export async function updateOrderStatusAction(orderId: string, status: 'placed' | 'dispatched' | 'delivered' | 'Refund Initiated' | 'Refund Complete', trackingId?: string) {
   const validation = updateOrderStatusSchema.safeParse({ orderId, status, trackingId });
   if (!validation.success) {
     return { success: false, message: 'Invalid data.', errors: validation.error.flatten().fieldErrors };
