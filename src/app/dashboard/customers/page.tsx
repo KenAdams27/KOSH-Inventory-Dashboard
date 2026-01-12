@@ -26,28 +26,15 @@ async function getCustomers(): Promise<Customer[]> {
       .sort({ name: 1 })
       .toArray();
 
-    // Manually map and convert all ObjectIDs to strings, including nested ones.
-    const customers = customersFromDb.map((customer) => {
-      const { _id, cart, wishlist, orders, ...rest } = customer;
-      
-      const convertCartItems = (items: any[] | undefined) => {
-        if (!items) return [];
-        return items.map(item => {
-          const { _id: item_id, ...restOfItem } = item; // remove the nested _id
-          return {
-            ...restOfItem,
-            itemId: item.itemId ? item.itemId.toString() : undefined,
-          }
-        });
-      };
-
-      return {
-        ...rest,
-        id: _id.toString(),
-        cart: convertCartItems(cart),
-        wishlist: convertCartItems(wishlist),
-        orders: orders ? orders.map((orderId: any) => orderId.toString()) : [],
-      } as Customer;
+    // The data from MongoDB must be converted into a plain, serializable object.
+    // We can do this by stringifying and then parsing the data. This ensures
+    // all nested objects, including ObjectIDs, are converted to strings.
+    const customers = JSON.parse(JSON.stringify(customersFromDb)).map((customer: any) => {
+        const { _id, ...rest } = customer;
+        return {
+            ...rest,
+            id: _id.toString(),
+        } as Customer;
     });
 
     return customers;
