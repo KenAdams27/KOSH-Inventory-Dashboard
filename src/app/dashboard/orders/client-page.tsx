@@ -595,7 +595,7 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <Tabs defaultValue="all" onValueChange={(value) => setActiveTab(value as any)}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-            <TabsList className="grid w-full grid-cols-3 sm:w-auto sm:grid-cols-6">
+            <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:grid-cols-6">
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="placed">Placed</TabsTrigger>
               <TabsTrigger value="dispatched">Dispatched</TabsTrigger>
@@ -661,3 +661,5 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     </>
   );
 }
+
+    
