@@ -593,16 +593,25 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
       </Dialog>
       
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <Tabs defaultValue="all" onValueChange={(value) => setActiveTab(value as any)}>
+        <Tabs defaultValue="all" value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-            <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:grid-cols-6">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="placed">Placed</TabsTrigger>
-              <TabsTrigger value="dispatched">Dispatched</TabsTrigger>
-              <TabsTrigger value="delivered">Delivered</TabsTrigger>
-              <TabsTrigger value="Refund Initiated">Refund Initiated</TabsTrigger>
-              <TabsTrigger value="Refund Complete">Refund Complete</TabsTrigger>
-            </TabsList>
+            <div className="flex items-center gap-2">
+                <TabsList>
+                    <TabsTrigger value="all">All</TabsTrigger>
+                    <TabsTrigger value="placed">Placed</TabsTrigger>
+                    <TabsTrigger value="dispatched">Dispatched</TabsTrigger>
+                    <TabsTrigger value="delivered">Delivered</TabsTrigger>
+                </TabsList>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className={`h-10 ${(activeTab === 'Refund Initiated' || activeTab === 'Refund Complete') ? 'bg-accent text-accent-foreground' : ''}`}>Refund</Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        <DropdownMenuItem onSelect={() => setActiveTab('Refund Initiated')}>Initiated</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setActiveTab('Refund Complete')}>Completed</DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
              <div className="flex flex-col sm:flex-row items-center gap-2">
                 <div className="relative w-full sm:w-auto">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -661,5 +670,3 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     </>
   );
 }
-
-    
