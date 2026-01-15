@@ -38,104 +38,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetFooter,
-  SheetDescription,
-} from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { updateCustomerAction, deleteCustomerAction } from "./actions";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
-const updateCustomerSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters long').trim(),
-  email: z.string().email('Please provide a valid email address').toLowerCase(),
-  phone: z.string().regex(/^[0-9]{10}$/, 'Phone number must be exactly 10 digits').or(z.literal('')),
-  password: z.string().optional(),
-});
-
-
-function CustomerForm({ onSave, customer, onSheetOpenChange }: { onSave: (data: any) => Promise<void>; customer?: Customer | null, onSheetOpenChange: (isOpen: boolean) => void }) {
-  const isEditing = !!customer;
-  
-  const form = useForm({
-    resolver: zodResolver(updateCustomerSchema),
-    defaultValues: customer ? {
-      name: customer.name,
-      email: customer.email,
-      phone: customer.phone,
-      password: "",
-    } : {
-      name: "",
-      email: "",
-      phone: "",
-      password: "",
-    },
-  });
-
-  async function onSubmit(data: any) {
-    // Don't submit empty password on edit
-    if (isEditing && !data.password) {
-      delete data.password;
-    }
-    await onSave(data);
-    form.reset();
-    onSheetOpenChange(false);
-  }
-
-  return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6 p-6">
-      <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
-        <Input id="name" {...form.register("name")} />
-        {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message as string}</p>}
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="email">Email Address</Label>
-        <Input id="email" type="email" {...form.register("email")} />
-        {form.formState.errors.email && <p className="text-sm text-destructive">{form.formState.errors.email.message as string}</p>}
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="phone">Phone Number</Label>
-        <Input id="phone" {...form.register("phone")} />
-         {form.formState.errors.phone && <p className="text-sm text-destructive">{form.formState.errors.phone.message as string}</p>}
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="password">{isEditing ? "New Password" : "Password"}</Label>
-        <Input id="password" type="password" {...form.register("password")} />
-        {form.formState.errors.password && <p className="text-sm text-destructive">{form.formState.errors.password.message as string}</p>}
-        {isEditing && <p className="text-xs text-muted-foreground">Leave blank to keep current password.</p>}
-      </div>
-      <SheetFooter className="mt-6">
-          <Button type="submit">Save Customer</Button>
-      </SheetFooter>
-    </form>
-  );
-}
-
-
-function CustomerDetailsDialog({ customer, orders, products }: { customer: Customer, orders: Order[], products: Product[] }) {
+function CustomerDetailsDialog({ customer, orders }: { customer: Customer, orders: Order[]}) {
   const customerOrders = orders.filter(
     (order) => order.user === customer.id
   );
@@ -217,55 +125,11 @@ function CustomerDetailsDialog({ customer, orders, products }: { customer: Custo
 export function CustomersClientPage({ customers: initialCustomers, orders, products }: { customers: Customer[], orders: Order[], products: Product[] }) {
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { toast } = useToast();
 
   useEffect(() => {
     setCustomers(initialCustomers);
   }, [initialCustomers]);
-
-
-  const handleEditClick = (customer: Customer) => {
-    setEditingCustomer(customer);
-    setIsEditSheetOpen(true);
-  };
-  
-  const handleEditCustomer = async (data: any) => {
-    if (!editingCustomer) return;
-
-    const result = await updateCustomerAction(editingCustomer.id, data);
-    if (result.success) {
-        toast({
-            title: "Customer Updated",
-            description: result.message,
-        });
-    } else {
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: result.message,
-        });
-    }
-    setEditingCustomer(null);
-  };
-  
-  const handleDeleteCustomer = async (customerId: string) => {
-    const result = await deleteCustomerAction(customerId);
-    if (result.success) {
-      toast({
-        title: "Customer Deleted",
-        description: result.message,
-      });
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: result.message,
-      });
-    }
-  };
 
   const filteredCustomers = customers.filter((customer) => {
     const query = searchQuery.toLowerCase();
@@ -317,21 +181,6 @@ export function CustomersClientPage({ customers: initialCustomers, orders, produ
             </div>
         </div>
       </PageHeader>
-
-        <Sheet open={isEditSheetOpen} onOpenChange={(isOpen) => {
-            setIsEditSheetOpen(isOpen);
-            if (!isOpen) setEditingCustomer(null);
-        }}>
-            <SheetContent>
-                <SheetHeader>
-                    <SheetTitle>Edit Customer</SheetTitle>
-                    <SheetDescription>
-                        Update the details for &quot;{editingCustomer?.name}&quot;.
-                    </SheetDescription>
-                </SheetHeader>
-                <CustomerForm onSave={handleEditCustomer} customer={editingCustomer} onSheetOpenChange={setIsEditSheetOpen} />
-            </SheetContent>
-        </Sheet>
         
       <Dialog onOpenChange={(isOpen) => !isOpen && setSelectedCustomer(null)}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -366,26 +215,6 @@ export function CustomersClientPage({ customers: initialCustomers, orders, produ
                            <DialogTrigger asChild>
                                 <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setSelectedCustomer(customer); }}>Details</DropdownMenuItem>
                            </DialogTrigger>
-                          <DropdownMenuItem onSelect={() => handleEditClick(customer)}>Edit</DropdownMenuItem>
-                           <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Delete</DropdownMenuItem>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete the customer &quot;{customer.name}&quot;.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteCustomer(customer.id)}>
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
                         </DropdownMenuContent>
                       </DropdownMenu>
                 </CardHeader>
@@ -397,7 +226,7 @@ export function CustomersClientPage({ customers: initialCustomers, orders, produ
               </Card>
           ))}
         </div>
-        {selectedCustomer && <CustomerDetailsDialog customer={selectedCustomer} orders={orders} products={products} />}
+        {selectedCustomer && <CustomerDetailsDialog customer={selectedCustomer} orders={orders} />}
       </Dialog>
     </>
   );
