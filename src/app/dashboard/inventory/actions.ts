@@ -38,10 +38,10 @@ const baseProductSchema = z.object({
 
 const refinement = (data: Partial<z.infer<typeof baseProductSchema>>) => {
     if (data.category === 'ethnicWear' && data.subCategory) {
-        return ["sarees", "kurtas & suits", "stitched suits", "unstitched material"].includes(data.subCategory);
+        return ["Sarees", "Kurtis & tops", "Cord-Set", "Readymade Suit", "Unstitched Material"].includes(data.subCategory);
     }
     if (data.category === 'bedsheet' && data.subCategory) {
-        return ["pure cotton", "cotton blend"].includes(data.subCategory);
+        return ["Pure Cotton", "Cotton Blend", "Fitted"].includes(data.subCategory);
     }
     return true;
 };
@@ -89,7 +89,7 @@ export async function addProductAction(prevState: any, formData: FormData) {
     mrp: formData.get('mrp'),
     quantity: formData.get('quantity'),
     onWebsite: formData.get('onWebsite') === 'on',
-    status: Number(formData.get('quantity')) > 0 ? "In Stock" : "Out of Stock",
+    status: Number(formData.get('quantity')) > 10 ? "In Stock" : (Number(formData.get('quantity')) > 0 ? "Low Stock" : "Out of Stock"),
     images: [],
     rating: 0, // default
     reviews: [], //default
@@ -223,7 +223,7 @@ export async function updateProductAction(productId: string, prevState: any, for
     }
 
     if (updateData.quantity !== undefined) {
-      updateData.status = Number(updateData.quantity) > 0 ? "In Stock" : "Out of Stock";
+      updateData.status = Number(updateData.quantity) > 10 ? "In Stock" : (Number(updateData.quantity) > 0 ? "Low Stock" : "Out of Stock");
     }
 
     try {

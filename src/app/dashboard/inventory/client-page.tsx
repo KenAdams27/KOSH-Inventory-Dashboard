@@ -102,10 +102,10 @@ const productSchema = z.object({
   reviews: z.array(reviewSchema).optional(),
 }).refine(data => {
     if (data.category === 'ethnicWear' && data.subCategory) {
-        return ["sarees", "kurtas & suits", "stitched suits", "unstitched material"].includes(data.subCategory);
+        return ["Sarees", "Kurtis & tops", "Cord-Set", "Readymade Suit", "Unstitched Material"].includes(data.subCategory);
     }
     if (data.category === 'bedsheet' && data.subCategory) {
-        return ["pure cotton", "cotton blend"].includes(data.subCategory);
+        return ["Pure Cotton", "Cotton Blend", "Fitted"].includes(data.subCategory);
     }
     return true;
 }, {
@@ -114,18 +114,19 @@ const productSchema = z.object({
 });
 
 const subCategoryOptions = {
-    ethnicWear: ["sarees", "kurtas & suits", "stitched suits", "unstitched material"],
-    bedsheet: ["pure cotton", "cotton blend"],
+    ethnicWear: ["Sarees", "Kurtis & tops", "Cord-Set", "Readymade Suit", "Unstitched Material"],
+    bedsheet: ["Pure Cotton", "Cotton Blend", "Fitted"],
 };
 
 
-function ProductForm({ product, onProductUpdate }: { product?: Product | null; onProductUpdate: (updatedProduct: Product) => void; }) {
+function ProductForm({ product, onProductUpdate, formKey: key }: { product?: Product | null; onProductUpdate: (updatedProduct: Product) => void; formKey?: number }) {
   const { toast } = useToast();
   const formRef = React.useRef<HTMLFormElement>(null);
   const isEditMode = !!product;
 
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
+    key: key?.toString(), // Use key to force re-render
     defaultValues: product ? {
       ...product,
       description: product.desc,
@@ -138,7 +139,7 @@ function ProductForm({ product, onProductUpdate }: { product?: Product | null; o
       brand: "KKOSH",
       description: "",
       category: "ethnicWear",
-      subCategory: "sarees",
+      subCategory: "Sarees",
       colors: "",
       sizes: "",
       price: 0,
@@ -632,6 +633,8 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
   
   const initialState: { success: boolean, message: string, errors: any } = { success: false, message: "", errors: null };
   const [state, formAction, isPending] = useActionState(addProductAction, initialState);
+  const [formKey, setFormKey] = useState(0);
+
 
   useEffect(() => {
     if (state.success) {
@@ -642,6 +645,7 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
       if (formRef.current) {
         formRef.current.reset();
       }
+      setFormKey(prevKey => prevKey + 1);
     } else if (state.message && !state.success) {
       toast({
         variant: "destructive",
@@ -678,6 +682,7 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
             <div className="p-6 pt-4">
               <ProductForm 
                 onProductUpdate={() => {}}
+                formKey={formKey}
               />
             </div>
           </ScrollArea>
