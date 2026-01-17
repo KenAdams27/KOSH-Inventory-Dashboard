@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import clientPromise from '@/lib/mongodb';
@@ -84,32 +85,6 @@ export async function POST(request: Request) {
 
     if (!result.insertedId) {
       throw new Error('Failed to insert order into database.');
-    }
-
-    // Now, send the email
-    const customer = await getCustomer(orderData.user);
-    if (customer && customer.email) {
-        const fullOrder : Order = {
-            ...orderData,
-            _id: result.insertedId.toHexString(),
-            id: result.insertedId.toString(),
-            createdAt: orderToInsert.createdAt.toISOString(),
-            status: 'placed',
-            orderItems: orderData.orderItems.map(i => ({...i, itemId: i.itemId.toString()})),
-        };
-
-        const emailResult = await sendOrderConfirmationEmail({
-            customerEmail: customer.email,
-            customerName: customer.name,
-            order: fullOrder,
-        });
-
-        if (emailResult.success) {
-            await db.collection('orders').updateOne(
-                { _id: result.insertedId },
-                { $addToSet: { notifiedStatuses: 'placed' } }
-            );
-        }
     }
 
     return NextResponse.json({ success: true, message: 'Order created successfully.', orderId: result.insertedId });

@@ -5,8 +5,8 @@ import { revalidatePath } from 'next/cache';
 import { ObjectId } from 'mongodb';
 import { z } from 'zod';
 import clientPromise from '@/lib/mongodb';
-import { sendOrderStatusUpdateEmail } from '@/lib/brevo';
-import type { Customer, OrderStatus } from '@/lib/types';
+import { sendOrderStatusUpdateEmail, sendOrderConfirmationEmail } from '@/lib/brevo';
+import type { Customer, Order, OrderStatus } from '@/lib/types';
 
 
 const updateOrderStatusSchema = z.object({
@@ -152,4 +152,80 @@ export async function deleteOrderAction(orderId: string) {
         const message = error instanceof Error ? error.message : 'An unknown error occurred.';
         return { success: false, message: `Database Error: ${message}` };
     }
+}
+
+export async function sendBulkConfirmationEmailsAction() {
+  try {
+    const db = await getDb();
+    const ordersToSend = await db.collection('orders').find({
+      status: 'placed',
+      $or: [
+        { notifiedStatuses: { $exists: false } },
+        { notifiedStatuses: { $ne: 'placed' } }
+      ]
+    }).toArray();
+
+    if (ordersToSend.length === 0) {
+      return { success: true, message: 'No pending confirmation emails to send.' };
+    }
+
+    let sentCount = 0;
+    let errorCount = 0;
+
+    for (const dbOrder of ordersToSend) {
+      const customer = await getCustomerForOrder(dbOrder.user.toString());
+      
+      if (customer && customer.email) {
+        const fullOrder: Order = {
+            _id: dbOrder._id.toHexString(),
+            id: dbOrder._id.toString(),
+            user: dbOrder.user.toString(),
+            orderItems: dbOrder.orderItems.map((item: any) => {
+                const { _id, item: itemId, ...rest } = item;
+                return { ...rest, itemId: itemId?.toString() };
+            }),
+            shippingAddress: dbOrder.shippingAddress,
+            paymentMethod: dbOrder.paymentMethod,
+            totalPrice: dbOrder.totalPrice,
+            isPaid: dbOrder.isPaid,
+            paidAt: dbOrder.paidAt,
+            status: dbOrder.status,
+            deliveredAt: dbOrder.deliveredAt,
+            createdAt: dbOrder.createdAt.toISOString(),
+            tracking_id: dbOrder.tracking_id,
+            notifiedStatuses: dbOrder.notifiedStatuses || [],
+        };
+
+        const emailResult = await sendOrderConfirmationEmail({
+          customerEmail: customer.email,
+          customerName: customer.name,
+          order: fullOrder,
+        });
+
+        if (emailResult.success) {
+          await db.collection('orders').updateOne(
+            { _id: dbOrder._id },
+            { $addToSet: { notifiedStatuses: 'placed' } }
+          );
+          sentCount++;
+        } else {
+          console.error(`Failed to send email for order ${dbOrder._id.toString()}`);
+          errorCount++;
+        }
+      } else {
+        console.error(`Could not find customer or email for order ${dbOrder._id.toString()}`);
+        errorCount++;
+      }
+    }
+    
+    if (sentCount > 0) {
+        revalidatePath('/dashboard/orders');
+    }
+    
+    return { success: true, message: `${sentCount} confirmation emails sent. ${errorCount} failed.` };
+
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred.';
+    return { success: false, message: `Database Error: ${message}` };
+  }
 }

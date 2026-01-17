@@ -2,14 +2,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MoreHorizontal, Search, Download, Pencil } from "lucide-react";
+import { MoreHorizontal, Search, Download, Pencil, Mail, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import jsPDF from 'jspdf';
 
 
 import type { Order, Product, OrderItem, OrderStatus } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { updateOrderStatusAction, deleteOrderAction } from "./actions";
+import { updateOrderStatusAction, deleteOrderAction, sendBulkConfirmationEmailsAction } from "./actions";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -485,6 +485,7 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     const [isTrackingDialogOpen, setIsTrackingDialogOpen] = useState(false);
     const [currentOrderForTracking, setCurrentOrderForTracking] = useState<Order | null>(null);
     const [trackingId, setTrackingId] = useState("");
+    const [isSendingConfirmations, setIsSendingConfirmations] = useState(false);
 
     const ordersPerPage = 10;
 
@@ -637,6 +638,24 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
             description: `Generated a PDF with ${placedOrders.length} shipping label(s).`,
         });
     };
+    
+    const handleSendConfirmations = async () => {
+        setIsSendingConfirmations(true);
+        const result = await sendBulkConfirmationEmailsAction();
+        setIsSendingConfirmations(false);
+        if (result.success) {
+            toast({
+                title: "Bulk Action Complete",
+                description: result.message,
+            });
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: result.message,
+            });
+        }
+    };
 
 
   return (
@@ -698,14 +717,18 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
                     <Input
                         type="search"
                         placeholder="Search by name or ID..."
-                        className="w-full rounded-lg bg-background pl-8 sm:w-64"
+                        className="w-full rounded-lg bg-background pl-8 sm:w-48"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
                 <Button variant="outline" size="sm" onClick={handleBulkDownload} className="w-full sm:w-auto">
                     <Download className="mr-2 h-4 w-4" />
-                    Download Labels for Placed
+                    Download Labels
+                </Button>
+                 <Button variant="outline" size="sm" onClick={handleSendConfirmations} disabled={isSendingConfirmations} className="w-full sm:w-auto">
+                    {isSendingConfirmations ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+                    Send Confirmations
                 </Button>
             </div>
           </div>
