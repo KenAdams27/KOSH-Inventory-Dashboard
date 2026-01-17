@@ -102,13 +102,19 @@ export async function sendOrderStatusUpdateEmail({
   sendSmtpEmail.sender = { name: BREVO_SENDER_NAME, email: BREVO_SENDER_EMAIL };
   
   let htmlContent = '';
+  const formatStatus = (status = "") =>
+    status
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  
+  const formattedStatus = formatStatus(newStatus);
   
   if (newStatus === 'dispatched' && trackingId) {
     htmlContent = `
     <html>
       <body>
         <h1>Hello ${customerName},</h1>
-        <p>Great news! Your KOSH order (${orderId.slice(-6)}) has been dispatched.</p>
+        <p>Great news! Your KOSH order (${orderId.slice(-6)}) has been Dispatched.</p>
         <p>You can track your package using this tracking ID/link: <strong>${trackingId}</strong></p>
         <p>Thank you for shopping with us!</p>
       </body>
@@ -120,7 +126,7 @@ export async function sendOrderStatusUpdateEmail({
       <body>
         <h1>Hello ${customerName},</h1>
         <p>There's an update on your KOSH order (${orderId.slice(-6)}).</p>
-        <p>The status has been updated to: <strong>${newStatus}</strong>.</p>
+        <p>The status has been updated to: <strong>${formattedStatus}</strong>.</p>
         <p>Thank you for shopping with us!</p>
       </body>
     </html>

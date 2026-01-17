@@ -45,6 +45,7 @@ async function getOrders(): Promise<Order[]> {
         user: user.toString(),
         status: status,
         tracking_id: order.tracking_id,
+        notifiedStatuses: order.notifiedStatuses || [],
         orderItems: orderItems.map((item: any) => {
           const { _id: item_id, ...restOfItem } = item;
           const plainItem: any = {

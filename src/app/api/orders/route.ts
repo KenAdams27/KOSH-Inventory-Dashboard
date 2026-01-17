@@ -3,7 +3,7 @@ import { z } from 'zod';
 import clientPromise from '@/lib/mongodb';
 import { sendOrderConfirmationEmail } from '@/lib/brevo';
 import { ObjectId } from 'mongodb';
-import type { Customer, Order } from '@/lib/types';
+import type { Customer, Order, OrderStatus } from '@/lib/types';
 
 // Define schema for incoming order data for validation
 const orderItemSchema = z.object({
@@ -77,6 +77,7 @@ export async function POST(request: Request) {
       })),
       status: 'placed' as const,
       createdAt: new Date(),
+      notifiedStatuses: [] as OrderStatus[],
     };
     
     const result = await db.collection('orders').insertOne(orderToInsert);
@@ -97,11 +98,18 @@ export async function POST(request: Request) {
             orderItems: orderData.orderItems.map(i => ({...i, itemId: i.itemId.toString()})),
         };
 
-        await sendOrderConfirmationEmail({
+        const emailResult = await sendOrderConfirmationEmail({
             customerEmail: customer.email,
             customerName: customer.name,
             order: fullOrder,
         });
+
+        if (emailResult.success) {
+            await db.collection('orders').updateOne(
+                { _id: result.insertedId },
+                { $addToSet: { notifiedStatuses: 'placed' } }
+            );
+        }
     }
 
     return NextResponse.json({ success: true, message: 'Order created successfully.', orderId: result.insertedId });

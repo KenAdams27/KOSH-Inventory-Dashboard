@@ -103,15 +103,22 @@ export async function updateOrderStatusAction(orderId: string, status: OrderStat
             if (order && order.user) {
                 const customer = await getCustomerForOrder(order.user.toString());
                 if (customer && customer.email) {
-                await sendOrderStatusUpdateEmail({
-                    customerEmail: customer.email,
-                    customerName: customer.name,
-                    orderId: orderId,
-                    newStatus: status,
-                    trackingId: trackingId,
-                });
+                    const emailResult = await sendOrderStatusUpdateEmail({
+                        customerEmail: customer.email,
+                        customerName: customer.name,
+                        orderId: orderId,
+                        newStatus: status,
+                        trackingId: trackingId,
+                    });
+                    
+                    if (emailResult.success) {
+                        await db.collection('orders').updateOne(
+                            { _id: new ObjectId(orderId) },
+                            { $addToSet: { notifiedStatuses: status } }
+                        );
+                    }
                 } else {
-                console.warn(`[updateOrderStatusAction] Could not find customer or customer email for user ID: ${order.user.toString()}`);
+                    console.warn(`[updateOrderStatusAction] Could not find customer or customer email for user ID: ${order.user.toString()}`);
                 }
             } else {
                 console.warn(`[updateOrderStatusAction] Could not find order to send email for order ID: ${orderId}`);

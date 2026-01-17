@@ -260,14 +260,34 @@ function OrdersTable({
   onStatusChange: (orderId: string, newStatus: OrderStatus, trackingId?: string, sendEmail?: boolean) => void,
   onDeleteOrder: (orderId: string) => void
 }) {
+  const { toast } = useToast();
   const [isTrackingDialogOpen, setIsTrackingDialogOpen] = useState(false);
   const [currentOrderForTracking, setCurrentOrderForTracking] = useState<Order | null>(null);
   const [trackingId, setTrackingId] = useState("");
   const [notifyCustomer, setNotifyCustomer] = useState(true);
   const [statusChangeConfirm, setStatusChangeConfirm] = useState<{ order: Order; status: OrderStatus } | null>(null);
+  const statusOptions: OrderStatus[] = ['placed', 'dispatched', 'delivered', 'Refund Initiated', 'Refund Complete'];
+  const statusDisplayNames: Record<OrderStatus, string> = {
+    'placed': 'Placed',
+    'dispatched': 'Dispatched',
+    'delivered': 'Delivered',
+    'Refund Initiated': 'Refund Initiated',
+    'Refund Complete': 'Refund Complete',
+  };
 
 
   const handleStatusClick = (order: Order, status: OrderStatus) => {
+    const hasBeenNotified = order.notifiedStatuses?.includes(status);
+    
+    if (hasBeenNotified) {
+      onStatusChange(order.id, status, undefined, false);
+      toast({
+        title: "Order Status Updated",
+        description: `Order status changed to "${status}". An email for this status was sent previously.`,
+      });
+      return;
+    }
+
     if (status === 'dispatched') {
       setCurrentOrderForTracking(order);
       setTrackingId(order.tracking_id || "");
@@ -404,11 +424,22 @@ function OrdersTable({
                         <DropdownMenuSub>
                            <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
                            <DropdownMenuSubContent>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleStatusClick(order, 'placed')}>Placed</DropdownMenuItem>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleStatusClick(order, 'dispatched')}>Dispatched</DropdownMenuItem>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleStatusClick(order, 'delivered')}>Delivered</DropdownMenuItem>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleStatusClick(order, 'Refund Initiated')}>Refund Initiated</DropdownMenuItem>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => handleStatusClick(order, 'Refund Complete')}>Refund Complete</DropdownMenuItem>
+                                {statusOptions.map((statusOption) => {
+                                  const hasBeenNotified = order.notifiedStatuses?.includes(statusOption);
+                                  return (
+                                    <DropdownMenuItem
+                                      key={statusOption}
+                                      onSelect={(e) => e.preventDefault()}
+                                      onClick={() => handleStatusClick(order, statusOption)}
+                                      className="justify-between"
+                                    >
+                                      <span>{statusDisplayNames[statusOption]}</span>
+                                      {hasBeenNotified && (
+                                        <span className="text-xs text-muted-foreground">Email Sent</span>
+                                      )}
+                                    </DropdownMenuItem>
+                                  );
+                                })}
                            </DropdownMenuSubContent>
                         </DropdownMenuSub>
                         <DropdownMenuSeparator />
@@ -473,9 +504,26 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     const handleStatusChange = async (orderId: string, newStatus: OrderStatus, trackingId?: string, sendEmail?: boolean) => {
       // Optimistically update the UI
       setOrders(prevOrders => 
-        prevOrders.map(order => 
-          order.id === orderId ? { ...order, status: newStatus, tracking_id: trackingId !== undefined ? trackingId : order.tracking_id, deliveredAt: newStatus === 'delivered' ? new Date().toISOString() : undefined } : order
-        )
+        prevOrders.map(order => {
+          if (order.id === orderId) {
+            const updatedOrder: Order = { 
+              ...order, 
+              status: newStatus, 
+              tracking_id: trackingId !== undefined ? trackingId : order.tracking_id, 
+              deliveredAt: newStatus === 'delivered' ? new Date().toISOString() : order.deliveredAt,
+            };
+
+            if (newStatus !== 'delivered' && 'deliveredAt' in updatedOrder) {
+              delete updatedOrder.deliveredAt;
+            }
+
+            if (sendEmail) {
+                updatedOrder.notifiedStatuses = Array.from(new Set([...(order.notifiedStatuses || []), newStatus]));
+            }
+            return updatedOrder;
+          }
+          return order;
+        })
       );
 
       const result = await updateOrderStatusAction(orderId, newStatus, trackingId, sendEmail);
