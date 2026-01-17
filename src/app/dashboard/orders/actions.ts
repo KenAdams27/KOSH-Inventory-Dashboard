@@ -5,6 +5,9 @@ import { revalidatePath } from 'next/cache';
 import { ObjectId } from 'mongodb';
 import { z } from 'zod';
 import clientPromise from '@/lib/mongodb';
+import { sendOrderStatusUpdateEmail } from '@/lib/brevo';
+import type { Customer } from '@/lib/types';
+
 
 const updateOrderStatusSchema = z.object({
   orderId: z.string().min(1, 'Order ID is required'),
@@ -24,7 +27,31 @@ async function getDb() {
     return client.db(dbName);
 }
 
-export async function updateOrderStatusAction(orderId: string, status: 'placed' | 'dispatched' | 'delivered' | 'Refund Initiated' | 'Refund Complete', trackingId?: string) {
+
+async function getCustomerForOrder(userId: string): Promise<Customer | null> {
+  try {
+    const db = await getDb();
+    const customer = await db.collection('users').findOne({ _id: new ObjectId(userId) });
+    if (!customer) return null;
+    
+    // Manually serialize the customer object
+    const { _id, password, ...rest } = customer;
+    const serializableCustomer: Customer = {
+      id: _id.toString(),
+      name: rest.name,
+      email: rest.email,
+      phone: rest.phone,
+    };
+    
+    return serializableCustomer;
+
+  } catch (error) {
+    console.error('[getCustomerForOrder] Error fetching customer:', error);
+    return null;
+  }
+}
+
+export async function updateOrderStatusAction(orderId: string, status: 'placed' | 'dispatched' | 'delivered' | 'Refund Initiated' | 'Refund Complete', trackingId?: string, sendEmail?: boolean) {
   const validation = updateOrderStatusSchema.safeParse({ orderId, status, trackingId });
   if (!validation.success) {
     return { success: false, message: 'Invalid data.', errors: validation.error.flatten().fieldErrors };
@@ -48,37 +75,51 @@ export async function updateOrderStatusAction(orderId: string, status: 'placed' 
       updatePayload.tracking_id = trackingId;
     } 
     
+    let result;
     if (status !== 'delivered') {
        // If moving away from delivered, unset deliveredAt
        // Using $unset to remove the field completely
-       const result = await db.collection('orders').updateOne(
+       result = await db.collection('orders').updateOne(
         { _id: new ObjectId(orderId) },
         { 
           $set: updatePayload,
           $unset: { deliveredAt: "" } 
         }
       );
-
-       if (result.modifiedCount > 0) {
-        revalidatePath('/dashboard/orders');
-        return { success: true, message: 'Order status updated successfully.' };
-      } else {
-        return { success: false, message: 'Failed to update order status or no changes were made.' };
-      }
-
     } else {
-       const result = await db.collection('orders').updateOne(
+       result = await db.collection('orders').updateOne(
         { _id: new ObjectId(orderId) },
         { 
           $set: updatePayload
         }
       );
-      if (result.modifiedCount > 0) {
+    }
+    
+    if (result.modifiedCount > 0) {
         revalidatePath('/dashboard/orders');
+
+        if (sendEmail) {
+            const order = await db.collection('orders').findOne({ _id: new ObjectId(orderId) });
+            if (order && order.user) {
+                const customer = await getCustomerForOrder(order.user.toString());
+                if (customer && customer.email) {
+                await sendOrderStatusUpdateEmail({
+                    customerEmail: customer.email,
+                    customerName: customer.name,
+                    orderId: orderId,
+                    newStatus: status,
+                });
+                } else {
+                console.warn(`[updateOrderStatusAction] Could not find customer or customer email for user ID: ${order.user.toString()}`);
+                }
+            } else {
+                console.warn(`[updateOrderStatusAction] Could not find order to send email for order ID: ${orderId}`);
+            }
+        }
+        
         return { success: true, message: 'Order status updated successfully.' };
-      } else {
+    } else {
         return { success: false, message: 'Failed to update order status or no changes were made.' };
-      }
     }
 
 

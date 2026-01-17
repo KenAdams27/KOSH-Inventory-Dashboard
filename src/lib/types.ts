@@ -49,6 +49,8 @@ export type ShippingAddress = {
   country: string;
 };
 
+export type OrderStatus = 'placed' | 'dispatched' | 'delivered' | 'Refund Initiated' | 'Refund Complete';
+
 export type Order = {
   _id: string; // Raw MongoDB ID
   id: string;
@@ -59,7 +61,7 @@ export type Order = {
   totalPrice: number;
   isPaid: boolean;
   paidAt?: string; // ISO date string
-  status: 'placed' | 'dispatched' | 'delivered' | 'Refund Initiated' | 'Refund Complete';
+  status: OrderStatus;
   deliveredAt?: string; // ISO date string
   createdAt: string; // ISO date string from timestamps
   tracking_id?: string;

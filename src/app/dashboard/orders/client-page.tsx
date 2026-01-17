@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import jsPDF from 'jspdf';
 
 
-import type { Order, Product, OrderItem } from "@/lib/types";
+import type { Order, Product, OrderItem, OrderStatus } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { updateOrderStatusAction, deleteOrderAction } from "./actions";
 
@@ -69,8 +69,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
-
-type OrderStatus = "placed" | "dispatched" | "delivered" | "Refund Initiated" | "Refund Complete";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 const statusStyles: Record<OrderStatus, string> = {
@@ -258,26 +257,36 @@ function OrdersTable({
   orders: Order[],
   products: Product[],
   onViewDetails: (order: Order) => void,
-  onStatusChange: (orderId: string, newStatus: OrderStatus, trackingId?: string) => void,
+  onStatusChange: (orderId: string, newStatus: OrderStatus, trackingId?: string, sendEmail?: boolean) => void,
   onDeleteOrder: (orderId: string) => void
 }) {
   const [isTrackingDialogOpen, setIsTrackingDialogOpen] = useState(false);
   const [currentOrderForTracking, setCurrentOrderForTracking] = useState<Order | null>(null);
   const [trackingId, setTrackingId] = useState("");
+  const [notifyCustomer, setNotifyCustomer] = useState(true);
+  const [statusChangeConfirm, setStatusChangeConfirm] = useState<{ order: Order; status: OrderStatus } | null>(null);
+
 
   const handleStatusClick = (order: Order, status: OrderStatus) => {
     if (status === 'dispatched') {
       setCurrentOrderForTracking(order);
       setTrackingId(order.tracking_id || "");
+      setNotifyCustomer(true);
       setIsTrackingDialogOpen(true);
     } else {
-      onStatusChange(order.id, status);
+      setStatusChangeConfirm({ order, status });
     }
+  };
+  
+  const handleConfirmStatusUpdate = (sendEmail: boolean) => {
+    if (!statusChangeConfirm) return;
+    onStatusChange(statusChangeConfirm.order.id, statusChangeConfirm.status, undefined, sendEmail);
+    setStatusChangeConfirm(null);
   };
 
   const handleSaveTrackingId = () => {
     if (currentOrderForTracking) {
-      onStatusChange(currentOrderForTracking.id, 'dispatched', trackingId);
+      onStatusChange(currentOrderForTracking.id, 'dispatched', trackingId, notifyCustomer);
       setIsTrackingDialogOpen(false);
       setCurrentOrderForTracking(null);
       setTrackingId("");
@@ -290,7 +299,7 @@ function OrdersTable({
       <Dialog open={isTrackingDialogOpen} onOpenChange={setIsTrackingDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Tracking ID</DialogTitle>
+            <DialogTitle>Dispatch Order</DialogTitle>
             <DialogDescription>
               Enter the tracking ID for order #{currentOrderForTracking?.id.slice(-6)}.
             </DialogDescription>
@@ -308,13 +317,36 @@ function OrdersTable({
                 placeholder="Enter tracking ID"
               />
             </div>
+            <div className="col-span-4 flex items-center justify-end space-x-2">
+                <Checkbox id="notify" checked={notifyCustomer} onCheckedChange={(checked) => setNotifyCustomer(!!checked)} />
+                <Label htmlFor="notify" className="cursor-pointer">Notify customer via email</Label>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsTrackingDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveTrackingId}>Save</Button>
+            <Button onClick={handleSaveTrackingId}>Confirm Dispatch</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+       <AlertDialog open={!!statusChangeConfirm} onOpenChange={() => setStatusChangeConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Update Order Status</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to change the status for order #{statusChangeConfirm?.order.id.slice(-6)} to &quot;{statusChangeConfirm?.status}&quot;.
+              <br/><br/>
+              Do you want to send a notification email to the customer?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button variant="outline" onClick={() => handleConfirmStatusUpdate(false)}>Update Only</Button>
+            <AlertDialogAction onClick={() => handleConfirmStatusUpdate(true)}>Update & Notify</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <CardContent className="p-0">
         <Table>
           <TableHeader>
@@ -438,7 +470,7 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
         setIsDetailsOpen(true);
     };
 
-    const handleStatusChange = async (orderId: string, newStatus: OrderStatus, trackingId?: string) => {
+    const handleStatusChange = async (orderId: string, newStatus: OrderStatus, trackingId?: string, sendEmail?: boolean) => {
       // Optimistically update the UI
       setOrders(prevOrders => 
         prevOrders.map(order => 
@@ -446,7 +478,7 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
         )
       );
 
-      const result = await updateOrderStatusAction(orderId, newStatus, trackingId);
+      const result = await updateOrderStatusAction(orderId, newStatus, trackingId, sendEmail);
 
       if (result.success) {
         toast({
@@ -489,7 +521,7 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     const handleSaveTrackingId = () => {
         if (currentOrderForTracking) {
             // Here we update status to dispatched, but we could also just update the ID
-            handleStatusChange(currentOrderForTracking.id, currentOrderForTracking.status, trackingId);
+            handleStatusChange(currentOrderForTracking.id, currentOrderForTracking.status, trackingId, true);
             setIsTrackingDialogOpen(false);
             setCurrentOrderForTracking(null);
             setTrackingId("");
