@@ -6,7 +6,7 @@ import { ObjectId } from 'mongodb';
 import { z } from 'zod';
 import clientPromise from '@/lib/mongodb';
 import { sendOrderStatusUpdateEmail } from '@/lib/brevo';
-import type { Customer } from '@/lib/types';
+import type { Customer, OrderStatus } from '@/lib/types';
 
 
 const updateOrderStatusSchema = z.object({
@@ -51,7 +51,7 @@ async function getCustomerForOrder(userId: string): Promise<Customer | null> {
   }
 }
 
-export async function updateOrderStatusAction(orderId: string, status: 'placed' | 'dispatched' | 'delivered' | 'Refund Initiated' | 'Refund Complete', trackingId?: string, sendEmail?: boolean) {
+export async function updateOrderStatusAction(orderId: string, status: OrderStatus, trackingId?: string, sendEmail?: boolean) {
   const validation = updateOrderStatusSchema.safeParse({ orderId, status, trackingId });
   if (!validation.success) {
     return { success: false, message: 'Invalid data.', errors: validation.error.flatten().fieldErrors };
@@ -108,6 +108,7 @@ export async function updateOrderStatusAction(orderId: string, status: 'placed' 
                     customerName: customer.name,
                     orderId: orderId,
                     newStatus: status,
+                    trackingId: trackingId,
                 });
                 } else {
                 console.warn(`[updateOrderStatusAction] Could not find customer or customer email for user ID: ${order.user.toString()}`);
