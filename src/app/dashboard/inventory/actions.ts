@@ -119,15 +119,32 @@ export async function addProductAction(prevState: any, formData: FormData) {
     }
     
     // 2. Insert product into database with image URLs
-    const result = await db.collection('items').insertOne({ 
+    const newProductDocument = { 
       ...validation.data, 
       images: imageUrls,
       desc: validation.data.description,
-    });
+    };
+    const result = await db.collection('items').insertOne(newProductDocument);
     
     if (result.acknowledged) {
       revalidatePath('/dashboard/inventory');
-      return { success: true, message: 'Product added successfully.' };
+      
+      const newProduct: Omit<Product, 'id'> & { _id: ObjectId } = {
+        _id: result.insertedId,
+        ...newProductDocument,
+        // Ensure all fields from Product type are here
+        rating: newProductDocument.rating || 0,
+        reviews: newProductDocument.reviews || [],
+      };
+
+      const serializableProduct = JSON.parse(JSON.stringify({
+          ...newProduct,
+          id: newProduct._id.toString(),
+      }));
+      delete serializableProduct._id;
+
+
+      return { success: true, message: 'Product added successfully.', product: serializableProduct };
     } else {
       return { success: false, message: 'Failed to add product.' };
     }

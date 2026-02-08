@@ -703,29 +703,32 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
   const [state, formAction, isPending] = useActionState(addProductAction, initialState);
   const [formKey, setFormKey] = useState(0);
 
-
+  const wasPending = React.useRef(isPending);
   useEffect(() => {
-    if (state.success) {
-      toast({
-        title: "Product Created",
-        description: state.message,
-      });
-      if (state.product) {
-          onProductAdded(state.product);
-      }
-      if (formRef.current) {
-        formRef.current.reset();
-      }
-      setFormKey(prevKey => prevKey + 1);
-      setIsAddSheetOpen(false);
-    } else if (state.message && !state.success) {
-      toast({
-        variant: "destructive",
-        title: "Error adding product",
-        description: state.message,
-      });
+    if (wasPending.current && !isPending) {
+        if (state.success) {
+          toast({
+            title: "Product Created",
+            description: state.message,
+          });
+          if (state.product) {
+              onProductAdded(state.product);
+          }
+          if (formRef.current) {
+            formRef.current.reset();
+          }
+          setFormKey(prevKey => prevKey + 1);
+          setIsAddSheetOpen(false);
+        } else if (state.message && !state.success) {
+          toast({
+            variant: "destructive",
+            title: "Error adding product",
+            description: state.message,
+          });
+        }
     }
-  }, [state, toast, onProductAdded]);
+    wasPending.current = isPending;
+  }, [isPending, state, toast, onProductAdded]);
 
   const handleOpenChange = (isOpen: boolean) => {
     setIsAddSheetOpen(isOpen);
