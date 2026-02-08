@@ -190,7 +190,11 @@ function ProductForm({ product, onProductUpdate, formKey: key }: { product?: Pro
         useWebWorker: true,
       };
       try {
-        const compressedFile = await imageCompression(file, options);
+        const compressedFileAsBlob = await imageCompression(file, options);
+        const compressedFile = new File([compressedFileAsBlob], file.name, {
+            type: compressedFileAsBlob.type,
+            lastModified: Date.now(),
+        });
 
         const newImageFiles = [...imageFiles];
         newImageFiles[index] = compressedFile;
@@ -373,7 +377,7 @@ function ProductForm({ product, onProductUpdate, formKey: key }: { product?: Pro
                 </div>
                 {!isEditMode && (
                     <div className="space-y-2 pt-1">
-                        <p className="text-sm text-muted-foreground">Total combined size of all images shouldnt exceed 1mb</p>
+                        <p className="text-sm text-muted-foreground">Combined size should not exceed 1MB</p>
                         <Progress value={(totalImageSize / MAX_TOTAL_SIZE) * 100} className="h-2" />
                         <p className="text-xs text-muted-foreground text-right">
                             {(totalImageSize / 1024).toFixed(2)} KB / 1024 KB
@@ -695,7 +699,7 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   
-  const initialState: { success: boolean, message: string, errors: any } = { success: false, message: "", errors: null };
+  const initialState: { success: boolean, message: string, errors: any, product?: Product } = { success: false, message: "", errors: null };
   const [state, formAction, isPending] = useActionState(addProductAction, initialState);
   const [formKey, setFormKey] = useState(0);
 
@@ -706,10 +710,14 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
         title: "Product Created",
         description: state.message,
       });
+      if (state.product) {
+          onProductAdded(state.product);
+      }
       if (formRef.current) {
         formRef.current.reset();
       }
       setFormKey(prevKey => prevKey + 1);
+      setIsAddSheetOpen(false);
     } else if (state.message && !state.success) {
       toast({
         variant: "destructive",
@@ -717,7 +725,7 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
         description: state.message,
       });
     }
-  }, [state, toast]);
+  }, [state, toast, onProductAdded]);
 
   const handleOpenChange = (isOpen: boolean) => {
     setIsAddSheetOpen(isOpen);
@@ -729,10 +737,10 @@ function AddProductSheet({ children, onProductAdded }: { children: React.ReactNo
       <SheetContent 
         className="sm:max-w-xl w-full flex flex-col"
         onInteractOutside={(e) => {
-           e.preventDefault();
+           if (isPending) e.preventDefault();
         }}
         onEscapeKeyDown={(e) => {
-          e.preventDefault();
+          if (isPending) e.preventDefault();
         }}
       >
         <SheetHeader>
@@ -894,11 +902,15 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   };
 
   const handleProductAdded = (newProduct: Product) => {
-    setProducts(prev => [newProduct, ...prev]);
-    // Re-sort if necessary
-    if (sortOption === "name") {
-        setProducts(prev => [...prev].sort((a, b) => a.name.localeCompare(b.name)));
-    }
+    startTransition(() => {
+        setProducts(prev => [newProduct, ...prev]);
+        // Re-sort if necessary
+        if (sortOption === "name") {
+            setProducts(prev => [...prev].sort((a, b) => a.name.localeCompare(b.name)));
+        } else if (sortOption === "latest") {
+            setProducts(prev => [...prev].sort((a,b) => b.id.localeCompare(a.id)));
+        }
+    });
   }
 
   const sortedAndFilteredProducts = useMemo(() => {
@@ -943,7 +955,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
   return (
     <>
       <PageHeader title="Inventory" description="Manage your products and stock levels.">
-        <AddProductSheet onProductAdded={() => {}}>
+        <AddProductSheet onProductAdded={handleProductAdded}>
           <Button size="sm" className="gap-1">
             <PlusCircle className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
