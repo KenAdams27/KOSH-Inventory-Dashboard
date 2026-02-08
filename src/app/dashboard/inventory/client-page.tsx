@@ -76,6 +76,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Progress } from "@/components/ui/progress";
 
 const reviewSchema = z.object({
     name: z.string(),
@@ -155,6 +156,8 @@ function ProductForm({ product, onProductUpdate, formKey: key }: { product?: Pro
   const [imagePreviews, setImagePreviews] = useState<(string | null)[]>([]);
   const [imageFiles, setImageFiles] = useState<(File | null)[]>(Array(4).fill(null));
   const [uploading, setUploading] = useState<boolean[]>(Array(4).fill(false));
+  const [totalImageSize, setTotalImageSize] = useState(0);
+  const MAX_TOTAL_SIZE = 1024 * 1024; // 1MB
 
   useEffect(() => {
     const existingImages = product?.images || [];
@@ -163,6 +166,8 @@ function ProductForm({ product, onProductUpdate, formKey: key }: { product?: Pro
       previews.push(null);
     }
     setImagePreviews(previews);
+    setImageFiles(Array(4).fill(null));
+    setTotalImageSize(0);
   }, [product]);
 
   useEffect(() => {
@@ -171,6 +176,11 @@ function ProductForm({ product, onProductUpdate, formKey: key }: { product?: Pro
     }
   }, [selectedCategory, form]);
   
+  const updateTotalSize = (files: (File | null)[]) => {
+      const total = files.reduce((acc, file) => acc + (file ? file.size : 0), 0);
+      setTotalImageSize(total);
+  };
+
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -182,13 +192,29 @@ function ProductForm({ product, onProductUpdate, formKey: key }: { product?: Pro
       try {
         const compressedFile = await imageCompression(file, options);
 
-        // Update file in state
         const newImageFiles = [...imageFiles];
         newImageFiles[index] = compressedFile;
-        setImageFiles(newImageFiles);
+        
+        const currentTotal = newImageFiles.reduce((acc, f) => acc + (f ? f.size : 0), 0);
+        
+        if (currentTotal > MAX_TOTAL_SIZE && !isEditMode) {
+          toast({
+            variant: "destructive",
+            title: "Image Size Limit Exceeded",
+            description: "Total combined image size cannot exceed 1MB.",
+          });
+          return;
+        }
 
-        // Update preview
+        setImageFiles(newImageFiles);
+        if (!isEditMode) {
+            updateTotalSize(newImageFiles);
+        }
+
         const newPreviews = [...imagePreviews];
+        if (newPreviews[index]?.startsWith("blob:")) {
+            URL.revokeObjectURL(newPreviews[index]!);
+        }
         newPreviews[index] = URL.createObjectURL(compressedFile);
         setImagePreviews(newPreviews);
         
@@ -198,6 +224,24 @@ function ProductForm({ product, onProductUpdate, formKey: key }: { product?: Pro
       }
     }
   };
+  
+  const handleRemoveImage = (index: number) => {
+      const newImageFiles = [...imageFiles];
+      newImageFiles[index] = null;
+      setImageFiles(newImageFiles);
+
+      const newPreviews = [...imagePreviews];
+      if (newPreviews[index]?.startsWith("blob:")) {
+          URL.revokeObjectURL(newPreviews[index]!);
+      }
+      newPreviews[index] = null;
+      setImagePreviews(newPreviews);
+      
+      if (!isEditMode) {
+          updateTotalSize(newImageFiles);
+      }
+  };
+
 
   const handleImageUpload = async (index: number) => {
     const file = imageFiles[index];
@@ -327,18 +371,38 @@ function ProductForm({ product, onProductUpdate, formKey: key }: { product?: Pro
                         </Button>
                     )}
                 </div>
+                {!isEditMode && (
+                    <div className="space-y-2 pt-1">
+                        <p className="text-sm text-muted-foreground">Total combined size of all images shouldnt exceed 1mb</p>
+                        <Progress value={(totalImageSize / MAX_TOTAL_SIZE) * 100} className="h-2" />
+                        <p className="text-xs text-muted-foreground text-right">
+                            {(totalImageSize / 1024).toFixed(2)} KB / 1024 KB
+                        </p>
+                    </div>
+                )}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[...Array(4)].map((_, index) => (
                     <div key={index} className="space-y-2">
                         <div className="relative aspect-square border-2 border-dashed rounded-md flex items-center justify-center">
                             {imagePreviews[index] ? (
-                                <Image
-                                    src={imagePreviews[index]!}
-                                    alt={`Preview ${index + 1}`}
-                                    layout="fill"
-                                    objectFit="cover"
-                                    className="rounded-md"
-                                />
+                                <>
+                                    <Image
+                                        src={imagePreviews[index]!}
+                                        alt={`Preview ${index + 1}`}
+                                        layout="fill"
+                                        objectFit="cover"
+                                        className="rounded-md"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="destructive"
+                                      size="icon"
+                                      className="absolute top-1 right-1 h-6 w-6 z-10"
+                                      onClick={() => handleRemoveImage(index)}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                </>
                             ) : (
                                 <Label htmlFor={`image-upload-${index}`} className="cursor-pointer flex flex-col items-center gap-1 text-center">
                                 <ImageIcon className="h-6 w-6 text-muted-foreground" />
@@ -1056,5 +1120,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
+
+    
 
     
