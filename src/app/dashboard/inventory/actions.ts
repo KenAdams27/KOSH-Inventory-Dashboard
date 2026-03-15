@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { ObjectId } from 'mongodb';
 import clientPromise from '@/lib/mongodb';
-import type { Product } from '@/lib/types';
+import type { Product, ProductVariant } from '@/lib/types';
 import { uploadImageToDrive } from '@/lib/google-drive';
 
 const reviewSchema = z.object({
@@ -15,6 +15,14 @@ const reviewSchema = z.object({
     review: z.string(),
     image: z.string().optional(),
     createdAt: z.string().datetime(),
+});
+
+const variantSchema = z.object({
+    size: z.string().min(1, "Size is required"),
+    price: z.coerce.number().min(0, "Price must be a positive number"),
+    mrp: z.coerce.number().min(0, "MRP must be a positive number").optional(),
+    quantity: z.coerce.number().int().min(0, "Quantity must be a positive integer"),
+    sku: z.string().min(1, "SKU is required"),
 });
 
 const baseProductSchema = z.object({
@@ -34,6 +42,8 @@ const baseProductSchema = z.object({
   images: z.array(z.string()).optional(),
   reviews: z.array(reviewSchema).optional(),
   status: z.enum(["In Stock", "Out of Stock", "Low Stock"]),
+  hasVariants: z.boolean().default(false),
+  variants: z.array(variantSchema).optional(),
 });
 
 const refinement = (data: Partial<z.infer<typeof baseProductSchema>>) => {
@@ -76,6 +86,16 @@ const getFileBuffer = async (file: File) => {
 
 
 export async function addProductAction(prevState: any, formData: FormData) {
+  const variantsJson = formData.get('variantsData') as string;
+  let parsedVariants: ProductVariant[] | undefined = undefined;
+  if (variantsJson) {
+      try {
+          parsedVariants = JSON.parse(variantsJson);
+      } catch (e) {
+          console.error("Failed to parse variants JSON", e);
+      }
+  }
+
   const rawData = {
     sku: formData.get('sku'),
     name: formData.get('name'),
@@ -89,6 +109,8 @@ export async function addProductAction(prevState: any, formData: FormData) {
     mrp: formData.get('mrp'),
     quantity: formData.get('quantity'),
     onWebsite: formData.get('onWebsite') === 'on',
+    hasVariants: formData.get('hasVariants') === 'on',
+    variants: parsedVariants,
     status: Number(formData.get('quantity')) > 10 ? "In Stock" : (Number(formData.get('quantity')) > 0 ? "Low Stock" : "Out of Stock"),
     images: [],
     rating: 0, // default
@@ -198,6 +220,15 @@ export async function uploadProductImageAction(productId: string, formData: Form
 
 
 export async function updateProductAction(productId: string, prevState: any, formData: FormData) {
+    const variantsJson = formData.get('variantsData') as string;
+    let parsedVariants: ProductVariant[] | undefined = undefined;
+    if (variantsJson) {
+        try {
+            parsedVariants = JSON.parse(variantsJson);
+        } catch (e) {
+            console.error("Failed to parse variants JSON", e);
+        }
+    }
     
     const db = await getDb();
     const existingProduct = await db.collection('items').findOne({ _id: new ObjectId(productId) });
@@ -219,6 +250,8 @@ export async function updateProductAction(productId: string, prevState: any, for
       mrp: formData.get('mrp'),
       quantity: formData.get('quantity'),
       onWebsite: formData.get('onWebsite') === 'on',
+      hasVariants: formData.get('hasVariants') === 'on',
+      variants: parsedVariants,
     };
     
     const validation = updateProductSchema.safeParse(rawData);
@@ -326,6 +359,3 @@ export async function removeAllProductImagesAction(productId: string) {
         return { success: false, message: `Database Error: ${message}` };
     }
 }
-    
-
-    

@@ -1,5 +1,4 @@
 
-
 export type Review = {
   date: string | number | Date;
   name: string;
@@ -8,6 +7,14 @@ export type Review = {
   review: string;
   image?: string; // Base64 image
   createdAt: string; // ISO date string
+};
+
+export type ProductVariant = {
+  size: string;
+  price: number;
+  mrp?: number;
+  quantity: number;
+  sku: string;
 };
 
 export type Product = {
@@ -28,6 +35,8 @@ export type Product = {
   quantity: number;
   status: "In Stock" | "Out of Stock" | "Low Stock";
   onWebsite: boolean;
+  hasVariants?: boolean;
+  variants?: ProductVariant[];
 };
 
 export type OrderItem = {

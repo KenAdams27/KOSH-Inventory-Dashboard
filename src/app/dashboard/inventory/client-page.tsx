@@ -4,12 +4,12 @@
 import * as React from "react";
 import { useState, useEffect, useActionState, useMemo, startTransition, useRef } from "react";
 import Image from "next/image";
-import { MoreHorizontal, PlusCircle, Search, ImageIcon, X, Star, Loader2, Upload } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Search, ImageIcon, X, Star, Loader2, Upload, Trash2, Plus } from "lucide-react";
 import { z } from "zod";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
-import type { Product, Review } from "@/lib/types";
+import type { Product, Review, ProductVariant } from "@/lib/types";
 import imageCompression from 'browser-image-compression';
 
 
@@ -70,7 +70,6 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -87,6 +86,14 @@ const reviewSchema = z.object({
     createdAt: z.string().datetime(),
 });
 
+const variantSchema = z.object({
+    size: z.string().min(1, "Size is required"),
+    price: z.coerce.number().min(0, "Price must be a positive number"),
+    mrp: z.coerce.number().min(0, "MRP must be a positive number").optional(),
+    quantity: z.coerce.number().int().min(0, "Quantity must be a positive integer"),
+    sku: z.string().min(1, "SKU is required"),
+});
+
 const productSchema = z.object({
   sku: z.string().min(1, "SKU is required"),
   name: z.string().min(1, "Name is required"),
@@ -100,6 +107,8 @@ const productSchema = z.object({
   mrp: z.coerce.number().min(0, "MRP must be a positive number").optional(),
   quantity: z.coerce.number().int().min(0, "Quantity must be a positive integer"),
   onWebsite: z.boolean().default(true),
+  hasVariants: z.boolean().default(false),
+  variants: z.array(variantSchema).optional(),
   reviews: z.array(reviewSchema).optional(),
 }).refine(data => {
     if (data.category === 'ethnicWear' && data.subCategory) {
@@ -122,7 +131,6 @@ const subCategoryOptions = {
 
 function ProductForm({ product, onProductUpdate, formKey: key }: { product?: Product | null; onProductUpdate: (updatedProduct: Product) => void; formKey?: number }) {
   const { toast } = useToast();
-  const formRef = React.useRef<HTMLFormElement>(null);
   const isEditMode = !!product;
 
   const form = useForm<z.infer<typeof productSchema>>({
@@ -134,6 +142,8 @@ function ProductForm({ product, onProductUpdate, formKey: key }: { product?: Pro
       colors: product.colors?.join(', ') || '',
       sizes: product.sizes?.join(', ') || '',
       onWebsite: product.onWebsite,
+      hasVariants: product.hasVariants || false,
+      variants: product.variants || [],
     } : {
       sku: "",
       name: "",
@@ -147,10 +157,19 @@ function ProductForm({ product, onProductUpdate, formKey: key }: { product?: Pro
       mrp: 0,
       quantity: 0,
       onWebsite: true,
+      hasVariants: false,
+      variants: [],
     },
   });
 
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "variants",
+  });
+
   const selectedCategory = form.watch("category");
+  const hasVariants = form.watch("hasVariants");
+  const variants = form.watch("variants") || [];
 
   // Local state for image previews and files
   const [imagePreviews, setImagePreviews] = useState<(string | null)[]>([]);
@@ -175,6 +194,16 @@ function ProductForm({ product, onProductUpdate, formKey: key }: { product?: Pro
         form.setValue("subCategory", subCategoryOptions[selectedCategory][0]);
     }
   }, [selectedCategory, form]);
+
+  // If variants are enabled, update top-level price and quantity
+  useEffect(() => {
+    if (hasVariants && variants.length > 0) {
+        const totalQty = variants.reduce((sum, v) => sum + (v.quantity || 0), 0);
+        const minPrice = Math.min(...variants.map(v => v.price || 0));
+        form.setValue("quantity", totalQty);
+        form.setValue("price", minPrice);
+    }
+  }, [hasVariants, variants, form]);
   
   const updateTotalSize = (files: (File | null)[]) => {
       const total = files.reduce((acc, file) => acc + (file ? file.size : 0), 0);
@@ -303,7 +332,7 @@ function ProductForm({ product, onProductUpdate, formKey: key }: { product?: Pro
         <div className="grid gap-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                <Label htmlFor="sku">SKU</Label>
+                <Label htmlFor="sku">Parent SKU</Label>
                 <Input id="sku" {...form.register("sku")} name="sku" />
                 {form.formState.errors.sku && <p className="text-sm text-destructive">{form.formState.errors.sku.message as string}</p>}
                 </div>
@@ -450,32 +479,100 @@ function ProductForm({ product, onProductUpdate, formKey: key }: { product?: Pro
                 {form.formState.errors.colors && <p className="text-sm text-destructive">{form.formState.errors.colors.message as string}</p>}
                 </div>
                 <div className="space-y-2">
-                <Label htmlFor="sizes">Sizes</Label>
+                <Label htmlFor="sizes">Available Sizes (Comma separated)</Label>
                 <Input id="sizes" placeholder="e.g. S, M, L" {...form.register("sizes")} name="sizes" />
                 {form.formState.errors.sizes && <p className="text-sm text-destructive">{form.formState.errors.sizes.message as string}</p>}
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                <Label htmlFor="price">Price (₹)</Label>
-                <Input id="price" type="number" step="0.01" {...form.register("price")} name="price" />
-                {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message as string}</p>}
+            <Separator />
+
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                        <Label>Size-based Pricing & Stock</Label>
+                        <p className="text-sm text-muted-foreground">Enable to set different prices and quantity for each size.</p>
+                    </div>
+                    <Controller
+                        control={form.control}
+                        name="hasVariants"
+                        render={({ field }) => (
+                            <>
+                                <input type="hidden" name="hasVariants" value={field.value ? "on" : "off"} />
+                                <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                            </>
+                        )}
+                    />
                 </div>
-                <div className="space-y-2">
-                <Label htmlFor="mrp">MRP (₹)</Label>
-                <Input id="mrp" type="number" step="0.01" {...form.register("mrp")} name="mrp" />
-                {form.formState.errors.mrp && <p className="text-sm text-destructive">{form.formState.errors.mrp.message as string}</p>}
-                </div>
+
+                {hasVariants && (
+                    <div className="space-y-4 border p-4 rounded-lg bg-muted/50">
+                        <div className="grid grid-cols-[1fr_2fr_1.5fr_1.5fr_1fr_40px] gap-2 items-center text-xs font-semibold px-2">
+                            <span>Size</span>
+                            <span>SKU</span>
+                            <span>Price (₹)</span>
+                            <span>MRP (₹)</span>
+                            <span>Qty</span>
+                            <span></span>
+                        </div>
+                        {fields.map((field, index) => (
+                            <div key={field.id} className="grid grid-cols-[1fr_2fr_1.5fr_1.5fr_1fr_40px] gap-2 items-start">
+                                <Input size={1} {...form.register(`variants.${index}.size` as const)} placeholder="Size" />
+                                <Input size={1} {...form.register(`variants.${index}.sku` as const)} placeholder="SKU" />
+                                <Input size={1} type="number" {...form.register(`variants.${index}.price` as const)} placeholder="Price" />
+                                <Input size={1} type="number" {...form.register(`variants.${index}.mrp` as const)} placeholder="MRP" />
+                                <Input size={1} type="number" {...form.register(`variants.${index}.quantity` as const)} placeholder="Qty" />
+                                <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="h-10 w-10 text-destructive">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        ))}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => append({ size: "", sku: "", price: 0, mrp: 0, quantity: 0 })}
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Variant
+                        </Button>
+                        <input type="hidden" name="variantsData" value={JSON.stringify(variants)} />
+                    </div>
+                )}
+
+                {!hasVariants && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="price">Base Price (₹)</Label>
+                            <Input id="price" type="number" step="0.01" {...form.register("price")} name="price" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="mrp">Base MRP (₹)</Label>
+                            <Input id="mrp" type="number" step="0.01" {...form.register("mrp")} name="mrp" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="quantity">Total Quantity</Label>
+                            <Input id="quantity" type="number" {...form.register("quantity")} name="quantity" />
+                        </div>
+                    </div>
+                )}
+                
+                {hasVariants && variants.length > 0 && (
+                    <div className="flex gap-4 text-sm font-medium p-2 bg-primary/10 rounded border border-primary/20">
+                         <div>Total Quantity: <span className="font-bold">{variants.reduce((sum, v) => sum + (Number(v.quantity) || 0), 0)}</span></div>
+                         <div>Starting Price: <span className="font-bold">₹{Math.min(...variants.map(v => Number(v.price) || 0)).toFixed(2)}</span></div>
+                         {/* These hidden inputs ensure the top-level values are still sent even if derived */}
+                         <input type="hidden" name="quantity" value={variants.reduce((sum, v) => sum + (Number(v.quantity) || 0), 0)} />
+                         <input type="hidden" name="price" value={Math.min(...variants.map(v => Number(v.price) || 0))} />
+                    </div>
+                )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                <Label htmlFor="quantity">Quantity</Label>
-                <Input id="quantity" type="number" {...form.register("quantity")} name="quantity" />
-                {form.formState.errors.quantity && <p className="text-sm text-destructive">{form.formState.errors.quantity.message as string}</p>}
-                </div>
-            </div>
-             <div className="space-y-2">
+
+             <div className="space-y-2 pt-4">
                <Controller
                   control={form.control}
                   name="onWebsite"
@@ -569,7 +666,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
       <ScrollArea className="max-h-[70vh] p-4">
         <div className="grid gap-6">
           <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
-            <Label className="text-right sm:text-left">SKU</Label>
+            <Label className="text-right sm:text-left">Parent SKU</Label>
             <div className="col-span-2 sm:col-span-3">{product.sku}</div>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
@@ -613,32 +710,69 @@ function ProductDetailsDialog({ product }: { product: Product }) {
               ))}
             </div>
           </div>
+
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold">Pricing & Inventory</h3>
+            {product.hasVariants && product.variants && product.variants.length > 0 ? (
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Size</TableHead>
+                            <TableHead>SKU</TableHead>
+                            <TableHead>Price</TableHead>
+                            <TableHead>MRP</TableHead>
+                            <TableHead>Qty</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {product.variants.map((v, i) => (
+                            <TableRow key={i}>
+                                <TableCell className="font-medium">{v.size}</TableCell>
+                                <TableCell className="text-muted-foreground text-xs">{v.sku}</TableCell>
+                                <TableCell>₹{v.price.toFixed(2)}</TableCell>
+                                <TableCell className="text-muted-foreground">₹{v.mrp?.toFixed(2) || 'N/A'}</TableCell>
+                                <TableCell>
+                                    <Badge variant={v.quantity > 10 ? "secondary" : (v.quantity > 0 ? "outline" : "destructive")}>
+                                        {v.quantity}
+                                    </Badge>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            ) : (
+                <div className="grid grid-cols-2 gap-4 border p-4 rounded-lg bg-muted/30">
+                    <div>
+                        <Label className="text-xs text-muted-foreground uppercase">Price</Label>
+                        <p className="text-lg font-bold">₹{product.price.toFixed(2)}</p>
+                    </div>
+                    <div>
+                        <Label className="text-xs text-muted-foreground uppercase">MRP</Label>
+                        <p className="text-lg text-muted-foreground">₹{product.mrp?.toFixed(2) || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <Label className="text-xs text-muted-foreground uppercase">Quantity</Label>
+                        <p className="text-lg font-bold">{product.quantity}</p>
+                    </div>
+                     <div>
+                        <Label className="text-xs text-muted-foreground uppercase">Status</Label>
+                        <div>
+                             <Badge variant={product.quantity > 10 ? "secondary" : (product.quantity > 0 ? "outline" : "destructive")}>
+                                {product.status}
+                            </Badge>
+                        </div>
+                    </div>
+                </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
             <Label className="text-right sm:text-left">Colors</Label>
             <div className="col-span-2 sm:col-span-3 flex flex-wrap gap-2">
               {product.colors?.map(color => <Badge key={color} variant="secondary">{color}</Badge>)}
             </div>
           </div>
-          <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
-            <Label className="text-right sm:text-left">Sizes</Label>
-            <div className="col-span-2 sm:col-span-3 flex flex-wrap gap-2">
-              {product.sizes?.map(size => <Badge key={size} variant="outline">{size}</Badge>)}
-            </div>
-          </div>
-          <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
-            <Label className="text-right sm:text-left">Price</Label>
-            <div className="col-span-2 sm:col-span-3">₹{product.price.toFixed(2)}</div>
-          </div>
-           {typeof product.mrp === 'number' && product.mrp > 0 && (
-             <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
-              <Label className="text-right sm:text-left">MRP</Label>
-              <div className="col-span-2 sm:col-span-3">₹{product.mrp.toFixed(2)}</div>
-            </div>
-           )}
-          <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
-            <Label className="text-right sm:text-left">Quantity</Label>
-            <div className="col-span-2 sm:col-span-3">{product.quantity}</div>
-          </div>
+          
            <div className="grid grid-cols-3 sm:grid-cols-4 items-center gap-4">
             <Label className="text-right sm:text-left">Overall Rating</Label>
             <div className="col-span-2 sm:col-span-3 flex items-center gap-2">
@@ -1026,7 +1160,7 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                   </TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead className="hidden sm:table-cell">On Website</TableHead>
-                  <TableHead className="hidden md:table-cell">Price</TableHead>
+                  <TableHead className="hidden md:table-cell">Price (Start)</TableHead>
                   <TableHead className="hidden md:table-cell">
                     Qty
                   </TableHead>
@@ -1053,7 +1187,10 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell>
+                        <div className="font-medium">{product.name}</div>
+                        <div className="text-xs text-muted-foreground">{product.sku}</div>
+                    </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <PublishToggle product={product} onStatusChange={handleStatusChange} />
                     </TableCell>
@@ -1138,5 +1275,3 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
     </>
   );
 }
-
-    
