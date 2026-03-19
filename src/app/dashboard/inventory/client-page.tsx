@@ -679,7 +679,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
             <div className="col-span-2 sm:col-span-3">
             <p
               dangerouslySetInnerHTML={{
-                __html: product.desc || 'N/A'
+                __html: (product.desc || 'N/A')
                   .replace(/\*(.*?)\*/g, '<strong>$1</strong>')   // *text* → bold
                   .replace(/_(.*?)_/g, '<em>$1</em>')             // _text_ → italics
               }}
@@ -730,11 +730,11 @@ function ProductDetailsDialog({ product }: { product: Product }) {
                             <TableRow key={i}>
                                 <TableCell className="font-medium">{v.size}</TableCell>
                                 <TableCell className="text-muted-foreground text-xs">{v.sku}</TableCell>
-                                <TableCell>₹{v.price.toFixed(2)}</TableCell>
-                                <TableCell className="text-muted-foreground">₹{v.mrp?.toFixed(2) || 'N/A'}</TableCell>
+                                <TableCell>₹{Number(v.price || 0).toFixed(2)}</TableCell>
+                                <TableCell className="text-muted-foreground">₹{v.mrp ? Number(v.mrp).toFixed(2) : 'N/A'}</TableCell>
                                 <TableCell>
-                                    <Badge variant={v.quantity > 10 ? "secondary" : (v.quantity > 0 ? "outline" : "destructive")}>
-                                        {v.quantity}
+                                    <Badge variant={(v.quantity || 0) > 10 ? "secondary" : ((v.quantity || 0) > 0 ? "outline" : "destructive")}>
+                                        {v.quantity || 0}
                                     </Badge>
                                 </TableCell>
                             </TableRow>
@@ -745,20 +745,20 @@ function ProductDetailsDialog({ product }: { product: Product }) {
                 <div className="grid grid-cols-2 gap-4 border p-4 rounded-lg bg-muted/30">
                     <div>
                         <Label className="text-xs text-muted-foreground uppercase">Price</Label>
-                        <p className="text-lg font-bold">₹{product.price.toFixed(2)}</p>
+                        <p className="text-lg font-bold">₹{Number(product.price || 0).toFixed(2)}</p>
                     </div>
                     <div>
                         <Label className="text-xs text-muted-foreground uppercase">MRP</Label>
-                        <p className="text-lg text-muted-foreground">₹{product.mrp?.toFixed(2) || 'N/A'}</p>
+                        <p className="text-lg text-muted-foreground">₹{product.mrp ? Number(product.mrp).toFixed(2) : 'N/A'}</p>
                     </div>
                     <div>
                         <Label className="text-xs text-muted-foreground uppercase">Quantity</Label>
-                        <p className="text-lg font-bold">{product.quantity}</p>
+                        <p className="text-lg font-bold">{product.quantity || 0}</p>
                     </div>
                      <div>
                         <Label className="text-xs text-muted-foreground uppercase">Status</Label>
                         <div>
-                             <Badge variant={product.quantity > 10 ? "secondary" : (product.quantity > 0 ? "outline" : "destructive")}>
+                             <Badge variant={(product.quantity || 0) > 10 ? "secondary" : ((product.quantity || 0) > 0 ? "outline" : "destructive")}>
                                 {product.status}
                             </Badge>
                         </div>
@@ -1196,10 +1196,10 @@ export function InventoryClientPage({ products: initialProducts }: { products: P
                       <PublishToggle product={product} onStatusChange={handleStatusChange} />
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      ₹{product.price.toFixed(2)}
+                      ₹{Number(product.price || 0).toFixed(2)}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      {product.quantity}
+                      {product.quantity || 0}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
