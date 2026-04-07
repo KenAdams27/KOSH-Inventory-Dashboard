@@ -152,6 +152,7 @@ const generateInvoicePDF = (order: Order) => {
 
     // Table Content
     let y = 125;
+    let itemsSubtotal = 0;
     doc.setFont("helvetica", "normal");
     order.orderItems.forEach((item) => {
         // Check if we need a new page
@@ -164,30 +165,51 @@ const generateInvoicePDF = (order: Order) => {
         const splitName = doc.splitTextToSize(itemName, 90);
         doc.text(splitName, 20, y);
         
+        const lineTotal = item.price * item.quantity;
+        itemsSubtotal += lineTotal;
+        
         doc.text(item.quantity.toString(), 120, y, { align: "center" });
-        doc.text(`Rs. ${item.price.toFixed(2)}`, 145, y, { align: "right" });
-        doc.text(`Rs. ${(item.price * item.quantity).toFixed(2)}`, 185, y, { align: "right" });
+        doc.text(`Rs. ${Math.round(item.price)}`, 145, y, { align: "right" });
+        doc.text(`Rs. ${Math.round(lineTotal)}`, 185, y, { align: "right" });
         
         y += (splitName.length * 5) + 5;
     });
 
+    const shippingCharges = 90;
+    const grandTotal = itemsSubtotal + shippingCharges;
+
     // Subtotal and Totals
-    const bottomY = Math.max(y + 10, 180);
+    let bottomY = Math.max(y + 10, 180);
+    if (bottomY > 240) {
+        doc.addPage();
+        bottomY = 20;
+    }
+    
     doc.line( pageWidth - 80, bottomY, pageWidth - 15, bottomY);
     
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text("Subtotal:", pageWidth - 80, bottomY + 10);
+    doc.text(`Rs. ${Math.round(itemsSubtotal)}`, pageWidth - 15, bottomY + 10, { align: "right" });
+
+    doc.text("Shipping Charges:", pageWidth - 80, bottomY + 18);
+    doc.text(`Rs. ${shippingCharges}`, pageWidth - 15, bottomY + 18, { align: "right" });
+
+    doc.line( pageWidth - 80, bottomY + 23, pageWidth - 15, bottomY + 23);
+    
     doc.setFont("helvetica", "bold");
-    doc.text("Grand Total:", pageWidth - 80, bottomY + 10);
-    doc.setFontSize(14);
-    doc.text(`Rs. ${order.totalPrice.toFixed(2)}`, pageWidth - 15, bottomY + 10, { align: "right" });
+    doc.setFontSize(12);
+    doc.text("Grand Total:", pageWidth - 80, bottomY + 30);
+    doc.text(`Rs. ${Math.round(grandTotal)}`, pageWidth - 15, bottomY + 30, { align: "right" });
 
     // Footer Notes
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text("Notes:", 15, bottomY + 30);
+    doc.text("Notes:", 15, bottomY + 50);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.text("1. This is a computer generated invoice.", 15, bottomY + 36);
-    doc.text("2. Please keep this invoice for your records.", 15, bottomY + 41);
+    doc.text("1. This is a computer generated invoice.", 15, bottomY + 56);
+    doc.text("2. Please keep this invoice for your records.", 15, bottomY + 61);
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "italic");
@@ -338,8 +360,8 @@ function OrderDetailsDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <h4 className="font-medium">Total</h4>
-              <div className="text-sm text-muted-foreground">₹{order.totalPrice.toFixed(2)}</div>
+              <h4 className="font-medium">Total (Rounded)</h4>
+              <div className="text-sm text-muted-foreground">₹{Math.round(order.totalPrice)}</div>
             </div>
             <div className="space-y-1">
               <h4 className="font-medium">Date</h4>
@@ -528,7 +550,7 @@ function OrdersTable({
                   </Badge>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">{format(new Date(order.createdAt), "PPP")}</TableCell>
-                <TableCell className="hidden sm:table-cell text-right">₹{order.totalPrice.toFixed(2)}</TableCell>
+                <TableCell className="hidden sm:table-cell text-right">₹{Math.round(order.totalPrice)}</TableCell>
                 <TableCell className="text-right">
                 <DropdownMenu>
                       <DropdownMenuTrigger asChild>
