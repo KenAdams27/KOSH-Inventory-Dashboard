@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MoreHorizontal, Search, Download, Pencil, Mail, Loader2 } from "lucide-react";
+import { MoreHorizontal, Search, Download, Pencil, Mail, Loader2, FileText } from "lucide-react";
 import { format } from "date-fns";
 import jsPDF from 'jspdf';
 
@@ -81,6 +81,122 @@ const statusStyles: Record<OrderStatus, string> = {
 };
 
 
+// Helper function to generate a professional Invoice PDF
+const generateInvoicePDF = (order: Order) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Header - Store Logo Text
+    doc.setFontSize(24);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(40, 44, 52);
+    doc.text("KOSH", 15, 20);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    doc.text("KUNAL Enterprises", 15, 26);
+
+    // Invoice Title
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(40);
+    doc.text("INVOICE", pageWidth - 15, 20, { align: "right" });
+
+    // Store Contact Info (From)
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(40);
+    doc.text("FROM:", 15, 45);
+    doc.setFont("helvetica", "normal");
+    const fromAddress = [
+      "KUNAL Enterprises",
+      "House no 8, B road Ashok Vihar",
+      "Sobhagpura 100ft Road",
+      "Off University Road",
+      "Udaipur 313001",
+      "Rajasthan, India"
+    ];
+    doc.text(fromAddress, 15, 51, { lineHeightFactor: 1.2 });
+
+    // Customer Info (To)
+    doc.setFont("helvetica", "bold");
+    doc.text("BILL TO:", 120, 45);
+    doc.setFont("helvetica", "normal");
+    const customerAddress = [
+        order.shippingAddress.fullName,
+        order.shippingAddress.address,
+        `${order.shippingAddress.city}, ${order.shippingAddress.pincode}`,
+        `Phone: ${order.shippingAddress.phone}`
+    ];
+    doc.text(customerAddress, 120, 51, { lineHeightFactor: 1.2 });
+
+    // Order Details Info
+    doc.setFillColor(245, 245, 245);
+    doc.rect(15, 80, pageWidth - 30, 15, 'F');
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text(`Invoice No: ${order.id.slice(-8).toUpperCase()}`, 20, 89);
+    doc.text(`Date: ${format(new Date(order.createdAt), 'PPP')}`, 80, 89);
+    doc.text(`Payment: ${order.paymentMethod}`, 145, 89);
+
+    // Table Header
+    doc.setDrawColor(200);
+    doc.line(15, 105, pageWidth - 15, 105);
+    doc.setFont("helvetica", "bold");
+    doc.text("Item Description", 20, 111);
+    doc.text("Qty", 120, 111, { align: "center" });
+    doc.text("Price", 145, 111, { align: "right" });
+    doc.text("Total", 185, 111, { align: "right" });
+    doc.line(15, 115, pageWidth - 15, 115);
+
+    // Table Content
+    let y = 125;
+    doc.setFont("helvetica", "normal");
+    order.orderItems.forEach((item) => {
+        // Check if we need a new page
+        if (y > 250) {
+            doc.addPage();
+            y = 20;
+        }
+        
+        const itemName = item.name + (item.size ? ` (${item.size})` : "") + (item.color ? ` - ${item.color}` : "");
+        const splitName = doc.splitTextToSize(itemName, 90);
+        doc.text(splitName, 20, y);
+        
+        doc.text(item.quantity.toString(), 120, y, { align: "center" });
+        doc.text(`Rs. ${item.price.toFixed(2)}`, 145, y, { align: "right" });
+        doc.text(`Rs. ${(item.price * item.quantity).toFixed(2)}`, 185, y, { align: "right" });
+        
+        y += (splitName.length * 5) + 5;
+    });
+
+    // Subtotal and Totals
+    const bottomY = Math.max(y + 10, 180);
+    doc.line( pageWidth - 80, bottomY, pageWidth - 15, bottomY);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Grand Total:", pageWidth - 80, bottomY + 10);
+    doc.setFontSize(14);
+    doc.text(`Rs. ${order.totalPrice.toFixed(2)}`, pageWidth - 15, bottomY + 10, { align: "right" });
+
+    // Footer Notes
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("Notes:", 15, bottomY + 30);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text("1. This is a computer generated invoice.", 15, bottomY + 36);
+    doc.text("2. Please keep this invoice for your records.", 15, bottomY + 41);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(150);
+    doc.text("Thank you for shopping with KOSH!", pageWidth / 2, 280, { align: "center" });
+
+    doc.save(`Invoice_KOSH_${order.id.slice(-6)}.pdf`);
+};
+
 // Helper function to generate a single shipping label page
 const generateLabelPage = (doc: jsPDF, order: Order, yOffset: number = 10) => {
     const { shippingAddress } = order;
@@ -143,6 +259,10 @@ function OrderDetailsDialog({
     const doc = new jsPDF();
     generateLabelPage(doc, order);
     doc.save(`shipping-label-${order.id}.pdf`);
+  };
+  
+  const handleGenerateBill = () => {
+    generateInvoicePDF(order);
   };
 
   const handleItemClick = (item: OrderItem) => {
@@ -236,10 +356,14 @@ function OrderDetailsDialog({
           </div>
 
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
             <Button variant="outline" size="sm" onClick={handleDownloadPdf}>
               <Download className="mr-2 h-4 w-4" />
-              Download PDF
+              Shipping Label
+            </Button>
+            <Button variant="secondary" size="sm" onClick={handleGenerateBill}>
+              <FileText className="mr-2 h-4 w-4" />
+              Generate Bill
             </Button>
           </DialogFooter>
       </DialogContent>
@@ -420,6 +544,10 @@ function OrdersTable({
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem onSelect={() => onViewDetails(order)}>View Details</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => generateInvoicePDF(order)}>
+                          <FileText className="mr-2 h-4 w-4" />
+                          Generate Bill
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuSub>
                            <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
