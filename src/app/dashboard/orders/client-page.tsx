@@ -175,7 +175,8 @@ const generateInvoicePDF = (order: Order) => {
         y += (splitName.length * 5) + 5;
     });
 
-    const shippingCharges = 90;
+    // Shipping logic: Free over 999, else 90
+    const shippingCharges = itemsSubtotal >= 999 ? 0 : 90;
     const grandTotal = itemsSubtotal + shippingCharges;
 
     // Subtotal and Totals
@@ -193,7 +194,7 @@ const generateInvoicePDF = (order: Order) => {
     doc.text(`Rs. ${Math.round(itemsSubtotal)}`, pageWidth - 15, bottomY + 10, { align: "right" });
 
     doc.text("Shipping Charges:", pageWidth - 80, bottomY + 18);
-    doc.text(`Rs. ${shippingCharges}`, pageWidth - 15, bottomY + 18, { align: "right" });
+    doc.text(shippingCharges === 0 ? "FREE" : `Rs. ${Math.round(shippingCharges)}`, pageWidth - 15, bottomY + 18, { align: "right" });
 
     doc.line( pageWidth - 80, bottomY + 23, pageWidth - 15, bottomY + 23);
     
