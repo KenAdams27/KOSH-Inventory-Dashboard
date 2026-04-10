@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { sendWelcomeEmail } from '@/lib/brevo';
 
