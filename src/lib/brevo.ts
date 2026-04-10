@@ -3,7 +3,7 @@ import type { Order, OrderStatus } from './types';
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL;
-const BREVO_SENDER_NAME = 'KOSH';
+const BREVO_SENDER_NAME = 'KKosh';
 const BREVO_CC_EMAIL = 'koshkunalenterprises32@gmail.com';
 
 if (!BREVO_API_KEY || !BREVO_SENDER_EMAIL) {
@@ -38,9 +38,9 @@ export async function sendWelcomeEmail({
     <html>
       <body style="font-family: sans-serif; color: #333; line-height: 1.6;">
         <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <h2 style="color: #3F51B5;">Hi there,</h2>
+          <h2 style="color: #1a1a1a;">Hi there,</h2>
           <p>Welcome to KKosh! 🎉</p>
-          <p>We’re excited to have you join us at <strong><a href="https://kkosh.in" style="color: #009688; text-decoration: none;">kkosh.in</a></strong>. Thank you for signing up and becoming a part of our growing community.</p>
+          <p>We’re excited to have you join us at <strong><a href="https://kkosh.in" style="color: #3F51B5; text-decoration: none;">kkosh.in</a></strong>. Thank you for signing up and becoming a part of our growing community.</p>
           <p>At KKosh, we’re committed to bringing you a seamless and enjoyable experience. Whether you're here to explore our products, discover something new, or shop your favorites, we’re here to make it simple and delightful.</p>
           <p><strong>Here’s what you can do next:</strong></p>
           <ul>
@@ -53,7 +53,7 @@ export async function sendWelcomeEmail({
           <br>
           <p>Warm regards,<br>
           <strong>Team KKosh</strong><br>
-          <a href="https://kkosh.in" style="color: #009688; text-decoration: none;">https://kkosh.in</a></p>
+          <a href="https://kkosh.in" style="color: #3F51B5; text-decoration: none;">https://kkosh.in</a></p>
         </div>
       </body>
     </html>
@@ -79,7 +79,6 @@ export async function sendOrderConfirmationEmail({
 }) {
   if (!BREVO_API_KEY || !BREVO_SENDER_EMAIL) {
     console.error("Cannot send email due to missing Brevo configuration.");
-    // Don't throw an error, just log and return. The main flow shouldn't fail because of email.
     return { success: false, message: "Email service is not configured." };
   }
 

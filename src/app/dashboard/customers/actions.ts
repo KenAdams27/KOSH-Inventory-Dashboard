@@ -17,13 +17,6 @@ const addressSchema = z.object({
   isDefault: z.boolean().default(false),
 });
 
-const cartItemSchema = z.object({
-  itemId: z.string(),
-  size: z.string(),
-  quantity: z.number().min(1).default(1),
-  color: z.string(),
-});
-
 const customerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters long').trim(),
   email: z.string().email('Please provide a valid email address').toLowerCase(),
@@ -76,11 +69,11 @@ export async function addCustomerAction(formData: FormData) {
     const result = await db.collection('users').insertOne(newCustomer);
 
     if (result.acknowledged) {
-      // Send Welcome Email asynchronously
+      // Send Welcome Email automatically in the background
       sendWelcomeEmail({
         customerEmail: validation.data.email,
         customerName: validation.data.name,
-      }).catch(err => console.error("Async Welcome Email failed:", err));
+      }).catch(err => console.error("Automatic Welcome Email failed:", err));
 
       revalidatePath('/dashboard/customers');
       return { success: true, message: 'Customer added successfully. Welcome email sent.' };
