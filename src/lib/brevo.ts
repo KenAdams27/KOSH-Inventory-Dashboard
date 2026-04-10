@@ -1,10 +1,10 @@
-
 import * as brevo from '@getbrevo/brevo';
 import type { Order, OrderStatus } from './types';
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL;
 const BREVO_SENDER_NAME = 'KOSH';
+const BREVO_CC_EMAIL = 'koshkunalenterprises32@gmail.com';
 
 if (!BREVO_API_KEY || !BREVO_SENDER_EMAIL) {
   console.warn("Brevo API Key or Sender Email is not configured. Email notifications will be disabled.");
@@ -14,6 +14,58 @@ const apiInstance = new brevo.TransactionalEmailsApi();
 // Configure API key authorization: apiKey
 if (BREVO_API_KEY) {
     apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, BREVO_API_KEY);
+}
+
+export async function sendWelcomeEmail({
+  customerEmail,
+  customerName,
+}: {
+  customerEmail: string;
+  customerName: string;
+}) {
+  if (!BREVO_API_KEY || !BREVO_SENDER_EMAIL) {
+    return { success: false, message: "Email service is not configured." };
+  }
+
+  const sendSmtpEmail = new brevo.SendSmtpEmail();
+
+  sendSmtpEmail.subject = `Welcome to KKosh! 🎉`;
+  sendSmtpEmail.to = [{ email: customerEmail, name: customerName }];
+  sendSmtpEmail.cc = [{ email: BREVO_CC_EMAIL }];
+  sendSmtpEmail.sender = { name: BREVO_SENDER_NAME, email: BREVO_SENDER_EMAIL };
+
+  sendSmtpEmail.htmlContent = `
+    <html>
+      <body style="font-family: sans-serif; color: #333; line-height: 1.6;">
+        <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+          <h2 style="color: #3F51B5;">Hi there,</h2>
+          <p>Welcome to KKosh! 🎉</p>
+          <p>We’re excited to have you join us at <strong><a href="https://kkosh.in" style="color: #009688; text-decoration: none;">kkosh.in</a></strong>. Thank you for signing up and becoming a part of our growing community.</p>
+          <p>At KKosh, we’re committed to bringing you a seamless and enjoyable experience. Whether you're here to explore our products, discover something new, or shop your favorites, we’re here to make it simple and delightful.</p>
+          <p><strong>Here’s what you can do next:</strong></p>
+          <ul>
+            <li>Explore our latest collections and offerings</li>
+            <li>Stay updated with exclusive deals and new arrivals</li>
+            <li>Manage your account and preferences بسهولة</li>
+          </ul>
+          <p>If you ever need assistance, our support team is always ready to help.</p>
+          <p>Once again, welcome aboard — we’re thrilled to have you with us!</p>
+          <br>
+          <p>Warm regards,<br>
+          <strong>Team KKosh</strong><br>
+          <a href="https://kkosh.in" style="color: #009688; text-decoration: none;">https://kkosh.in</a></p>
+        </div>
+      </body>
+    </html>
+  `;
+
+  try {
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
+    return { success: true, message: 'Welcome email sent.' };
+  } catch (error) {
+    console.error(`Error sending welcome email to ${customerEmail}:`, error);
+    return { success: false, message: 'Failed to send welcome email.' };
+  }
 }
 
 export async function sendOrderConfirmationEmail({

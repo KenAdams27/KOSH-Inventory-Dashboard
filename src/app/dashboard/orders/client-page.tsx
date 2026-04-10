@@ -90,7 +90,7 @@ const generateInvoicePDF = (order: Order) => {
     doc.setFontSize(24);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(40, 44, 52);
-    doc.text("KOSH", 15, 20);
+    doc.text("KKOSH", 15, 20);
     
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
@@ -111,9 +111,6 @@ const generateInvoicePDF = (order: Order) => {
     doc.setFont("helvetica", "normal");
     const fromAddress = [
       "KUNAL Enterprises",
-      "House no 8, B road Ashok Vihar",
-      "Sobhagpura 100ft Road",
-      "Off University Road",
       "Udaipur 313001",
       "Rajasthan, India"
     ];
@@ -138,7 +135,8 @@ const generateInvoicePDF = (order: Order) => {
     doc.setFontSize(10);
     doc.text(`Invoice No: ${order.id.slice(-8).toUpperCase()}`, 20, 89);
     doc.text(`Date: ${format(new Date(order.createdAt), 'PPP')}`, 80, 89);
-    doc.text(`Payment: ${order.paymentMethod}`, 145, 89);
+    doc.text(`Status: ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}`, 160, 89);
+
 
     // Table Header
     doc.setDrawColor(200);
@@ -242,10 +240,8 @@ const generateLabelPage = (doc: jsPDF, order: Order, yOffset: number = 10) => {
     doc.setFontSize(12);
     const fromAddress = [
       "KUNAL Enterprises",
-      "House no 8,B road Ashok Vihar",
-      "Sobhagpura 100ft Road",
-      "Off University Road",
-      "Udaipur 313001"
+      "Udaipur 313001",
+      "Rajasthan, India"
     ];
     doc.text(fromAddress, 15, yOffset + 25, { lineHeightFactor: 1.2 });
     doc.setFontSize(10);

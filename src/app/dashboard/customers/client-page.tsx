@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useActionState } from "react";
 import type { Customer, Order, Product } from "@/lib/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -13,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Search } from "lucide-react";
+import { MoreHorizontal, Search, UserPlus, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -41,7 +41,68 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { addCustomerAction } from "./actions";
 
+function AddCustomerDialog() {
+  const { toast } = useToast();
+  const [isOpen, setIsOpen] = useState(false);
+  const [state, formAction, isPending] = useActionState(addCustomerAction, { success: false, message: "" });
+
+  useEffect(() => {
+    if (state.success && state.message) {
+      toast({ title: "Success", description: state.message });
+      setIsOpen(false);
+    } else if (!state.success && state.message) {
+      toast({ variant: "destructive", title: "Error", description: state.message });
+    }
+  }, [state, toast]);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="gap-1">
+          <UserPlus className="h-3.5 w-3.5" />
+          <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+            Add Customer
+          </span>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Add New Customer</DialogTitle>
+          <DialogDescription>
+            Enter customer details here. A welcome email will be sent automatically.
+          </DialogDescription>
+        </DialogHeader>
+        <form action={formAction} className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="name">Full Name</Label>
+            <Input id="name" name="name" placeholder="John Doe" required />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="email">Email Address</Label>
+            <Input id="email" name="email" type="email" placeholder="john@example.com" required />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="phone">Phone (10 digits)</Label>
+            <Input id="phone" name="phone" placeholder="9876543210" maxLength={10} />
+          </div>
+          <DialogFooter className="mt-4">
+            <Button type="submit" disabled={isPending}>
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Adding...
+                </>
+              ) : "Add Customer"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function CustomerDetailsDialog({ customer, orders }: { customer: Customer, orders: Order[]}) {
   const customerOrders = orders.filter(
@@ -139,29 +200,6 @@ export function CustomersClientPage({ customers: initialCustomers, orders, produ
     );
   });
 
-
-  if (customers.length === 0) {
-      return (
-         <>
-            <PageHeader
-                title="Customers"
-                description="Here is a list of all your customers."
-            >
-            </PageHeader>
-            <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm">
-                <div className="flex flex-col items-center gap-1 text-center">
-                    <h3 className="text-2xl font-bold tracking-tight">
-                        You have no customers
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                        Your customer list is currently empty.
-                    </p>
-                </div>
-            </div>
-        </>
-      )
-  }
-
   return (
     <>
       <PageHeader
@@ -179,55 +217,72 @@ export function CustomersClientPage({ customers: initialCustomers, orders, produ
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
             </div>
+            <AddCustomerDialog />
         </div>
       </PageHeader>
         
-      <Dialog onOpenChange={(isOpen) => !isOpen && setSelectedCustomer(null)}>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredCustomers.map((customer) => (
-              <Card key={customer.id} className="group">
-                <CardHeader className="flex flex-row items-start justify-between gap-4">
-                    <div className="flex flex-row items-center gap-4 flex-1 min-w-0">
-                        <Avatar className="h-12 w-12">
-                            <AvatarFallback>
-                                {customer.name.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                            <CardTitle className="truncate">{customer.name}</CardTitle>
-                            <CardDescription className="truncate">{customer.email}</CardDescription>
-                        </div>
-                    </div>
-                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            aria-haspopup="true"
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 flex-shrink-0"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Toggle menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                           <DialogTrigger asChild>
-                                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setSelectedCustomer(customer); }}>Details</DropdownMenuItem>
-                           </DialogTrigger>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-sm text-muted-foreground truncate">
-                    Customer ID: {customer.id}
-                  </div>
-                </CardContent>
-              </Card>
-          ))}
+      {customers.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm h-[400px]">
+            <div className="flex flex-col items-center gap-1 text-center">
+                <h3 className="text-2xl font-bold tracking-tight">
+                    You have no customers
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                    Your customer list is currently empty.
+                </p>
+                <div className="mt-4">
+                  <AddCustomerDialog />
+                </div>
+            </div>
         </div>
-        {selectedCustomer && <CustomerDetailsDialog customer={selectedCustomer} orders={orders} />}
-      </Dialog>
+      ) : (
+        <Dialog onOpenChange={(isOpen) => !isOpen && setSelectedCustomer(null)}>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredCustomers.map((customer) => (
+                <Card key={customer.id} className="group">
+                  <CardHeader className="flex flex-row items-start justify-between gap-4">
+                      <div className="flex flex-row items-center gap-4 flex-1 min-w-0">
+                          <Avatar className="h-12 w-12">
+                              <AvatarFallback>
+                                  {customer.name.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                              <CardTitle className="truncate">{customer.name}</CardTitle>
+                              <CardDescription className="truncate">{customer.email}</CardDescription>
+                          </div>
+                      </div>
+                      <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              aria-haspopup="true"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 flex-shrink-0"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Toggle menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DialogTrigger asChild>
+                                  <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setSelectedCustomer(customer); }}>Details</DropdownMenuItem>
+                            </DialogTrigger>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-sm text-muted-foreground truncate">
+                      Customer ID: {customer.id}
+                    </div>
+                  </CardContent>
+                </Card>
+            ))}
+          </div>
+          {selectedCustomer && <CustomerDetailsDialog customer={selectedCustomer} orders={orders} />}
+        </Dialog>
+      )}
     </>
   );
 }
