@@ -302,27 +302,19 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
         rowY += itemH;
     });
 
-    // Handle Shipping
+    // Handle Shipping (Fixed 90rs, No GST calculation)
     const shipping = order.totalPrice < 999 ? 90 : 0;
     if (shipping > 0) {
-        const taxableShip = shipping / 1.05;
-        const cgstShip = taxableShip * 0.025;
-        const sgstShip = taxableShip * 0.025;
-        
-        totalTaxable += taxableShip;
-        totalCGST += cgstShip;
-        totalSGST += sgstShip;
-
         doc.text((order.orderItems.length + 1).toString(), 18.5, rowY, { align: "center" });
         doc.text("Shipping Charges", 24, rowY);
         doc.text(hsn, 87, rowY, { align: "center" });
         doc.text("1.00", 100, rowY, { align: "center" });
-        doc.text(Math.round(taxableShip).toString(), 114, rowY, { align: "center" });
-        doc.text("2.5%", 129, rowY, { align: "center" });
-        doc.text(Math.round(cgstShip).toString(), 141, rowY, { align: "center" });
-        doc.text("2.5%", 153, rowY, { align: "center" });
-        doc.text(Math.round(sgstShip).toString(), 165, rowY, { align: "center" });
-        doc.text(Math.round(taxableShip).toString(), 183, rowY, { align: "center" });
+        doc.text("90", 114, rowY, { align: "center" });
+        doc.text("0%", 129, rowY, { align: "center" });
+        doc.text("0", 141, rowY, { align: "center" });
+        doc.text("0%", 153, rowY, { align: "center" });
+        doc.text("0", 165, rowY, { align: "center" });
+        doc.text("90", 183, rowY, { align: "center" });
 
         drawTableLines(rowY - 6, 10);
         rowY += 10;
@@ -332,13 +324,14 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
 
     // 6. Footer & Totals
     const footerY = rowY + 5;
-    const grandTotal = totalTaxable + totalCGST + totalSGST;
+    // Total is rounded items taxable + rounded items tax + flat shipping
+    const grandTotal = Math.round(totalTaxable) + Math.round(totalCGST) + Math.round(totalSGST) + shipping;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.text("Total In Words", 15, footerY);
     doc.setFont("helvetica", "bolditalic");
-    doc.text(numberToWords(Math.round(grandTotal)), 15, footerY + 5);
+    doc.text(numberToWords(grandTotal), 15, footerY + 5);
 
     doc.setFont("helvetica", "normal");
     doc.text("Notes", 15, footerY + 15);
@@ -361,20 +354,26 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     drawSummaryRow("CGST (2.5%)", Math.round(totalCGST).toString(), footerY + 7);
     drawSummaryRow("SGST (2.5%)", Math.round(totalSGST).toString(), footerY + 14);
     
-    doc.line(sumX, footerY + 18, pageWidth - 15, footerY + 18);
-    drawSummaryRow("Total", `Rs. ${Math.round(grandTotal)}`, footerY + 25, true);
+    let summaryY = footerY + 21;
+    if (shipping > 0) {
+        drawSummaryRow("Shipping Charges", "90", summaryY);
+        summaryY += 7;
+    }
+
+    doc.line(sumX, summaryY - 3, pageWidth - 15, summaryY - 3);
+    drawSummaryRow("Total", `Rs. ${grandTotal}`, summaryY + 4, true);
     
     doc.setTextColor(200, 0, 0);
-    drawSummaryRow("Payment Made", `(-) ${Math.round(grandTotal)}`, footerY + 32);
+    drawSummaryRow("Payment Made", `(-) ${grandTotal}`, summaryY + 11);
     doc.setTextColor(0);
     
-    doc.line(sumX, footerY + 36, pageWidth - 15, footerY + 36);
-    drawSummaryRow("Balance Due", "Rs. 0", footerY + 42, true);
+    doc.line(sumX, summaryY + 15, pageWidth - 15, summaryY + 15);
+    drawSummaryRow("Balance Due", "Rs. 0", summaryY + 21, true);
 
     // Signature
     doc.setFont("helvetica", "normal");
-    doc.text("Authorized Signature", pageWidth - 35, footerY + 75, { align: "center" });
-    doc.line(pageWidth - 60, footerY + 70, pageWidth - 10, footerY + 70);
+    doc.text("Authorized Signature", pageWidth - 35, summaryY + 50, { align: "center" });
+    doc.line(pageWidth - 60, summaryY + 45, pageWidth - 10, summaryY + 45);
 
     doc.save(`Invoice_KOSH_${invoiceNo}.pdf`);
 };
