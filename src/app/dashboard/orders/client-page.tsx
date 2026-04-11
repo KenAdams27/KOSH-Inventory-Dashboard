@@ -61,6 +61,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
@@ -243,9 +245,9 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
         const itemInclusiveTotal = Math.round(item.price * item.quantity);
         const taxableValueRaw = itemInclusiveTotal / 1.05;
         
-        const dispTaxable = Math.floor(taxableValueRaw);
+        const dispTaxable = Math.round(taxableValueRaw);
         const remainingTax = itemInclusiveTotal - dispTaxable;
-        const dispCGST = Math.round(remainingTax / 2);
+        const dispCGST = Math.floor(remainingTax / 2);
         const dispSGST = remainingTax - dispCGST;
 
         totalTaxable += dispTaxable;
@@ -784,4 +786,3 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     </>
   );
 }
-
