@@ -80,143 +80,305 @@ const statusStyles: Record<OrderStatus, string> = {
     "Refund Complete": "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
 };
 
+// Helper to convert numbers to Indian words
+function numberToWords(num: number): string {
+  const a = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
 
-// Helper function to generate a professional Invoice PDF
-const generateInvoicePDF = (order: Order) => {
+  const convert = (n: number): string => {
+    if (n === 0) return '';
+    if (n < 20) return a[n];
+    if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + a[n % 10] : '');
+    if (n < 1000) return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' and ' + convert(n % 100) : '');
+    if (n < 100000) return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 !== 0 ? ' ' + convert(n % 1000) : '');
+    if (n < 10000000) return convert(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 !== 0 ? ' ' + convert(n % 100000) : '');
+    return convert(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 !== 0 ? ' ' + convert(n % 10000000) : '');
+  };
+
+  const main = Math.floor(num);
+  const fraction = Math.round((num - main) * 100);
+
+  let res = 'Indian Rupee ' + (main === 0 ? 'Zero' : convert(main));
+  if (fraction > 0) {
+    res += ' and ' + convert(fraction) + ' Paise';
+  }
+  return res + ' Only';
+}
+
+// Helper function to generate a professional TAX INVOICE PDF
+const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
 
-    // Header - Store Logo Text
-    doc.setFontSize(24);
+    // 1. Header (Seller Info)
+    doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(40, 44, 52);
-    doc.text("KKOSH", 15, 20);
+    doc.text("Kunal Enterprises", 15, 20);
     
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(100);
-    doc.text("KUNAL Enterprises", 15, 26);
-
-    // Invoice Title
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(40);
-    doc.text("INVOICE", pageWidth - 15, 20, { align: "right" });
-
-    // Store Contact Info (From)
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(40);
-    doc.text("FROM:", 15, 45);
-    doc.setFont("helvetica", "normal");
-    const fromAddress = [
-      "KUNAL Enterprises",
-      "Udaipur 313001",
-      "Rajasthan, India"
+    const sellerInfo = [
+        "Rajasthan",
+        "India",
+        "GSTIN 08ABAFK3577D1ZE",
+        "91-9256906351",
+        "koshkunalenterprises32@gmail.com"
     ];
-    doc.text(fromAddress, 15, 51, { lineHeightFactor: 1.2 });
+    doc.text(sellerInfo, 15, 26, { lineHeightFactor: 1.2 });
 
-    // Customer Info (To)
+    doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
-    doc.text("BILL TO:", 120, 45);
-    doc.setFont("helvetica", "normal");
-    const customerAddress = [
-        order.shippingAddress.fullName,
-        order.shippingAddress.address,
-        `${order.shippingAddress.city}, ${order.shippingAddress.pincode}`,
-        `Phone: ${order.shippingAddress.phone}`
-    ];
-    doc.text(customerAddress, 120, 51, { lineHeightFactor: 1.2 });
+    doc.text("TAX INVOICE", pageWidth - 15, 25, { align: "right" });
 
-    // Order Details Info
-    doc.setFillColor(245, 245, 245);
-    doc.rect(15, 80, pageWidth - 30, 15, 'F');
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text(`Invoice No: ${order.id.slice(-8).toUpperCase()}`, 20, 89);
-    doc.text(`Date: ${format(new Date(order.createdAt), 'PPP')}`, 80, 89);
-    doc.text(`Status: ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}`, 160, 89);
-
-
-    // Table Header
+    // 2. Invoice Details Row
     doc.setDrawColor(200);
-    doc.line(15, 105, pageWidth - 15, 105);
-    doc.setFont("helvetica", "bold");
-    doc.text("Item Description", 20, 111);
-    doc.text("Qty", 120, 111, { align: "center" });
-    doc.text("Price", 145, 111, { align: "right" });
-    doc.text("Total", 185, 111, { align: "right" });
-    doc.line(15, 115, pageWidth - 15, 115);
+    doc.line(15, 45, pageWidth - 15, 45); // Top
+    doc.line(15, 45, 15, 75); // Left
+    doc.line(pageWidth - 15, 45, pageWidth - 15, 75); // Right
+    doc.line(pageWidth / 2, 45, pageWidth / 2, 75); // Middle Split
+    doc.line(15, 75, pageWidth - 15, 75); // Bottom
 
-    // Table Content
-    let y = 125;
-    let itemsSubtotal = 0;
+    doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    order.orderItems.forEach((item) => {
-        // Check if we need a new page
-        if (y > 250) {
-            doc.addPage();
-            y = 20;
-        }
+    doc.text("#", 18, 51);
+    doc.setFont("helvetica", "bold");
+    doc.text(`: ${invoiceNo}`, 45, 51);
+
+    doc.setFont("helvetica", "normal");
+    doc.text("Invoice Date", 18, 57);
+    doc.setFont("helvetica", "bold");
+    doc.text(`: ${format(new Date(order.createdAt), 'dd/MM/yyyy')}`, 45, 57);
+
+    doc.setFont("helvetica", "normal");
+    doc.text("Terms", 18, 63);
+    doc.setFont("helvetica", "bold");
+    doc.text(": Due on Receipt", 45, 63);
+
+    doc.setFont("helvetica", "normal");
+    doc.text("Due Date", 18, 69);
+    doc.setFont("helvetica", "bold");
+    doc.text(`: ${format(new Date(order.createdAt), 'dd/MM/yyyy')}`, 45, 69);
+
+    // Right side of split
+    doc.setFont("helvetica", "normal");
+    doc.text("Place Of Supply", pageWidth / 2 + 5, 51);
+    doc.setFont("helvetica", "bold");
+    doc.text(": Rajasthan (08)", pageWidth / 2 + 35, 51);
+
+    // 3. Bill To / Ship To Row
+    const boxY = 75;
+    const boxH = 40;
+    doc.line(15, boxY + boxH, pageWidth - 15, boxY + boxH);
+    doc.line(15, boxY, 15, boxY + boxH);
+    doc.line(pageWidth - 15, boxY, pageWidth - 15, boxY + boxH);
+    doc.line(pageWidth / 2, boxY, pageWidth / 2, boxY + boxH);
+
+    // Box Headers
+    doc.setFillColor(245, 245, 245);
+    doc.rect(15.5, boxY + 0.5, (pageWidth / 2) - 15.5, 6, 'F');
+    doc.rect((pageWidth / 2) + 0.5, boxY + 0.5, (pageWidth / 2) - 15.5, 6, 'F');
+    
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text("Bill To", 18, boxY + 4.5);
+    doc.text("Ship To", pageWidth / 2 + 5, boxY + 4.5);
+
+    // Addresses
+    doc.setFontSize(10);
+    doc.text(order.shippingAddress.fullName, 18, boxY + 12);
+    doc.setFont("helvetica", "normal");
+    const addr = [
+        order.shippingAddress.address,
+        order.shippingAddress.city,
+        `${order.shippingAddress.pincode} Rajasthan`,
+        "India"
+    ];
+    doc.text(addr, 18, boxY + 18, { lineHeightFactor: 1.1 });
+
+    doc.setFont("helvetica", "bold");
+    doc.text(order.shippingAddress.fullName, pageWidth / 2 + 5, boxY + 12);
+    doc.setFont("helvetica", "normal");
+    doc.text(addr, pageWidth / 2 + 5, boxY + 18, { lineHeightFactor: 1.1 });
+
+    // 4. Table Setup
+    const tableY = 125;
+    const colX = {
+        idx: 15,
+        desc: 25,
+        hsn: 85,
+        qty: 105,
+        rate: 115,
+        cgst: 135,
+        sgst: 165,
+        amt: 195
+    };
+
+    // Table Outlines
+    doc.line(15, tableY, pageWidth - 15, tableY); // Header Top
+    doc.line(15, tableY + 12, pageWidth - 15, tableY + 12); // Header Bottom
+
+    doc.setFillColor(245, 245, 245);
+    doc.rect(15.5, tableY + 0.5, pageWidth - 31, 11, 'F');
+
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text("#", 17, tableY + 7);
+    doc.text("Item & Description", 27, tableY + 7);
+    doc.text("HSN", 87, tableY + 5);
+    doc.text("/SAC", 87, tableY + 9);
+    doc.text("Qty", 107, tableY + 7, { align: "center" });
+    doc.text("Rate", 125, tableY + 7, { align: "right" });
+    
+    // GST Subheaders
+    doc.text("CGST", 147, tableY + 4, { align: "center" });
+    doc.line(135, tableY + 6, 165, tableY + 6);
+    doc.text("%", 140, tableY + 10, { align: "center" });
+    doc.text("Amt", 155, tableY + 10, { align: "center" });
+
+    doc.text("SGST", 177, tableY + 4, { align: "center" });
+    doc.line(165, tableY + 6, 195, tableY + 6);
+    doc.text("%", 170, tableY + 10, { align: "center" });
+    doc.text("Amt", 185, tableY + 10, { align: "center" });
+
+    doc.text("Amount", pageWidth - 17, tableY + 7, { align: "right" });
+
+    // Column Vertical Lines
+    const drawTableLines = (y: number, h: number) => {
+        doc.line(15, y, 15, y + h);
+        doc.line(25, y, 25, y + h);
+        doc.line(85, y, 85, y + h);
+        doc.line(105, y, 105, y + h);
+        doc.line(115, y, 115, y + h);
+        doc.line(135, y, 135, y + h);
+        doc.line(150, y + 6, 150, y + h); // CGST split
+        doc.line(165, y, 165, y + h);
+        doc.line(180, y + 6, 180, y + h); // SGST split
+        doc.line(195, y, 195, y + h);
+        doc.line(pageWidth - 15, y, pageWidth - 15, y + h);
+    };
+    drawTableLines(tableY, 12);
+
+    // 5. Table Rows
+    let rowY = tableY + 18;
+    let totalTaxable = 0;
+    let totalCGST = 0;
+    let totalSGST = 0;
+
+    doc.setFont("helvetica", "normal");
+    order.orderItems.forEach((item, index) => {
+        const itemInclusiveTotal = item.price * item.quantity;
+        const taxableValue = itemInclusiveTotal / 1.05;
+        const cgstAmt = taxableValue * 0.025;
+        const sgstAmt = taxableValue * 0.025;
+
+        totalTaxable += taxableValue;
+        totalCGST += cgstAmt;
+        totalSGST += sgstAmt;
+
+        doc.text((index + 1).toString(), 17, rowY);
         
         const itemName = item.name + (item.size ? ` (${item.size})` : "") + (item.color ? ` - ${item.color}` : "");
-        const splitName = doc.splitTextToSize(itemName, 90);
-        doc.text(splitName, 20, y);
+        const splitName = doc.splitTextToSize(itemName, 55);
+        doc.text(splitName, 27, rowY);
+
+        doc.text(hsn, 87, rowY);
+        doc.text(item.quantity.toFixed(2), 107, rowY, { align: "center" });
+        doc.text("pcs", 107, rowY + 4, { align: "center" });
         
-        const lineTotal = item.price * item.quantity;
-        itemsSubtotal += lineTotal;
+        doc.text((taxableValue / item.quantity).toFixed(2), 125, rowY, { align: "right" });
         
-        doc.text(item.quantity.toString(), 120, y, { align: "center" });
-        doc.text(`Rs. ${Math.round(item.price)}`, 145, y, { align: "right" });
-        doc.text(`Rs. ${Math.round(lineTotal)}`, 185, y, { align: "right" });
-        
-        y += (splitName.length * 5) + 5;
+        doc.text("2.5%", 140, rowY, { align: "center" });
+        doc.text(cgstAmt.toFixed(2), 155, rowY, { align: "center" });
+
+        doc.text("2.5%", 170, rowY, { align: "center" });
+        doc.text(sgstAmt.toFixed(2), 185, rowY, { align: "center" });
+
+        doc.text(taxableValue.toFixed(2), pageWidth - 17, rowY, { align: "right" });
+
+        const itemH = (splitName.length * 5) + 5;
+        drawTableLines(rowY - 6, itemH);
+        rowY += itemH;
     });
 
-    // Shipping logic: Free over 999, else 90
-    const shippingCharges = itemsSubtotal >= 999 ? 0 : 90;
-    const grandTotal = itemsSubtotal + shippingCharges;
+    // Handle Shipping
+    const shipping = order.totalPrice < 999 ? 90 : 0;
+    if (shipping > 0) {
+        const taxableShip = shipping / 1.05;
+        const cgstShip = taxableShip * 0.025;
+        const sgstShip = taxableShip * 0.025;
+        
+        totalTaxable += taxableShip;
+        totalCGST += cgstShip;
+        totalSGST += sgstShip;
 
-    // Subtotal and Totals
-    let bottomY = Math.max(y + 10, 180);
-    if (bottomY > 240) {
-        doc.addPage();
-        bottomY = 20;
+        doc.text((order.orderItems.length + 1).toString(), 17, rowY);
+        doc.text("Shipping Charges", 27, rowY);
+        doc.text(hsn, 87, rowY);
+        doc.text("1.00", 107, rowY, { align: "center" });
+        doc.text(taxableShip.toFixed(2), 125, rowY, { align: "right" });
+        doc.text("2.5%", 140, rowY, { align: "center" });
+        doc.text(cgstShip.toFixed(2), 155, rowY, { align: "center" });
+        doc.text("2.5%", 170, rowY, { align: "center" });
+        doc.text(sgstShip.toFixed(2), 185, rowY, { align: "center" });
+        doc.text(taxableShip.toFixed(2), pageWidth - 17, rowY, { align: "right" });
+
+        drawTableLines(rowY - 6, 10);
+        rowY += 10;
     }
-    
-    doc.line( pageWidth - 80, bottomY, pageWidth - 15, bottomY);
-    
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text("Subtotal:", pageWidth - 80, bottomY + 10);
-    doc.text(`Rs. ${Math.round(itemsSubtotal)}`, pageWidth - 15, bottomY + 10, { align: "right" });
 
-    doc.text("Shipping Charges:", pageWidth - 80, bottomY + 18);
-    doc.text(shippingCharges === 0 ? "FREE" : `Rs. ${Math.round(shippingCharges)}`, pageWidth - 15, bottomY + 18, { align: "right" });
+    doc.line(15, rowY - 6, pageWidth - 15, rowY - 6);
 
-    doc.line( pageWidth - 80, bottomY + 23, pageWidth - 15, bottomY + 23);
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text("Grand Total:", pageWidth - 80, bottomY + 30);
-    doc.text(`Rs. ${Math.round(grandTotal)}`, pageWidth - 15, bottomY + 30, { align: "right" });
+    // 6. Footer & Totals
+    const footerY = rowY + 5;
+    const grandTotal = totalTaxable + totalCGST + totalSGST;
 
-    // Footer Notes
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text("Notes:", 15, bottomY + 50);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.text("1. This is a computer generated invoice.", 15, bottomY + 56);
-    doc.text("2. Please keep this invoice for your records.", 15, bottomY + 61);
+    doc.text("Total In Words", 15, footerY);
+    doc.setFont("helvetica", "bolditalic");
+    doc.text(numberToWords(Math.round(grandTotal)), 15, footerY + 5);
 
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "italic");
-    doc.setTextColor(150);
-    doc.text("Thank you for shopping with KOSH!", pageWidth / 2, 280, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.text("Notes", 15, footerY + 15);
+    doc.text("Thanks for your business.", 15, footerY + 20);
 
-    doc.save(`Invoice_KOSH_${order.id.slice(-6)}.pdf`);
+    // Summary Box
+    const sumX = pageWidth / 2;
+    const sumW = (pageWidth / 2) - 15;
+    doc.line(sumX, rowY - 6, sumX, footerY + 45);
+    doc.line(sumX, footerY + 45, pageWidth - 15, footerY + 45);
+    doc.line(pageWidth - 15, rowY - 6, pageWidth - 15, footerY + 45);
+
+    const drawSummaryRow = (label: string, value: string, y: number, bold = false) => {
+        doc.setFont("helvetica", bold ? "bold" : "normal");
+        doc.text(label, sumX + 5, y);
+        doc.text(value, pageWidth - 17, y, { align: "right" });
+    };
+
+    drawSummaryRow("Sub Total", totalTaxable.toFixed(2), footerY);
+    drawSummaryRow("CGST2.5 (2.5%)", totalCGST.toFixed(2), footerY + 7);
+    drawSummaryRow("SGST2.5 (2.5%)", totalSGST.toFixed(2), footerY + 14);
+    
+    doc.line(sumX, footerY + 18, pageWidth - 15, footerY + 18);
+    drawSummaryRow("Total", `Rs. ${Math.round(grandTotal)}.00`, footerY + 25, true);
+    
+    doc.setTextColor(200, 0, 0);
+    drawSummaryRow("Payment Made", `(-) ${Math.round(grandTotal)}.00`, footerY + 32);
+    doc.setTextColor(0);
+    
+    doc.line(sumX, footerY + 36, pageWidth - 15, footerY + 36);
+    drawSummaryRow("Balance Due", "Rs. 0.00", footerY + 42, true);
+
+    // Signature
+    doc.setFont("helvetica", "normal");
+    doc.text("Authorized Signature", pageWidth - 35, footerY + 75, { align: "center" });
+    doc.line(pageWidth - 60, footerY + 70, pageWidth - 10, footerY + 70);
+
+    doc.save(`Invoice_KOSH_${invoiceNo}.pdf`);
 };
+
+// ... (Rest of statusStyles helper remains the same)
 
 // Helper function to generate a single shipping label page
 const generateLabelPage = (doc: jsPDF, order: Order, yOffset: number = 10) => {
@@ -265,10 +427,12 @@ function OrderDetailsDialog({
   order,
   products,
   onEditTrackingId,
+  onGenerateBill,
 }: {
   order: Order;
   products: Product[];
   onEditTrackingId: (order: Order) => void;
+  onGenerateBill: (order: Order) => void;
 }) {
   const status = order.status;
   const [skuDialog, setSkuDialog] = useState<{ open: boolean, item: OrderItem | null, sku: string | null }>({ open: false, item: null, sku: null });
@@ -280,9 +444,6 @@ function OrderDetailsDialog({
     doc.save(`shipping-label-${order.id}.pdf`);
   };
   
-  const handleGenerateBill = () => {
-    generateInvoicePDF(order);
-  };
 
   const handleItemClick = (item: OrderItem) => {
     const product = products.find(p => p.id === item.itemId);
@@ -380,7 +541,7 @@ function OrderDetailsDialog({
               <Download className="mr-2 h-4 w-4" />
               Shipping Label
             </Button>
-            <Button variant="secondary" size="sm" onClick={handleGenerateBill}>
+            <Button variant="secondary" size="sm" onClick={() => onGenerateBill(order)}>
               <FileText className="mr-2 h-4 w-4" />
               Generate Bill
             </Button>
@@ -395,13 +556,15 @@ function OrdersTable({
   products,
   onViewDetails,
   onStatusChange,
-  onDeleteOrder
+  onDeleteOrder,
+  onGenerateBill,
 }: { 
   orders: Order[],
   products: Product[],
   onViewDetails: (order: Order) => void,
   onStatusChange: (orderId: string, newStatus: OrderStatus, trackingId?: string, sendEmail?: boolean) => void,
-  onDeleteOrder: (orderId: string) => void
+  onDeleteOrder: (orderId: string) => void,
+  onGenerateBill: (order: Order) => void,
 }) {
   const { toast } = useToast();
   const [isTrackingDialogOpen, setIsTrackingDialogOpen] = useState(false);
@@ -563,7 +726,7 @@ function OrdersTable({
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem onSelect={() => onViewDetails(order)}>View Details</DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => generateInvoicePDF(order)}>
+                        <DropdownMenuItem onSelect={() => onGenerateBill(order)}>
                           <FileText className="mr-2 h-4 w-4" />
                           Generate Bill
                         </DropdownMenuItem>
@@ -634,6 +797,12 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     const [trackingId, setTrackingId] = useState("");
     const [isSendingConfirmations, setIsSendingConfirmations] = useState(false);
 
+    // Invoice Input Dialog State
+    const [isInvoiceInputDialogVisible, setIsInvoiceInputDialogVisible] = useState(false);
+    const [orderForInvoice, setOrderForInvoice] = useState<Order | null>(null);
+    const [manualHsn, setManualHsn] = useState("");
+    const [manualInvoiceNo, setManualInvoiceNo] = useState("");
+
     const ordersPerPage = 10;
 
      useEffect(() => {
@@ -650,7 +819,6 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     };
 
     const handleStatusChange = async (orderId: string, newStatus: OrderStatus, trackingId?: string, sendEmail?: boolean) => {
-      // Optimistically update the UI
       setOrders(prevOrders => 
         prevOrders.map(order => {
           if (order.id === orderId) {
@@ -682,8 +850,7 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
           description: `Order #${orderId.slice(-6)} status has been updated.`,
         });
       } else {
-        // Revert the optimistic update on failure
-        setOrders(initialOrders); // Revert to original server state
+        setOrders(initialOrders); 
         toast({
           variant: "destructive",
           title: "Error",
@@ -716,12 +883,25 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     
     const handleSaveTrackingId = () => {
         if (currentOrderForTracking) {
-            // Here we update status to dispatched, but we could also just update the ID
             handleStatusChange(currentOrderForTracking.id, currentOrderForTracking.status, trackingId, true);
             setIsTrackingDialogOpen(false);
             setCurrentOrderForTracking(null);
             setTrackingId("");
         }
+    };
+
+    const handlePromptForInvoiceInfo = (order: Order) => {
+        setOrderForInvoice(order);
+        setManualHsn("");
+        setManualInvoiceNo("");
+        setIsInvoiceInputDialogVisible(true);
+    };
+
+    const handleGenerateBillWithInputs = () => {
+        if (!orderForInvoice) return;
+        generateInvoicePDF(orderForInvoice, manualHsn, manualInvoiceNo);
+        setIsInvoiceInputDialogVisible(false);
+        setOrderForInvoice(null);
     };
 
 
@@ -772,7 +952,7 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
             const pageHeight = doc.internal.pageSize.height;
             if (yOffset + labelHeight > pageHeight) {
                 doc.addPage();
-                yOffset = 10; // Reset Y offset for the new page
+                yOffset = 10; 
             }
             generateLabelPage(doc, order, yOffset);
             yOffset += labelHeight + gap;
@@ -837,6 +1017,42 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Manual Invoice Info Dialog */}
+      <Dialog open={isInvoiceInputDialogVisible} onOpenChange={setIsInvoiceInputDialogVisible}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Generate Tax Invoice</DialogTitle>
+            <DialogDescription>
+              Please enter the HSN code and Invoice Number for order #{orderForInvoice?.id.slice(-6)}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="invoiceNo">Invoice Number</Label>
+              <Input
+                id="invoiceNo"
+                value={manualInvoiceNo}
+                onChange={(e) => setManualInvoiceNo(e.target.value)}
+                placeholder="e.g. VYP061"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="hsn">HSN Code</Label>
+              <Input
+                id="hsn"
+                value={manualHsn}
+                onChange={(e) => setManualHsn(e.target.value)}
+                placeholder="e.g. 52082120"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsInvoiceInputDialogVisible(false)}>Cancel</Button>
+            <Button onClick={handleGenerateBillWithInputs} disabled={!manualHsn || !manualInvoiceNo}>Download Invoice</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <Tabs defaultValue="all" value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
@@ -885,7 +1101,8 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
                 products={products}
                 onViewDetails={handleViewDetails} 
                 onStatusChange={handleStatusChange} 
-                onDeleteOrder={handleDeleteOrder} 
+                onDeleteOrder={handleDeleteOrder}
+                onGenerateBill={handlePromptForInvoiceInfo}
             />
             <CardFooter className="flex items-center justify-between pt-6">
                 <div className="text-xs text-muted-foreground">
@@ -915,7 +1132,7 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
             </CardFooter>
           </Card>
         </Tabs>
-        {selectedOrder && <OrderDetailsDialog order={selectedOrder} products={products} onEditTrackingId={handleEditTrackingId} />}
+        {selectedOrder && <OrderDetailsDialog order={selectedOrder} products={products} onEditTrackingId={handleEditTrackingId} onGenerateBill={handlePromptForInvoiceInfo} />}
       </Dialog>
     </>
   );
