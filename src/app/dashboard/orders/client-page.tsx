@@ -61,8 +61,6 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
@@ -80,7 +78,6 @@ const statusStyles: Record<OrderStatus, string> = {
     "Refund Complete": "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
 };
 
-// Helper to convert numbers to Indian words
 function numberToWords(num: number): string {
   const a = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
   const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
@@ -105,13 +102,10 @@ function numberToWords(num: number): string {
   return res + ' Only';
 }
 
-// Helper function to generate a professional TAX INVOICE PDF
 const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-
-    // 1. Header (Seller Info)
+    
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.text("Kunal Enterprises", 15, 20);
@@ -131,17 +125,16 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.setFont("helvetica", "bold");
     doc.text("TAX INVOICE", pageWidth - 15, 25, { align: "right" });
 
-    // 2. Invoice Details Row
     doc.setDrawColor(200);
-    doc.line(15, 45, pageWidth - 15, 45); // Top
-    doc.line(15, 45, 15, 75); // Left
-    doc.line(pageWidth - 15, 45, pageWidth - 15, 75); // Right
-    doc.line(pageWidth / 2, 45, pageWidth / 2, 75); // Middle Split
-    doc.line(15, 75, pageWidth - 15, 75); // Bottom
+    doc.line(15, 45, pageWidth - 15, 45);
+    doc.line(15, 45, 15, 75);
+    doc.line(pageWidth - 15, 45, pageWidth - 15, 75);
+    doc.line(pageWidth / 2, 45, pageWidth / 2, 75);
+    doc.line(15, 75, pageWidth - 15, 75);
 
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.text("#", 18, 51);
+    doc.text("Invoice #", 18, 51);
     doc.setFont("helvetica", "bold");
     doc.text(`: ${invoiceNo}`, 45, 51);
 
@@ -160,13 +153,11 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.setFont("helvetica", "bold");
     doc.text(`: ${format(new Date(order.createdAt), 'dd/MM/yyyy')}`, 45, 69);
 
-    // Right side of split
     doc.setFont("helvetica", "normal");
     doc.text("Place Of Supply", pageWidth / 2 + 5, 51);
     doc.setFont("helvetica", "bold");
     doc.text(": Rajasthan (08)", pageWidth / 2 + 35, 51);
 
-    // 3. Bill To / Ship To Row
     const boxY = 75;
     const boxH = 40;
     doc.line(15, boxY + boxH, pageWidth - 15, boxY + boxH);
@@ -174,7 +165,6 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.line(pageWidth - 15, boxY, pageWidth - 15, boxY + boxH);
     doc.line(pageWidth / 2, boxY, pageWidth / 2, boxY + boxH);
 
-    // Box Headers
     doc.setFillColor(245, 245, 245);
     doc.rect(15.5, boxY + 0.5, (pageWidth / 2) - 15.5, 6, 'F');
     doc.rect((pageWidth / 2) + 0.5, boxY + 0.5, (pageWidth / 2) - 15.5, 6, 'F');
@@ -184,7 +174,6 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.text("Bill To", 18, boxY + 4.5);
     doc.text("Ship To", pageWidth / 2 + 5, boxY + 4.5);
 
-    // Addresses
     doc.setFontSize(10);
     doc.text(order.shippingAddress.fullName, 18, boxY + 12);
     doc.setFont("helvetica", "normal");
@@ -201,22 +190,9 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.setFont("helvetica", "normal");
     doc.text(addr, pageWidth / 2 + 5, boxY + 18, { lineHeightFactor: 1.1 });
 
-    // 4. Table Setup
     const tableY = 125;
-    const colX = {
-        idx: 15,
-        desc: 22,
-        hsn: 80,
-        qty: 95,
-        rate: 105,
-        cgst: 123,
-        sgst: 147,
-        amt: 171
-    };
-
-    // Table Outlines
-    doc.line(15, tableY, pageWidth - 15, tableY); // Header Top
-    doc.line(15, tableY + 12, pageWidth - 15, tableY + 12); // Header Bottom
+    doc.line(15, tableY, pageWidth - 15, tableY);
+    doc.line(15, tableY + 12, pageWidth - 15, tableY + 12);
 
     doc.setFillColor(245, 245, 245);
     doc.rect(15.5, tableY + 0.5, pageWidth - 31, 11, 'F');
@@ -230,13 +206,11 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.text("Qty", 100, tableY + 7, { align: "center" });
     doc.text("Rate", 114, tableY + 7, { align: "center" });
     
-    // CGST
     doc.text("CGST", 135, tableY + 4, { align: "center" });
     doc.line(123, tableY + 6, 147, tableY + 6);
     doc.text("%", 129, tableY + 10, { align: "center" });
     doc.text("Amt", 141, tableY + 10, { align: "center" });
 
-    // SGST
     doc.text("SGST", 159, tableY + 4, { align: "center" });
     doc.line(147, tableY + 6, 171, tableY + 6);
     doc.text("%", 153, tableY + 10, { align: "center" });
@@ -244,7 +218,6 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
 
     doc.text("Amount", 183, tableY + 7, { align: "center" });
 
-    // Column Vertical Lines
     const drawTableLines = (y: number, h: number) => {
         doc.line(15, y, 15, y + h);
         doc.line(22, y, 22, y + h);
@@ -260,7 +233,6 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     };
     drawTableLines(tableY, 12);
 
-    // 5. Table Rows
     let rowY = tableY + 18;
     let totalTaxable = 0;
     let totalCGST = 0;
@@ -268,34 +240,31 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
 
     doc.setFont("helvetica", "normal");
     order.orderItems.forEach((item, index) => {
-        const itemInclusiveTotal = item.price * item.quantity;
-        const taxableValue = itemInclusiveTotal / 1.05;
-        const cgstAmt = taxableValue * 0.025;
-        const sgstAmt = taxableValue * 0.025;
+        const itemInclusiveTotal = Math.round(item.price * item.quantity);
+        const taxableValueRaw = itemInclusiveTotal / 1.05;
+        
+        const dispTaxable = Math.floor(taxableValueRaw);
+        const remainingTax = itemInclusiveTotal - dispTaxable;
+        const dispCGST = Math.round(remainingTax / 2);
+        const dispSGST = remainingTax - dispCGST;
 
-        totalTaxable += taxableValue;
-        totalCGST += cgstAmt;
-        totalSGST += sgstAmt;
+        totalTaxable += dispTaxable;
+        totalCGST += dispCGST;
+        totalSGST += dispSGST;
 
         doc.text((index + 1).toString(), 18.5, rowY, { align: "center" });
-        
         const itemName = item.name + (item.size ? ` (${item.size})` : "") + (item.color ? ` - ${item.color}` : "");
         const splitName = doc.splitTextToSize(itemName, 55);
         doc.text(splitName, 24, rowY);
-
         doc.text(hsn, 87, rowY, { align: "center" });
         doc.text(item.quantity.toFixed(2), 100, rowY, { align: "center" });
         doc.text("pcs", 100, rowY + 4, { align: "center" });
-        
-        doc.text(Math.round(taxableValue / item.quantity).toString(), 114, rowY, { align: "center" });
-        
+        doc.text(Math.round(dispTaxable / item.quantity).toString(), 114, rowY, { align: "center" });
         doc.text("2.5%", 129, rowY, { align: "center" });
-        doc.text(Math.round(cgstAmt).toString(), 141, rowY, { align: "center" });
-
+        doc.text(dispCGST.toString(), 141, rowY, { align: "center" });
         doc.text("2.5%", 153, rowY, { align: "center" });
-        doc.text(Math.round(sgstAmt).toString(), 165, rowY, { align: "center" });
-
-        doc.text(Math.round(taxableValue).toString(), 183, rowY, { align: "center" });
+        doc.text(dispSGST.toString(), 165, rowY, { align: "center" });
+        doc.text(dispTaxable.toString(), 183, rowY, { align: "center" });
 
         const itemH = Math.max((splitName.length * 5) + 5, 10);
         drawTableLines(rowY - 6, itemH);
@@ -304,12 +273,9 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
 
     doc.line(15, rowY - 6, pageWidth - 15, rowY - 6);
 
-    // 6. Footer & Totals
     const footerY = rowY + 5;
-    // Calculation: rounded items taxable + rounded items tax
-    const itemsTotal = Math.round(totalTaxable) + Math.round(totalCGST) + Math.round(totalSGST);
     const shipping = order.totalPrice < 999 ? 90 : 0;
-    const grandTotal = itemsTotal + shipping;
+    const grandTotal = Math.round(order.totalPrice);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
@@ -321,40 +287,35 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.text("Notes", 15, footerY + 15);
     doc.text("Thanks for your business.", 15, footerY + 20);
 
-    // Summary Box
     const sumX = pageWidth / 2;
-    const sumW = (pageWidth / 2) - 15;
     doc.line(sumX, rowY - 6, sumX, footerY + 45);
     doc.line(sumX, footerY + 45, pageWidth - 15, footerY + 45);
     doc.line(pageWidth - 15, rowY - 6, pageWidth - 15, footerY + 45);
 
-    const drawSummaryRow = (label: string, value: string, y: number, bold = false) => {
+    const drawSummaryRow = (label: string, value: string, y: number, bold = false, color?: [number, number, number]) => {
         doc.setFont("helvetica", bold ? "bold" : "normal");
+        if (color) doc.setTextColor(color[0], color[1], color[2]);
         doc.text(label, sumX + 5, y);
         doc.text(value, pageWidth - 17, y, { align: "right" });
+        doc.setTextColor(0);
     };
 
-    drawSummaryRow("Sub Total", Math.round(totalTaxable).toString(), footerY);
-    drawSummaryRow("CGST (2.5%)", Math.round(totalCGST).toString(), footerY + 7);
-    drawSummaryRow("SGST (2.5%)", Math.round(totalSGST).toString(), footerY + 14);
+    drawSummaryRow("Sub Total", totalTaxable.toString(), footerY);
+    drawSummaryRow("CGST (2.5%)", totalCGST.toString(), footerY + 7);
+    drawSummaryRow("SGST (2.5%)", totalSGST.toString(), footerY + 14);
     
     let summaryY = footerY + 21;
     if (shipping > 0) {
-        drawSummaryRow("Shipping Charges", "90", summaryY);
+        drawSummaryRow("Shipping Charges", shipping.toString(), summaryY);
         summaryY += 7;
     }
 
     doc.line(sumX, summaryY - 3, pageWidth - 15, summaryY - 3);
     drawSummaryRow("Total", `Rs. ${grandTotal}`, summaryY + 4, true);
-    
-    doc.setTextColor(200, 0, 0);
-    drawSummaryRow("Payment Made", `(-) ${grandTotal}`, summaryY + 11);
-    doc.setTextColor(0);
-    
+    drawSummaryRow("Payment Made", `(-) ${grandTotal}`, summaryY + 11, false, [200, 0, 0]);
     doc.line(sumX, summaryY + 15, pageWidth - 15, summaryY + 15);
     drawSummaryRow("Balance Due", "Rs. 0", summaryY + 21, true);
 
-    // Signature
     doc.setFont("helvetica", "normal");
     doc.text("Authorized Signature", pageWidth - 35, summaryY + 50, { align: "center" });
     doc.line(pageWidth - 60, summaryY + 45, pageWidth - 10, summaryY + 45);
@@ -362,15 +323,11 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.save(`Invoice_KOSH_${invoiceNo}.pdf`);
 };
 
-
-// Helper function to generate a single shipping label page
 const generateLabelPage = (doc: jsPDF, order: Order, yOffset: number = 10) => {
     const { shippingAddress } = order;
     const labelHeight = 50;
 
-    doc.setProperties({
-        title: `Shipping Label - ${order.id}`,
-    });
+    doc.setProperties({ title: `Shipping Label - ${order.id}` });
     doc.rect(10, yOffset, 190, labelHeight);
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
@@ -383,11 +340,7 @@ const generateLabelPage = (doc: jsPDF, order: Order, yOffset: number = 10) => {
     doc.text("FROM:", 15, yOffset + 20);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(12);
-    const fromAddress = [
-      "KUNAL Enterprises",
-      "Udaipur 313001",
-      "Rajasthan, India"
-    ];
+    const fromAddress = ["KUNAL Enterprises", "Udaipur 313001", "Rajasthan, India"];
     doc.text(fromAddress, 15, yOffset + 25, { lineHeightFactor: 1.2 });
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
@@ -401,10 +354,8 @@ const generateLabelPage = (doc: jsPDF, order: Order, yOffset: number = 10) => {
         `Contact: ${shippingAddress.phone}`
     ];
     doc.text(customerAddress, 110, yOffset + 27, { lineHeightFactor: 1.2 });
-
     return yOffset + labelHeight;
 };
-
 
 function OrderDetailsDialog({
   order,
@@ -420,13 +371,11 @@ function OrderDetailsDialog({
   const status = order.status;
   const [skuDialog, setSkuDialog] = useState<{ open: boolean, item: OrderItem | null, sku: string | null }>({ open: false, item: null, sku: null });
 
-
   const handleDownloadPdf = () => {
     const doc = new jsPDF();
     generateLabelPage(doc, order);
     doc.save(`shipping-label-${order.id}.pdf`);
   };
-  
 
   const handleItemClick = (item: OrderItem) => {
     const product = products.find(p => p.id === item.itemId);
@@ -564,19 +513,13 @@ function OrdersTable({
     'Refund Complete': 'Refund Complete',
   };
 
-
   const handleStatusClick = (order: Order, status: OrderStatus) => {
     const hasBeenNotified = order.notifiedStatuses?.includes(status);
-    
     if (hasBeenNotified) {
       onStatusChange(order.id, status, undefined, false);
-      toast({
-        title: "Order Status Updated",
-        description: `Order status changed to "${status}". An email for this status was sent previously.`,
-      });
+      toast({ title: "Order Status Updated", description: `Order status changed to "${status}".` });
       return;
     }
-
     if (status === 'dispatched') {
       setCurrentOrderForTracking(order);
       setTrackingId(order.tracking_id || "");
@@ -602,7 +545,6 @@ function OrdersTable({
     }
   };
 
-
   return (
     <>
       <Dialog open={isTrackingDialogOpen} onOpenChange={setIsTrackingDialogOpen}>
@@ -615,16 +557,8 @@ function OrdersTable({
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="trackingId" className="text-right">
-                Tracking ID
-              </Label>
-              <Input
-                id="trackingId"
-                value={trackingId}
-                onChange={(e) => setTrackingId(e.target.value)}
-                className="col-span-3"
-                placeholder="Enter tracking ID"
-              />
+              <Label htmlFor="trackingId" className="text-right">Tracking ID</Label>
+              <Input id="trackingId" value={trackingId} onChange={(e) => setTrackingId(e.target.value)} className="col-span-3" placeholder="Enter tracking ID" />
             </div>
             <div className="col-span-4 flex items-center justify-end space-x-2">
                 <Checkbox id="notify" checked={notifyCustomer} onCheckedChange={(checked) => setNotifyCustomer(!!checked)} />
@@ -643,9 +577,9 @@ function OrdersTable({
           <AlertDialogHeader>
             <AlertDialogTitle>Update Order Status</AlertDialogTitle>
             <AlertDialogDescription>
-              You are about to change the status for order #{statusChangeConfirm?.order.id.slice(-6)} to &quot;{statusChangeConfirm?.status}&quot;.
+              Update order #{statusChangeConfirm?.order.id.slice(-6)} to "{statusChangeConfirm?.status}".
               <br/><br/>
-              Do you want to send a notification email to the customer?
+              Send notification email?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -668,9 +602,7 @@ function OrdersTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.map(order => {
-              const currentStatus = order.status;
-              return (
+            {orders.map(order => (
               <TableRow key={order.id}>
                 <TableCell>
                   <TooltipProvider>
@@ -678,88 +610,52 @@ function OrdersTable({
                       <TooltipTrigger asChild>
                         <div className="font-medium cursor-pointer">{order.shippingAddress.fullName}</div>
                       </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Customer ID: {order.user}</p>
-                      </TooltipContent>
+                      <TooltipContent><p>Customer ID: {order.user}</p></TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  <div className="hidden text-sm text-muted-foreground md:inline">
-                      {order.id}
-                  </div>
+                  <div className="hidden text-sm text-muted-foreground md:inline">{order.id}</div>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
-                  <Badge className={`border-none relative -left-px ${statusStyles[currentStatus]} capitalize`} variant="secondary">
-                    {currentStatus}
+                  <Badge className={`border-none relative -left-px ${statusStyles[order.status]} capitalize`} variant="secondary">
+                    {order.status}
                   </Badge>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">{format(new Date(order.createdAt), "PPP")}</TableCell>
                 <TableCell className="hidden sm:table-cell text-right">₹{Math.round(order.totalPrice)}</TableCell>
                 <TableCell className="text-right">
-                <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          aria-haspopup="true"
-                          size="icon"
-                          variant="ghost"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onSelect={() => onViewDetails(order)}>View Details</DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => onGenerateBill(order)}>
-                          <FileText className="mr-2 h-4 w-4" />
-                          Generate Bill
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuSub>
-                           <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
-                           <DropdownMenuSubContent>
-                                {statusOptions.map((statusOption) => {
-                                  const hasBeenNotified = order.notifiedStatuses?.includes(statusOption);
-                                  return (
-                                    <DropdownMenuItem
-                                      key={statusOption}
-                                      onSelect={(e) => e.preventDefault()}
-                                      onClick={() => handleStatusClick(order, statusOption)}
-                                      className="justify-between"
-                                    >
-                                      <span>{statusDisplayNames[statusOption]}</span>
-                                      {hasBeenNotified && (
-                                        <span className="text-xs text-muted-foreground">Email Sent</span>
-                                      )}
-                                    </DropdownMenuItem>
-                                  );
-                                })}
-                           </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                        <DropdownMenuSeparator />
-                         <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <DropdownMenuItem className="text-red-600" onSelect={(e) => e.preventDefault()}>Delete Order</DropdownMenuItem>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the order for {order.shippingAddress.fullName}.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => onDeleteOrder(order.id)}>
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuItem onSelect={() => onViewDetails(order)}>View Details</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => onGenerateBill(order)}><FileText className="mr-2 h-4 w-4" />Generate Bill</DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          {statusOptions.map((opt) => (
+                            <DropdownMenuItem key={opt} onSelect={(e) => e.preventDefault()} onClick={() => handleStatusClick(order, opt)} className="justify-between">
+                              <span>{statusDisplayNames[opt]}</span>
+                              {order.notifiedStatuses?.includes(opt) && <span className="text-xs text-muted-foreground">Sent</span>}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                      <DropdownMenuSeparator />
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild><DropdownMenuItem className="text-red-600" onSelect={(e) => e.preventDefault()}>Delete Order</DropdownMenuItem></AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle></AlertDialogHeader>
+                          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => onDeleteOrder(order.id)}>Delete</AlertDialogAction></AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
-            )})}
+            ))}
           </TableBody>
         </Table>
       </CardContent>
@@ -779,339 +675,107 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     const [currentOrderForTracking, setCurrentOrderForTracking] = useState<Order | null>(null);
     const [trackingId, setTrackingId] = useState("");
     const [isSendingConfirmations, setIsSendingConfirmations] = useState(false);
-
-    // Invoice Input Dialog State
     const [isInvoiceInputDialogVisible, setIsInvoiceInputDialogVisible] = useState(false);
     const [orderForInvoice, setOrderForInvoice] = useState<Order | null>(null);
     const [manualHsn, setManualHsn] = useState("");
     const [manualInvoiceNo, setManualInvoiceNo] = useState("");
 
     const ordersPerPage = 10;
+    useEffect(() => { setOrders(initialOrders); }, [initialOrders]);
+    useEffect(() => { setCurrentPage(1); }, [activeTab, searchQuery]);
 
-     useEffect(() => {
-        setOrders(initialOrders);
-    }, [initialOrders]);
-    
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [activeTab, searchQuery]);
+    const handleViewDetails = (order: Order) => { setSelectedOrder(order); setIsDetailsOpen(true); };
 
-    const handleViewDetails = (order: Order) => {
-        setSelectedOrder(order);
-        setIsDetailsOpen(true);
-    };
-
-    const handleStatusChange = async (orderId: string, newStatus: OrderStatus, trackingId?: string, sendEmail?: boolean) => {
-      setOrders(prevOrders => 
-        prevOrders.map(order => {
-          if (order.id === orderId) {
-            const updatedOrder: Order = { 
-              ...order, 
-              status: newStatus, 
-              tracking_id: trackingId !== undefined ? trackingId : order.tracking_id, 
-              deliveredAt: newStatus === 'delivered' ? new Date().toISOString() : order.deliveredAt,
-            };
-
-            if (newStatus !== 'delivered' && 'deliveredAt' in updatedOrder) {
-              delete updatedOrder.deliveredAt;
-            }
-
-            if (sendEmail) {
-                updatedOrder.notifiedStatuses = Array.from(new Set([...(order.notifiedStatuses || []), newStatus]));
-            }
-            return updatedOrder;
-          }
-          return order;
-        })
-      );
-
-      const result = await updateOrderStatusAction(orderId, newStatus, trackingId, sendEmail);
-
-      if (result.success) {
-        toast({
-          title: "Order Status Updated",
-          description: `Order #${orderId.slice(-6)} status has been updated.`,
-        });
-      } else {
-        setOrders(initialOrders); 
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: result.message,
-        });
-      }
-    };
-    
-    const handleDeleteOrder = async (orderId: string) => {
-        const result = await deleteOrderAction(orderId);
-        if (result.success) {
-            toast({
-                title: "Order Deleted",
-                description: result.message,
-            });
-        } else {
-            toast({
-                variant: "destructive",
-                title: "Error",
-                description: result.message,
-            });
+    const handleStatusChange = async (orderId: string, newStatus: OrderStatus, tId?: string, sendEmail?: boolean) => {
+      setOrders(prev => prev.map(o => {
+        if (o.id === orderId) {
+          const updated = { ...o, status: newStatus, tracking_id: tId !== undefined ? tId : o.tracking_id, deliveredAt: newStatus === 'delivered' ? new Date().toISOString() : o.deliveredAt };
+          if (newStatus !== 'delivered' && 'deliveredAt' in updated) delete (updated as any).deliveredAt;
+          if (sendEmail) updated.notifiedStatuses = Array.from(new Set([...(o.notifiedStatuses || []), newStatus]));
+          return updated as Order;
         }
+        return o;
+      }));
+      const res = await updateOrderStatusAction(orderId, newStatus, tId, sendEmail);
+      if (!res.success) { setOrders(initialOrders); toast({ variant: "destructive", title: "Error", description: res.message }); }
     };
     
-    const handleEditTrackingId = (order: Order) => {
-        setCurrentOrderForTracking(order);
-        setTrackingId(order.tracking_id || "");
-        setIsTrackingDialogOpen(true);
+    const handleDeleteOrder = async (id: string) => {
+        const res = await deleteOrderAction(id);
+        if (res.success) toast({ title: "Order Deleted", description: res.message });
+        else toast({ variant: "destructive", title: "Error", description: res.message });
     };
     
-    const handleSaveTrackingId = () => {
-        if (currentOrderForTracking) {
-            handleStatusChange(currentOrderForTracking.id, currentOrderForTracking.status, trackingId, true);
-            setIsTrackingDialogOpen(false);
-            setCurrentOrderForTracking(null);
-            setTrackingId("");
-        }
-    };
+    const handleEditTrackingId = (order: Order) => { setCurrentOrderForTracking(order); setTrackingId(order.tracking_id || ""); setIsTrackingDialogOpen(true); };
+    const handleSaveTrackingId = () => { if (currentOrderForTracking) { handleStatusChange(currentOrderForTracking.id, currentOrderForTracking.status, trackingId, true); setIsTrackingDialogOpen(false); } };
 
-    const handlePromptForInvoiceInfo = (order: Order) => {
-        setOrderForInvoice(order);
-        setManualHsn("");
-        setManualInvoiceNo("");
-        setIsInvoiceInputDialogVisible(true);
-    };
+    const handlePromptForInvoiceInfo = (order: Order) => { setOrderForInvoice(order); setManualHsn(""); setManualInvoiceNo(""); setIsInvoiceInputDialogVisible(true); };
+    const handleGenerateBillWithInputs = () => { if (orderForInvoice) { generateInvoicePDF(orderForInvoice, manualHsn, manualInvoiceNo); setIsInvoiceInputDialogVisible(false); } };
 
-    const handleGenerateBillWithInputs = () => {
-        if (!orderForInvoice) return;
-        generateInvoicePDF(orderForInvoice, manualHsn, manualInvoiceNo);
-        setIsInvoiceInputDialogVisible(false);
-        setOrderForInvoice(null);
-    };
-
-
-    const searchFilteredOrders = orders.filter(order => {
-      const query = searchQuery.toLowerCase();
-      const tabFilter = activeTab === 'all' || order.status === activeTab;
-      const searchFilter = 
-        order.shippingAddress.fullName.toLowerCase().includes(query) ||
-        order.id.toLowerCase().includes(query);
-      return tabFilter && searchFilter;
+    const searchFilteredOrders = orders.filter(o => {
+      const q = searchQuery.toLowerCase();
+      const tabFilter = activeTab === 'all' || o.status === activeTab;
+      const sFilter = o.shippingAddress.fullName.toLowerCase().includes(q) || o.id.toLowerCase().includes(q);
+      return tabFilter && sFilter;
     });
     
-    const indexOfLastOrder = currentPage * ordersPerPage;
-    const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
-    const currentOrders = searchFilteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
+    const currentOrders = searchFilteredOrders.slice((currentPage - 1) * ordersPerPage, currentPage * ordersPerPage);
     const totalPages = Math.ceil(searchFilteredOrders.length / ordersPerPage);
 
-    const handleNextPage = () => {
-        if (currentPage < totalPages) {
-            setCurrentPage(currentPage + 1);
-        }
-    };
-
-    const handlePrevPage = () => {
-        if (currentPage > 1) {
-            setCurrentPage(currentPage - 1);
-        }
-    };
-
     const handleBulkDownload = () => {
-        const placedOrders = currentOrders.filter(order => order.status === 'placed');
-
-        if (placedOrders.length === 0) {
-            toast({
-                variant: "destructive",
-                title: "No Placed Orders",
-                description: "There are no orders with 'placed' status on the current page to download.",
-            });
-            return;
-        }
-
+        const placed = currentOrders.filter(o => o.status === 'placed');
+        if (placed.length === 0) return toast({ variant: "destructive", title: "No Placed Orders" });
         const doc = new jsPDF();
-        const labelHeight = 50;
-        const gap = 15;
         let yOffset = 10;
-
-        placedOrders.forEach((order, index) => {
-            const pageHeight = doc.internal.pageSize.height;
-            if (yOffset + labelHeight > pageHeight) {
-                doc.addPage();
-                yOffset = 10; 
-            }
-            generateLabelPage(doc, order, yOffset);
-            yOffset += labelHeight + gap;
-        });
-
+        placed.forEach(o => { if (yOffset + 65 > doc.internal.pageSize.height) { doc.addPage(); yOffset = 10; } yOffset = generateLabelPage(doc, o, yOffset) + 15; });
         doc.save(`shipping-labels-placed-page-${currentPage}.pdf`);
-
-        toast({
-            title: "Download Started",
-            description: `Generated a PDF with ${placedOrders.length} shipping label(s).`,
-        });
     };
     
     const handleSendConfirmations = async () => {
         setIsSendingConfirmations(true);
-        const result = await sendBulkConfirmationEmailsAction();
+        const res = await sendBulkConfirmationEmailsAction();
         setIsSendingConfirmations(false);
-        if (result.success) {
-            toast({
-                title: "Bulk Action Complete",
-                description: result.message,
-            });
-        } else {
-            toast({
-                variant: "destructive",
-                title: "Error",
-                description: result.message,
-            });
-        }
+        toast({ title: "Complete", description: res.message, variant: res.success ? "default" : "destructive" });
     };
-
 
   return (
     <>
       <PageHeader title="Orders" description="View and manage all customer orders." />
-      
       <Dialog open={isTrackingDialogOpen} onOpenChange={setIsTrackingDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Update Tracking ID</DialogTitle>
-            <DialogDescription>
-              Enter the tracking ID for order #{currentOrderForTracking?.id.slice(-6)}.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="trackingId" className="text-right">
-                Tracking ID
-              </Label>
-              <Input
-                id="trackingId"
-                value={trackingId}
-                onChange={(e) => setTrackingId(e.target.value)}
-                className="col-span-3"
-                placeholder="Enter tracking ID"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsTrackingDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveTrackingId}>Save</Button>
-          </DialogFooter>
+        <DialogContent><DialogHeader><DialogTitle>Update Tracking ID</DialogTitle></DialogHeader>
+          <div className="py-4"><div className="grid grid-cols-4 items-center gap-4"><Label className="text-right">Tracking ID</Label><Input value={trackingId} onChange={(e) => setTrackingId(e.target.value)} className="col-span-3" /></div></div>
+          <DialogFooter><Button variant="outline" onClick={() => setIsTrackingDialogOpen(false)}>Cancel</Button><Button onClick={handleSaveTrackingId}>Save</Button></DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Manual Invoice Info Dialog */}
       <Dialog open={isInvoiceInputDialogVisible} onOpenChange={setIsInvoiceInputDialogVisible}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Generate Tax Invoice</DialogTitle>
-            <DialogDescription>
-              Please enter the HSN code and Invoice Number for order #{orderForInvoice?.id.slice(-6)}.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Generate Tax Invoice</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="invoiceNo">Invoice Number</Label>
-              <Input
-                id="invoiceNo"
-                value={manualInvoiceNo}
-                onChange={(e) => setManualInvoiceNo(e.target.value)}
-                placeholder="e.g. VYP061"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="hsn">HSN Code</Label>
-              <Input
-                id="hsn"
-                value={manualHsn}
-                onChange={(e) => setManualHsn(e.target.value)}
-                placeholder="e.g. 52082120"
-              />
-            </div>
+            <div className="grid gap-2"><Label>Invoice Number</Label><Input value={manualInvoiceNo} onChange={(e) => setManualInvoiceNo(e.target.value)} placeholder="e.g. VYP061" /></div>
+            <div className="grid gap-2"><Label>HSN Code</Label><Input value={manualHsn} onChange={(e) => setManualHsn(e.target.value)} placeholder="e.g. 52082120" /></div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsInvoiceInputDialogVisible(false)}>Cancel</Button>
-            <Button onClick={handleGenerateBillWithInputs} disabled={!manualHsn || !manualInvoiceNo}>Download Invoice</Button>
-          </DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setIsInvoiceInputDialogVisible(false)}>Cancel</Button><Button onClick={handleGenerateBillWithInputs} disabled={!manualHsn || !manualInvoiceNo}>Download Invoice</Button></DialogFooter>
         </DialogContent>
       </Dialog>
-      
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <Tabs defaultValue="all" value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div className="flex items-center gap-2">
-                <TabsList>
-                    <TabsTrigger value="all">All</TabsTrigger>
-                    <TabsTrigger value="placed">Placed</TabsTrigger>
-                    <TabsTrigger value="dispatched">Dispatched</TabsTrigger>
-                    <TabsTrigger value="delivered">Delivered</TabsTrigger>
-                </TabsList>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className={`h-10 ${(activeTab === 'Refund Initiated' || activeTab === 'Refund Complete') ? 'bg-accent text-accent-foreground' : ''}`}>Refund</Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                        <DropdownMenuItem onSelect={() => setActiveTab('Refund Initiated')}>Initiated</DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setActiveTab('Refund Complete')}>Completed</DropdownMenuItem>
-                    </DropdownMenuContent>
+                <TabsList><TabsTrigger value="all">All</TabsTrigger><TabsTrigger value="placed">Placed</TabsTrigger><TabsTrigger value="dispatched">Dispatched</TabsTrigger><TabsTrigger value="delivered">Delivered</TabsTrigger></TabsList>
+                <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className={`h-10 ${(activeTab === 'Refund Initiated' || activeTab === 'Refund Complete') ? 'bg-accent text-accent-foreground' : ''}`}>Refund</Button></DropdownMenuTrigger>
+                    <DropdownMenuContent><DropdownMenuItem onSelect={() => setActiveTab('Refund Initiated')}>Initiated</DropdownMenuItem><DropdownMenuItem onSelect={() => setActiveTab('Refund Complete')}>Completed</DropdownMenuItem></DropdownMenuContent>
                 </DropdownMenu>
             </div>
              <div className="flex flex-col sm:flex-row items-center gap-2">
-                <div className="relative w-full sm:w-auto">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        type="search"
-                        placeholder="Search by name or ID..."
-                        className="w-full rounded-lg bg-background pl-8 sm:w-48"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
-                <Button variant="outline" size="sm" onClick={handleBulkDownload} className="w-full sm:w-auto">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Labels
-                </Button>
-                 <Button variant="outline" size="sm" onClick={handleSendConfirmations} disabled={isSendingConfirmations} className="w-full sm:w-auto">
-                    {isSendingConfirmations ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
-                    Send Confirmations
-                </Button>
+                <div className="relative w-full sm:w-auto"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input placeholder="Search..." className="pl-8 w-full sm:w-48" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+                <Button variant="outline" size="sm" onClick={handleBulkDownload} className="w-full sm:w-auto"><Download className="mr-2 h-4 w-4" />Labels</Button>
+                <Button variant="outline" size="sm" onClick={handleSendConfirmations} disabled={isSendingConfirmations} className="w-full sm:w-auto">{isSendingConfirmations ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}Emails</Button>
             </div>
           </div>
            <Card>
-            <OrdersTable 
-                orders={currentOrders}
-                products={products}
-                onViewDetails={handleViewDetails} 
-                onStatusChange={handleStatusChange} 
-                onDeleteOrder={handleDeleteOrder}
-                onGenerateBill={handlePromptForInvoiceInfo}
-            />
+            <OrdersTable orders={currentOrders} products={products} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} onDeleteOrder={handleDeleteOrder} onGenerateBill={handlePromptForInvoiceInfo} />
             <CardFooter className="flex items-center justify-between pt-6">
-                <div className="text-xs text-muted-foreground">
-                    Showing <strong>{indexOfFirstOrder + 1}-{Math.min(indexOfLastOrder, searchFilteredOrders.length)}</strong> of <strong>{searchFilteredOrders.length}</strong> orders
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handlePrevPage}
-                        disabled={currentPage === 1}
-                    >
-                        Previous
-                    </Button>
-                     <span className="text-sm text-muted-foreground">
-                        Page {currentPage} of {totalPages > 0 ? totalPages : 1}
-                    </span>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleNextPage}
-                        disabled={currentPage === totalPages || totalPages === 0}
-                    >
-                        Next
-                    </Button>
-                </div>
+                <div className="text-xs text-muted-foreground">Showing <strong>{currentOrders.length > 0 ? (currentPage - 1) * ordersPerPage + 1 : 0}-{Math.min(currentPage * ordersPerPage, searchFilteredOrders.length)}</strong> of <strong>{searchFilteredOrders.length}</strong></div>
+                <div className="flex items-center gap-2"><Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}>Prev</Button><span className="text-sm">Page {currentPage} of {totalPages || 1}</span><Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages || totalPages === 0}>Next</Button></div>
             </CardFooter>
           </Card>
         </Tabs>
@@ -1120,3 +784,4 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     </>
   );
 }
+
