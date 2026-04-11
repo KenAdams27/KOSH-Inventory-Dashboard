@@ -520,6 +520,13 @@ function OrdersTable({
   };
 
   const handleStatusClick = (order: Order, status: OrderStatus) => {
+    // If status is 'placed', don't ask to notify, just update status.
+    if (status === 'placed') {
+      onStatusChange(order.id, status, undefined, false);
+      toast({ title: "Order Status Updated", description: `Order status changed to "Placed".` });
+      return;
+    }
+
     const hasBeenNotified = order.notifiedStatuses?.includes(status);
     if (hasBeenNotified) {
       onStatusChange(order.id, status, undefined, false);
@@ -680,7 +687,6 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     const [isTrackingDialogOpen, setIsTrackingDialogOpen] = useState(false);
     const [currentOrderForTracking, setCurrentOrderForTracking] = useState<Order | null>(null);
     const [trackingId, setTrackingId] = useState("");
-    const [isSendingConfirmations, setIsSendingConfirmations] = useState(false);
     const [isInvoiceInputDialogVisible, setIsInvoiceInputDialogVisible] = useState(false);
     const [orderForInvoice, setOrderForInvoice] = useState<Order | null>(null);
     const [manualHsn, setManualHsn] = useState("");
@@ -736,13 +742,6 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
         placed.forEach(o => { if (yOffset + 65 > doc.internal.pageSize.height) { doc.addPage(); yOffset = 10; } yOffset = generateLabelPage(doc, o, yOffset) + 15; });
         doc.save(`shipping-labels-placed-page-${currentPage}.pdf`);
     };
-    
-    const handleSendConfirmations = async () => {
-        setIsSendingConfirmations(true);
-        const res = await sendBulkConfirmationEmailsAction();
-        setIsSendingConfirmations(false);
-        toast({ title: "Complete", description: res.message, variant: res.success ? "default" : "destructive" });
-    };
 
   return (
     <>
@@ -774,7 +773,6 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
              <div className="flex flex-col sm:flex-row items-center gap-2">
                 <div className="relative w-full sm:w-auto"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input placeholder="Search..." className="pl-8 w-full sm:w-48" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
                 <Button variant="outline" size="sm" onClick={handleBulkDownload} className="w-full sm:w-auto"><Download className="mr-2 h-4 w-4" />Labels</Button>
-                <Button variant="outline" size="sm" onClick={handleSendConfirmations} disabled={isSendingConfirmations} className="w-full sm:w-auto">{isSendingConfirmations ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}Emails</Button>
             </div>
           </div>
            <Card>
