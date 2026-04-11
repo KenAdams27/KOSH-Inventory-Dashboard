@@ -302,30 +302,14 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
         rowY += itemH;
     });
 
-    // Handle Shipping (Fixed 90rs, No GST calculation)
-    const shipping = order.totalPrice < 999 ? 90 : 0;
-    if (shipping > 0) {
-        doc.text((order.orderItems.length + 1).toString(), 18.5, rowY, { align: "center" });
-        doc.text("Shipping Charges", 24, rowY);
-        doc.text(hsn, 87, rowY, { align: "center" });
-        doc.text("1.00", 100, rowY, { align: "center" });
-        doc.text("90", 114, rowY, { align: "center" });
-        doc.text("0%", 129, rowY, { align: "center" });
-        doc.text("0", 141, rowY, { align: "center" });
-        doc.text("0%", 153, rowY, { align: "center" });
-        doc.text("0", 165, rowY, { align: "center" });
-        doc.text("90", 183, rowY, { align: "center" });
-
-        drawTableLines(rowY - 6, 10);
-        rowY += 10;
-    }
-
     doc.line(15, rowY - 6, pageWidth - 15, rowY - 6);
 
     // 6. Footer & Totals
     const footerY = rowY + 5;
-    // Total is rounded items taxable + rounded items tax + flat shipping
-    const grandTotal = Math.round(totalTaxable) + Math.round(totalCGST) + Math.round(totalSGST) + shipping;
+    // Calculation: rounded items taxable + rounded items tax
+    const itemsTotal = Math.round(totalTaxable) + Math.round(totalCGST) + Math.round(totalSGST);
+    const shipping = order.totalPrice < 999 ? 90 : 0;
+    const grandTotal = itemsTotal + shipping;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
