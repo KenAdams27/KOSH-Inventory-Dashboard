@@ -242,17 +242,15 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
 
     doc.setFont("helvetica", "normal");
     order.orderItems.forEach((item, index) => {
-        const itemInclusiveTotal = Math.round(item.price * item.quantity);
-        const taxableValueRaw = itemInclusiveTotal / 1.05;
-        
-        const dispTaxable = Math.round(taxableValueRaw);
-        const remainingTax = itemInclusiveTotal - dispTaxable;
-        const dispCGST = Math.floor(remainingTax / 2);
-        const dispSGST = remainingTax - dispCGST;
+        const itemInclusiveTotal = item.price * item.quantity;
+        const taxableValue = itemInclusiveTotal / 1.05;
+        const totalTax = itemInclusiveTotal - taxableValue;
+        const cgst = totalTax / 2;
+        const sgst = totalTax / 2;
 
-        totalTaxable += dispTaxable;
-        totalCGST += dispCGST;
-        totalSGST += dispSGST;
+        totalTaxable += taxableValue;
+        totalCGST += cgst;
+        totalSGST += sgst;
 
         doc.text((index + 1).toString(), 18.5, rowY, { align: "center" });
         const itemName = item.name + (item.size ? ` (${item.size})` : "") + (item.color ? ` - ${item.color}` : "");
@@ -261,12 +259,12 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
         doc.text(hsn, 87, rowY, { align: "center" });
         doc.text(item.quantity.toFixed(2), 100, rowY, { align: "center" });
         doc.text("pcs", 100, rowY + 4, { align: "center" });
-        doc.text(Math.round(dispTaxable / item.quantity).toString(), 114, rowY, { align: "center" });
+        doc.text((taxableValue / item.quantity).toFixed(2), 114, rowY, { align: "center" });
         doc.text("2.5%", 129, rowY, { align: "center" });
-        doc.text(dispCGST.toString(), 141, rowY, { align: "center" });
+        doc.text(cgst.toFixed(2), 141, rowY, { align: "center" });
         doc.text("2.5%", 153, rowY, { align: "center" });
-        doc.text(dispSGST.toString(), 165, rowY, { align: "center" });
-        doc.text(dispTaxable.toString(), 183, rowY, { align: "center" });
+        doc.text(sgst.toFixed(2), 165, rowY, { align: "center" });
+        doc.text(taxableValue.toFixed(2), 183, rowY, { align: "center" });
 
         const itemH = Math.max((splitName.length * 5) + 5, 10);
         drawTableLines(rowY - 6, itemH);
@@ -277,7 +275,7 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
 
     const footerY = rowY + 5;
     const shipping = order.totalPrice < 999 ? 90 : 0;
-    const grandTotal = Math.round(order.totalPrice);
+    const grandTotal = order.totalPrice + shipping;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
@@ -302,21 +300,21 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
         doc.setTextColor(0);
     };
 
-    drawSummaryRow("Sub Total", totalTaxable.toString(), footerY);
-    drawSummaryRow("CGST (2.5%)", totalCGST.toString(), footerY + 7);
-    drawSummaryRow("SGST (2.5%)", totalSGST.toString(), footerY + 14);
+    drawSummaryRow("Sub Total", totalTaxable.toFixed(2), footerY);
+    drawSummaryRow("CGST (2.5%)", totalCGST.toFixed(2), footerY + 7);
+    drawSummaryRow("SGST (2.5%)", totalSGST.toFixed(2), footerY + 14);
     
     let summaryY = footerY + 21;
     if (shipping > 0) {
-        drawSummaryRow("Shipping Charges", shipping.toString(), summaryY);
+        drawSummaryRow("Shipping Charges", shipping.toFixed(2), summaryY);
         summaryY += 7;
     }
 
     doc.line(sumX, summaryY - 3, pageWidth - 15, summaryY - 3);
-    drawSummaryRow("Total", `Rs. ${grandTotal}`, summaryY + 4, true);
-    drawSummaryRow("Payment Made", `(-) ${grandTotal}`, summaryY + 11, false, [200, 0, 0]);
+    drawSummaryRow("Total", `Rs. ${grandTotal.toFixed(2)}`, summaryY + 4, true);
+    drawSummaryRow("Payment Made", `(-) ${grandTotal.toFixed(2)}`, summaryY + 11, false, [200, 0, 0]);
     doc.line(sumX, summaryY + 15, pageWidth - 15, summaryY + 15);
-    drawSummaryRow("Balance Due", "Rs. 0", summaryY + 21, true);
+    drawSummaryRow("Balance Due", "Rs. 0.00", summaryY + 21, true);
 
     doc.setFont("helvetica", "normal");
     doc.text("Authorized Signature", pageWidth - 35, summaryY + 50, { align: "center" });
@@ -452,8 +450,8 @@ function OrderDetailsDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <h4 className="font-medium">Total (Rounded)</h4>
-              <div className="text-sm text-muted-foreground">₹{Math.round(order.totalPrice)}</div>
+              <h4 className="font-medium">Total</h4>
+              <div className="text-sm text-muted-foreground">₹{order.totalPrice.toFixed(2)}</div>
             </div>
             <div className="space-y-1">
               <h4 className="font-medium">Date</h4>
@@ -623,7 +621,7 @@ function OrdersTable({
                   </Badge>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">{format(new Date(order.createdAt), "PPP")}</TableCell>
-                <TableCell className="hidden sm:table-cell text-right">₹{Math.round(order.totalPrice)}</TableCell>
+                <TableCell className="hidden sm:table-cell text-right">₹{order.totalPrice.toFixed(2)}</TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
