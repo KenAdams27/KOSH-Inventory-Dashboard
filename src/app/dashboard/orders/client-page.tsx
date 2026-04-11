@@ -205,13 +205,13 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     const tableY = 125;
     const colX = {
         idx: 15,
-        desc: 25,
-        hsn: 85,
-        qty: 105,
-        rate: 115,
-        cgst: 135,
-        sgst: 165,
-        amt: 195
+        desc: 22,
+        hsn: 80,
+        qty: 95,
+        rate: 105,
+        cgst: 123,
+        sgst: 147,
+        amt: 171
     };
 
     // Table Outlines
@@ -224,37 +224,38 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
     doc.text("#", 17, tableY + 7);
-    doc.text("Item & Description", 27, tableY + 7);
-    doc.text("HSN", 87, tableY + 5);
-    doc.text("/SAC", 87, tableY + 9);
-    doc.text("Qty", 107, tableY + 7, { align: "center" });
-    doc.text("Rate", 125, tableY + 7, { align: "right" });
+    doc.text("Item & Description", 24, tableY + 7);
+    doc.text("HSN", 87, tableY + 5, { align: "center" });
+    doc.text("/SAC", 87, tableY + 9, { align: "center" });
+    doc.text("Qty", 100, tableY + 7, { align: "center" });
+    doc.text("Rate", 114, tableY + 7, { align: "center" });
     
-    // GST Subheaders
-    doc.text("CGST", 147, tableY + 4, { align: "center" });
-    doc.line(135, tableY + 6, 165, tableY + 6);
-    doc.text("%", 140, tableY + 10, { align: "center" });
-    doc.text("Amt", 155, tableY + 10, { align: "center" });
+    // CGST
+    doc.text("CGST", 135, tableY + 4, { align: "center" });
+    doc.line(123, tableY + 6, 147, tableY + 6);
+    doc.text("%", 129, tableY + 10, { align: "center" });
+    doc.text("Amt", 141, tableY + 10, { align: "center" });
 
-    doc.text("SGST", 177, tableY + 4, { align: "center" });
-    doc.line(165, tableY + 6, 195, tableY + 6);
-    doc.text("%", 170, tableY + 10, { align: "center" });
-    doc.text("Amt", 185, tableY + 10, { align: "center" });
+    // SGST
+    doc.text("SGST", 159, tableY + 4, { align: "center" });
+    doc.line(147, tableY + 6, 171, tableY + 6);
+    doc.text("%", 153, tableY + 10, { align: "center" });
+    doc.text("Amt", 165, tableY + 10, { align: "center" });
 
-    doc.text("Amount", pageWidth - 17, tableY + 7, { align: "right" });
+    doc.text("Amount", 183, tableY + 7, { align: "center" });
 
     // Column Vertical Lines
     const drawTableLines = (y: number, h: number) => {
         doc.line(15, y, 15, y + h);
-        doc.line(25, y, 25, y + h);
-        doc.line(85, y, 85, y + h);
+        doc.line(22, y, 22, y + h);
+        doc.line(80, y, 80, y + h);
+        doc.line(95, y, 95, y + h);
         doc.line(105, y, 105, y + h);
-        doc.line(115, y, 115, y + h);
-        doc.line(135, y, 135, y + h);
-        doc.line(150, y + 6, 150, y + h); // CGST split
-        doc.line(165, y, 165, y + h);
-        doc.line(180, y + 6, 180, y + h); // SGST split
-        doc.line(195, y, 195, y + h);
+        doc.line(123, y, 123, y + h);
+        doc.line(135, y + 6, 135, y + h);
+        doc.line(147, y, 147, y + h);
+        doc.line(159, y + 6, 159, y + h);
+        doc.line(171, y, 171, y + h);
         doc.line(pageWidth - 15, y, pageWidth - 15, y + h);
     };
     drawTableLines(tableY, 12);
@@ -276,27 +277,27 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
         totalCGST += cgstAmt;
         totalSGST += sgstAmt;
 
-        doc.text((index + 1).toString(), 17, rowY);
+        doc.text((index + 1).toString(), 18.5, rowY, { align: "center" });
         
         const itemName = item.name + (item.size ? ` (${item.size})` : "") + (item.color ? ` - ${item.color}` : "");
         const splitName = doc.splitTextToSize(itemName, 55);
-        doc.text(splitName, 27, rowY);
+        doc.text(splitName, 24, rowY);
 
-        doc.text(hsn, 87, rowY);
-        doc.text(item.quantity.toFixed(2), 107, rowY, { align: "center" });
-        doc.text("pcs", 107, rowY + 4, { align: "center" });
+        doc.text(hsn, 87, rowY, { align: "center" });
+        doc.text(item.quantity.toFixed(2), 100, rowY, { align: "center" });
+        doc.text("pcs", 100, rowY + 4, { align: "center" });
         
-        doc.text((taxableValue / item.quantity).toFixed(2), 125, rowY, { align: "right" });
+        doc.text(Math.round(taxableValue / item.quantity).toString(), 114, rowY, { align: "center" });
         
-        doc.text("2.5%", 140, rowY, { align: "center" });
-        doc.text(cgstAmt.toFixed(2), 155, rowY, { align: "center" });
+        doc.text("2.5%", 129, rowY, { align: "center" });
+        doc.text(Math.round(cgstAmt).toString(), 141, rowY, { align: "center" });
 
-        doc.text("2.5%", 170, rowY, { align: "center" });
-        doc.text(sgstAmt.toFixed(2), 185, rowY, { align: "center" });
+        doc.text("2.5%", 153, rowY, { align: "center" });
+        doc.text(Math.round(sgstAmt).toString(), 165, rowY, { align: "center" });
 
-        doc.text(taxableValue.toFixed(2), pageWidth - 17, rowY, { align: "right" });
+        doc.text(Math.round(taxableValue).toString(), 183, rowY, { align: "center" });
 
-        const itemH = (splitName.length * 5) + 5;
+        const itemH = Math.max((splitName.length * 5) + 5, 10);
         drawTableLines(rowY - 6, itemH);
         rowY += itemH;
     });
@@ -312,16 +313,16 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
         totalCGST += cgstShip;
         totalSGST += sgstShip;
 
-        doc.text((order.orderItems.length + 1).toString(), 17, rowY);
-        doc.text("Shipping Charges", 27, rowY);
-        doc.text(hsn, 87, rowY);
-        doc.text("1.00", 107, rowY, { align: "center" });
-        doc.text(taxableShip.toFixed(2), 125, rowY, { align: "right" });
-        doc.text("2.5%", 140, rowY, { align: "center" });
-        doc.text(cgstShip.toFixed(2), 155, rowY, { align: "center" });
-        doc.text("2.5%", 170, rowY, { align: "center" });
-        doc.text(sgstShip.toFixed(2), 185, rowY, { align: "center" });
-        doc.text(taxableShip.toFixed(2), pageWidth - 17, rowY, { align: "right" });
+        doc.text((order.orderItems.length + 1).toString(), 18.5, rowY, { align: "center" });
+        doc.text("Shipping Charges", 24, rowY);
+        doc.text(hsn, 87, rowY, { align: "center" });
+        doc.text("1.00", 100, rowY, { align: "center" });
+        doc.text(Math.round(taxableShip).toString(), 114, rowY, { align: "center" });
+        doc.text("2.5%", 129, rowY, { align: "center" });
+        doc.text(Math.round(cgstShip).toString(), 141, rowY, { align: "center" });
+        doc.text("2.5%", 153, rowY, { align: "center" });
+        doc.text(Math.round(sgstShip).toString(), 165, rowY, { align: "center" });
+        doc.text(Math.round(taxableShip).toString(), 183, rowY, { align: "center" });
 
         drawTableLines(rowY - 6, 10);
         rowY += 10;
@@ -356,19 +357,19 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
         doc.text(value, pageWidth - 17, y, { align: "right" });
     };
 
-    drawSummaryRow("Sub Total", totalTaxable.toFixed(2), footerY);
-    drawSummaryRow("CGST2.5 (2.5%)", totalCGST.toFixed(2), footerY + 7);
-    drawSummaryRow("SGST2.5 (2.5%)", totalSGST.toFixed(2), footerY + 14);
+    drawSummaryRow("Sub Total", Math.round(totalTaxable).toString(), footerY);
+    drawSummaryRow("CGST (2.5%)", Math.round(totalCGST).toString(), footerY + 7);
+    drawSummaryRow("SGST (2.5%)", Math.round(totalSGST).toString(), footerY + 14);
     
     doc.line(sumX, footerY + 18, pageWidth - 15, footerY + 18);
-    drawSummaryRow("Total", `Rs. ${Math.round(grandTotal)}.00`, footerY + 25, true);
+    drawSummaryRow("Total", `Rs. ${Math.round(grandTotal)}`, footerY + 25, true);
     
     doc.setTextColor(200, 0, 0);
-    drawSummaryRow("Payment Made", `(-) ${Math.round(grandTotal)}.00`, footerY + 32);
+    drawSummaryRow("Payment Made", `(-) ${Math.round(grandTotal)}`, footerY + 32);
     doc.setTextColor(0);
     
     doc.line(sumX, footerY + 36, pageWidth - 15, footerY + 36);
-    drawSummaryRow("Balance Due", "Rs. 0.00", footerY + 42, true);
+    drawSummaryRow("Balance Due", "Rs. 0", footerY + 42, true);
 
     // Signature
     doc.setFont("helvetica", "normal");
@@ -378,7 +379,6 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.save(`Invoice_KOSH_${invoiceNo}.pdf`);
 };
 
-// ... (Rest of statusStyles helper remains the same)
 
 // Helper function to generate a single shipping label page
 const generateLabelPage = (doc: jsPDF, order: Order, yOffset: number = 10) => {
