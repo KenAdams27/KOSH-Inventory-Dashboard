@@ -94,6 +94,7 @@ export async function sendOrderConfirmationEmail({
 
     sendSmtpEmail.subject = `Your KOSH Order is Confirmed! #${order.id.slice(-6)}`;
     sendSmtpEmail.to = [{ email: customerEmail, name: customerName }];
+    sendSmtpEmail.cc = [{ email: BREVO_CC_EMAIL }];
     sendSmtpEmail.sender = { name: BREVO_SENDER_NAME, email: senderEmail };
 
     const itemsList = order.orderItems
@@ -102,11 +103,19 @@ export async function sendOrderConfirmationEmail({
 
     sendSmtpEmail.htmlContent = `
       <html>
-        <body>
-          <h1>Hello ${customerName},</h1>
-          <p>Your order <strong>#${order.id.slice(-6)}</strong> is confirmed.</p>
-          <ul>${itemsList}</ul>
-          <h3>Total: ₹${order.totalPrice.toFixed(2)}</h3>
+        <body style="font-family: sans-serif; color: #333; line-height: 1.6;">
+          <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h1 style="color: #1a1a1a;">Hello ${customerName},</h1>
+            <p>Your order <strong>#${order.id.slice(-6)}</strong> is confirmed and we're getting it ready for you!</p>
+            <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <h3 style="margin-top: 0;">Order Summary</h3>
+                <ul style="list-style: none; padding-left: 0;">${itemsList}</ul>
+                <hr style="border: 0; border-top: 1px solid #ddd;">
+                <p style="font-size: 18px; font-weight: bold;">Total Amount: ₹${order.totalPrice.toFixed(2)}</p>
+            </div>
+            <p>We'll notify you as soon as your items have been shipped.</p>
+            <p>Warm regards,<br><strong>Team KKosh</strong></p>
+          </div>
         </body>
       </html>
     `;
@@ -144,6 +153,7 @@ export async function sendOrderStatusUpdateEmail({
 
     sendSmtpEmail.subject = `Your KOSH Order Status: ${orderId.slice(-6)}`;
     sendSmtpEmail.to = [{ email: customerEmail, name: customerName }];
+    sendSmtpEmail.cc = [{ email: BREVO_CC_EMAIL }];
     sendSmtpEmail.sender = { name: BREVO_SENDER_NAME, email: senderEmail };
 
     const formattedStatus = newStatus
@@ -154,14 +164,23 @@ export async function sendOrderStatusUpdateEmail({
 
     if (newStatus === 'dispatched' && trackingId) {
       htmlContent = `
-        <h1>Hello ${customerName},</h1>
-        <p>Your order (${orderId.slice(-6)}) has been dispatched.</p>
-        <p>Tracking ID: ${trackingId}</p>
+        <div style="font-family: sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h1 style="color: #1a1a1a;">Hello ${customerName},</h1>
+            <p>Good news! Your order (<strong>#${orderId.slice(-6)}</strong>) has been dispatched.</p>
+            <div style="background-color: #f0f7ff; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 0; font-weight: bold;">Tracking ID: <a href="${trackingId}" style="color: #3F51B5;">${trackingId}</a></p>
+            </div>
+            <p>You can use the link above to track the progress of your delivery.</p>
+            <p>Warm regards,<br><strong>Team KKosh</strong></p>
+        </div>
       `;
     } else {
       htmlContent = `
-        <h1>Hello ${customerName},</h1>
-        <p>Status updated to <strong>${formattedStatus}</strong></p>
+        <div style="font-family: sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h1 style="color: #1a1a1a;">Hello ${customerName},</h1>
+            <p>The status of your order (<strong>#${orderId.slice(-6)}</strong>) has been updated to: <strong>${formattedStatus}</strong></p>
+            <p>Warm regards,<br><strong>Team KKosh</strong></p>
+        </div>
       `;
     }
 
