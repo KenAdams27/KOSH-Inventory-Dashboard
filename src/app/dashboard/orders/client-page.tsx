@@ -243,10 +243,11 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.setFont("helvetica", "normal");
     order.orderItems.forEach((item, index) => {
         const itemInclusiveTotal = item.price * item.quantity;
-        const taxableValue = itemInclusiveTotal / 1.05;
-        const totalTax = itemInclusiveTotal - taxableValue;
-        const cgst = totalTax / 2;
-        const sgst = totalTax / 2;
+        // Back-calculate taxable value and taxes from inclusive total
+        const taxableValue = Math.round((itemInclusiveTotal / 1.05) * 100) / 100;
+        const totalTax = Math.round((itemInclusiveTotal - taxableValue) * 100) / 100;
+        const cgst = Math.round((totalTax / 2) * 100) / 100;
+        const sgst = Math.round((totalTax - cgst) * 100) / 100;
 
         totalTaxable += taxableValue;
         totalCGST += cgst;
@@ -275,7 +276,12 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
 
     const footerY = rowY + 5;
     const shipping = order.totalPrice < 999 ? 90 : 0;
-    const grandTotal = order.totalPrice + shipping;
+    
+    // Ensure total components sum exactly to the intended grand total
+    const roundedTotalTaxable = Number(totalTaxable.toFixed(2));
+    const roundedTotalCGST = Number(totalCGST.toFixed(2));
+    const roundedTotalSGST = Number(totalSGST.toFixed(2));
+    const grandTotal = roundedTotalTaxable + roundedTotalCGST + roundedTotalSGST + shipping;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
@@ -300,9 +306,9 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
         doc.setTextColor(0);
     };
 
-    drawSummaryRow("Sub Total", totalTaxable.toFixed(2), footerY);
-    drawSummaryRow("CGST (2.5%)", totalCGST.toFixed(2), footerY + 7);
-    drawSummaryRow("SGST (2.5%)", totalSGST.toFixed(2), footerY + 14);
+    drawSummaryRow("Sub Total", roundedTotalTaxable.toFixed(2), footerY);
+    drawSummaryRow("CGST (2.5%)", roundedTotalCGST.toFixed(2), footerY + 7);
+    drawSummaryRow("SGST (2.5%)", roundedTotalSGST.toFixed(2), footerY + 14);
     
     let summaryY = footerY + 21;
     if (shipping > 0) {
