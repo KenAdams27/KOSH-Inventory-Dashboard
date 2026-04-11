@@ -57,7 +57,7 @@ export async function POST(req: Request) {
             const { _id: itemIdRaw, item: prodId, ...rest } = item;
             return {
                 ...rest,
-                itemId: prodId?.toString() || itemIdRaw?.toString()
+                itemId: prodId?.toString() || item.itemId?.toString() || itemIdRaw?.toString() || ''
             };
         }),
         shippingAddress: dbOrder.shippingAddress,
