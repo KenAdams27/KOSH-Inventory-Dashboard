@@ -1,15 +1,14 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
-import { MoreHorizontal, Search, Download, Pencil, Mail, Loader2, FileText } from "lucide-react";
+import { MoreHorizontal, Search, Download, Pencil, Mail, Loader2, FileText, X } from "lucide-react";
 import { format } from "date-fns";
 import jsPDF from 'jspdf';
 
 
 import type { Order, Product, OrderItem, OrderStatus } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { updateOrderStatusAction, deleteOrderAction, sendBulkConfirmationEmailsAction } from "./actions";
+import { updateOrderStatusAction, deleteOrderAction } from "./actions";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,6 +39,17 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -56,17 +66,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -160,22 +160,7 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.text(": Rajasthan (08)", pageWidth / 2 + 35, 51);
 
     const boxY = 75;
-    const boxH = 48; // Increased height for wrapped addresses
-    doc.line(15, boxY + boxH, pageWidth - 15, boxY + boxH);
-    doc.line(15, boxY, 15, boxY + boxH);
-    doc.line(pageWidth - 15, boxY, pageWidth - 15, boxY + boxH);
-    doc.line(pageWidth / 2, boxY, pageWidth / 2, boxY + boxH);
-
-    doc.setFillColor(245, 245, 245);
-    doc.rect(15.5, boxY + 0.5, (pageWidth / 2) - 15.5, 6, 'F');
-    doc.rect((pageWidth / 2) + 0.5, boxY + 0.5, (pageWidth / 2) - 15.5, 6, 'F');
     
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "bold");
-    doc.text("Bill To", 18, boxY + 4.5);
-    doc.text("Ship To", pageWidth / 2 + 5, boxY + 4.5);
-
-    // Wrapping address function: 5 words per line maximum
     const wrapAddress = (text: string, maxWords: number) => {
       const words = text.split(' ');
       const lines = [];
@@ -192,6 +177,22 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
       "India"
     ];
 
+    const boxH = Math.max(48, (addressLines.length * 5) + 20);
+
+    doc.line(15, boxY + boxH, pageWidth - 15, boxY + boxH);
+    doc.line(15, boxY, 15, boxY + boxH);
+    doc.line(pageWidth - 15, boxY, pageWidth - 15, boxY + boxH);
+    doc.line(pageWidth / 2, boxY, pageWidth / 2, boxY + boxH);
+
+    doc.setFillColor(245, 245, 245);
+    doc.rect(15.5, boxY + 0.5, (pageWidth / 2) - 15.5, 6, 'F');
+    doc.rect((pageWidth / 2) + 0.5, boxY + 0.5, (pageWidth / 2) - 15.5, 6, 'F');
+    
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text("Bill To", 18, boxY + 4.5);
+    doc.text("Ship To", pageWidth / 2 + 5, boxY + 4.5);
+
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text(order.shippingAddress.fullName, 18, boxY + 12);
@@ -203,7 +204,7 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.setFont("helvetica", "normal");
     doc.text(addressLines, pageWidth / 2 + 5, boxY + 18, { lineHeightFactor: 1.1 });
 
-    const tableY = boxY + boxH + 8; // Adjust table starting point based on box height
+    const tableY = boxY + boxH + 8;
     doc.line(15, tableY, pageWidth - 15, tableY);
     doc.line(15, tableY + 12, pageWidth - 15, tableY + 12);
 
@@ -254,10 +255,10 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.setFont("helvetica", "normal");
     order.orderItems.forEach((item, index) => {
         const itemInclusiveTotal = item.price * item.quantity;
-        const taxableValue = Math.round((itemInclusiveTotal / 1.05) * 100) / 100;
-        const totalTax = Math.round((itemInclusiveTotal - taxableValue) * 100) / 100;
-        const cgst = Math.round((totalTax / 2) * 100) / 100;
-        const sgst = Math.round((totalTax - cgst) * 100) / 100;
+        const taxableValue = Number((itemInclusiveTotal / 1.05).toFixed(2));
+        const totalTax = Number((itemInclusiveTotal - taxableValue).toFixed(2));
+        const cgst = Number((totalTax / 2).toFixed(2));
+        const sgst = Number((totalTax - cgst).toFixed(2));
 
         totalTaxable += taxableValue;
         totalCGST += cgst;
@@ -287,10 +288,7 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     const footerY = rowY + 5;
     const shipping = order.totalPrice < 999 ? 90 : 0;
     
-    const roundedTotalTaxable = Number(totalTaxable.toFixed(2));
-    const roundedTotalCGST = Number(totalCGST.toFixed(2));
-    const roundedTotalSGST = Number(totalSGST.toFixed(2));
-    const grandTotal = roundedTotalTaxable + roundedTotalCGST + roundedTotalSGST + shipping;
+    const grandTotal = Number((totalTaxable + totalCGST + totalSGST + shipping).toFixed(2));
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
@@ -315,9 +313,9 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
         doc.setTextColor(0);
     };
 
-    drawSummaryRow("Sub Total", roundedTotalTaxable.toFixed(2), footerY);
-    drawSummaryRow("CGST (2.5%)", roundedTotalCGST.toFixed(2), footerY + 7);
-    drawSummaryRow("SGST (2.5%)", roundedTotalSGST.toFixed(2), footerY + 14);
+    drawSummaryRow("Sub Total", totalTaxable.toFixed(2), footerY);
+    drawSummaryRow("CGST (2.5%)", totalCGST.toFixed(2), footerY + 7);
+    drawSummaryRow("SGST (2.5%)", totalSGST.toFixed(2), footerY + 14);
     
     let summaryY = footerY + 21;
     if (shipping > 0) {
@@ -529,7 +527,6 @@ function OrdersTable({
   };
 
   const handleStatusClick = (order: Order, status: OrderStatus) => {
-    // If status is 'placed', don't ask to notify, just update status.
     if (status === 'placed') {
       onStatusChange(order.id, status, undefined, false);
       toast({ title: "Order Status Updated", description: `Order status changed to "Placed".` });
