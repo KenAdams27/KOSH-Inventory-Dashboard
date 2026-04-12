@@ -162,17 +162,12 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
 
     const boxY = 75;
     
-    // Improved address wrapping - max 5 words per line
-    const wrapAddress = (text: string) => {
-        const words = text.split(' ');
-        const lines = [];
-        for (let i = 0; i < words.length; i += 5) {
-            lines.push(words.slice(i, i + 5).join(' '));
-        }
-        return lines;
-    };
-
-    const wrappedAddress = wrapAddress(order.shippingAddress.address);
+    // Robust address wrapping using jsPDF's splitTextToSize
+    const addressBoxWidth = (pageWidth / 2) - 25; 
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    
+    const wrappedAddress = doc.splitTextToSize(order.shippingAddress.address, addressBoxWidth);
 
     const addressLines = [
       ...wrappedAddress,
@@ -259,7 +254,6 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.setFont("helvetica", "normal");
     order.orderItems.forEach((item, index) => {
         const itemInclusiveTotal = item.price * item.quantity;
-        // Accurate decimal rounding
         const taxableValue = Number((itemInclusiveTotal / 1.05).toFixed(2));
         const totalTax = Number((itemInclusiveTotal - taxableValue).toFixed(2));
         const cgst = Number((totalTax / 2).toFixed(2));
