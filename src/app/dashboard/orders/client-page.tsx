@@ -70,6 +70,7 @@ import {
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 
 const statusStyles: Record<OrderStatus, string> = {
@@ -368,6 +369,95 @@ const generateLabelPage = (doc: jsPDF, order: Order, yOffset: number = 10) => {
     doc.text(customerAddress, 110, yOffset + 27, { lineHeightFactor: 1.2 });
     return yOffset + labelHeight;
 };
+
+function BulkInvoicesDialog({ 
+  orders, 
+  open, 
+  onOpenChange 
+}: { 
+  orders: Order[], 
+  open: boolean, 
+  onOpenChange: (open: boolean) => void 
+}) {
+  const { toast } = useToast();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  // Filter orders that have invoice info and are delivered
+  const billableOrders = orders.filter(o => o.status === 'delivered' && o.invoiceNo && o.hsn);
+
+  const handleToggle = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleAll = () => {
+    if (selectedIds.length === billableOrders.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(billableOrders.map(o => o.id));
+    }
+  };
+
+  const handleDownload = () => {
+    const ordersToDownload = billableOrders.filter(o => selectedIds.includes(o.id));
+    if (ordersToDownload.length === 0) return;
+    
+    ordersToDownload.forEach(o => {
+      generateInvoicePDF(o, o.hsn!, o.invoiceNo!);
+    });
+
+    toast({ 
+      title: "Downloading Bills", 
+      description: `Started download for ${ordersToDownload.length} invoices.` 
+    });
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Select Bills to Download</DialogTitle>
+          <DialogDescription>
+            Only delivered orders with saved invoice info are shown here.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="flex items-center justify-between px-2">
+            <span className="text-sm font-medium">{selectedIds.length} selected</span>
+            <Button variant="ghost" size="sm" onClick={handleToggleAll}>
+              {selectedIds.length === billableOrders.length ? "Deselect All" : "Select All"}
+            </Button>
+          </div>
+          <ScrollArea className="h-64 border rounded-md p-2">
+            {billableOrders.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8 text-sm">No delivered orders with saved bills found.</p>
+            ) : (
+              <div className="space-y-2">
+                {billableOrders.map(order => (
+                  <div key={order.id} className="flex items-center space-x-2 p-2 hover:bg-muted rounded-md cursor-pointer" onClick={() => handleToggle(order.id)}>
+                    <Checkbox checked={selectedIds.includes(order.id)} onCheckedChange={() => handleToggle(order.id)} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{order.shippingAddress.fullName}</p>
+                      <p className="text-xs text-muted-foreground">Inv: {order.invoiceNo} • {format(new Date(order.createdAt), 'dd MMM')}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleDownload} disabled={selectedIds.length === 0}>
+            Download {selectedIds.length} Bills
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function OrderDetailsDialog({
   order,
@@ -713,6 +803,7 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     const [orderForInvoice, setOrderForInvoice] = useState<Order | null>(null);
     const [manualHsn, setManualHsn] = useState("");
     const [manualInvoiceNo, setManualInvoiceNo] = useState("");
+    const [isBulkInvoicesOpen, setIsBulkInvoicesOpen] = useState(false);
 
     const ordersPerPage = 10;
     useEffect(() => { setOrders(initialOrders); }, [initialOrders]);
@@ -792,26 +883,6 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
         doc.save(`shipping-labels-placed-page-${currentPage}.pdf`);
     };
 
-    const handleBulkInvoices = () => {
-        const deliveredWithBills = orders.filter(o => o.status === 'delivered' && o.invoiceNo && o.hsn);
-        if (deliveredWithBills.length === 0) {
-            return toast({ 
-                variant: "destructive", 
-                title: "No Delivered Bills", 
-                description: "No delivered orders have saved invoice information." 
-            });
-        }
-        
-        deliveredWithBills.forEach(o => {
-            generateInvoicePDF(o, o.hsn!, o.invoiceNo!);
-        });
-
-        toast({ 
-            title: "Downloading Bills", 
-            description: `Starting download for ${deliveredWithBills.length} invoices.` 
-        });
-    };
-
   return (
     <>
       <PageHeader title="Orders" description="View and manage all customer orders." />
@@ -830,6 +901,9 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
           <DialogFooter><Button variant="outline" onClick={() => setIsInvoiceInputDialogVisible(false)}>Cancel</Button><Button onClick={handleGenerateBillWithInputs} disabled={!manualHsn || !manualInvoiceNo}>Download & Save</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <BulkInvoicesDialog orders={orders} open={isBulkInvoicesOpen} onOpenChange={setIsBulkInvoicesOpen} />
+
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
@@ -843,7 +917,7 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
                 <div className="relative w-full sm:w-auto"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input placeholder="Search..." className="pl-8 w-full sm:w-48" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                     <Button variant="outline" size="sm" onClick={handleBulkDownload} className="flex-1 sm:flex-none"><Download className="mr-2 h-4 w-4" />Labels</Button>
-                    <Button variant="outline" size="sm" onClick={handleBulkInvoices} className="flex-1 sm:flex-none"><FileText className="mr-2 h-4 w-4" />Bulk Bills</Button>
+                    <Button variant="outline" size="sm" onClick={() => setIsBulkInvoicesOpen(true)} className="flex-1 sm:flex-none"><FileText className="mr-2 h-4 w-4" />Bulk Bills</Button>
                 </div>
             </div>
           </div>
