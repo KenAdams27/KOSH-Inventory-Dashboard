@@ -732,6 +732,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
                         {product.variants.map((v, i) => {
                             const vTotal = Number(v.price || 0);
                             const vBase = Number((vTotal / 1.05).toFixed(2));
+                            const vGst = Number((vTotal - vBase).toFixed(2));
                             return (
                                 <TableRow key={i}>
                                     <TableCell className="font-medium">{v.size}</TableCell>
@@ -740,7 +741,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
                                         <div className="flex flex-col">
                                             <span>₹{vTotal.toFixed(2)}</span>
                                             <span className="text-[10px] text-muted-foreground">
-                                                (₹{vBase.toFixed(2)} + 5% GST)
+                                                (₹{vBase.toFixed(2)} + 5% GST [₹{vGst.toFixed(2)}])
                                             </span>
                                         </div>
                                     </TableCell>
@@ -763,7 +764,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
                             <div className="flex flex-col">
                                 <p className="text-lg font-bold">₹{totalPrice.toFixed(2)}</p>
                                 <p className="text-xs text-muted-foreground italic">
-                                    (₹{basePrice.toFixed(2)} base + 5% GST = ₹{totalPrice.toFixed(2)})
+                                    (₹{basePrice.toFixed(2)} base + 5% GST [₹{gstAmount.toFixed(2)}] = ₹{totalPrice.toFixed(2)})
                                 </p>
                             </div>
                         </div>
