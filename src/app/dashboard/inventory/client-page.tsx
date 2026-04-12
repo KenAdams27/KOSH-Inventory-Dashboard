@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -656,6 +655,10 @@ function ReviewStars({ rating }: { rating: number }) {
 
 
 function ProductDetailsDialog({ product }: { product: Product }) {
+  const totalPrice = Number(product.price || 0);
+  const basePrice = Number((totalPrice / 1.05).toFixed(2));
+  const gstAmount = Number((totalPrice - basePrice).toFixed(2));
+
   return (
     <DialogContent className="sm:max-w-2xl">
       <DialogHeader>
@@ -720,47 +723,67 @@ function ProductDetailsDialog({ product }: { product: Product }) {
                         <TableRow>
                             <TableHead>Size</TableHead>
                             <TableHead>SKU</TableHead>
-                            <TableHead>Price</TableHead>
-                            <TableHead>MRP</TableHead>
+                            <TableHead>Total Charge (₹)</TableHead>
+                            <TableHead>MRP (₹)</TableHead>
                             <TableHead>Qty</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {product.variants.map((v, i) => (
-                            <TableRow key={i}>
-                                <TableCell className="font-medium">{v.size}</TableCell>
-                                <TableCell className="text-muted-foreground text-xs">{v.sku}</TableCell>
-                                <TableCell>₹{Number(v.price || 0).toFixed(2)}</TableCell>
-                                <TableCell className="text-muted-foreground">₹{v.mrp ? Number(v.mrp).toFixed(2) : 'N/A'}</TableCell>
-                                <TableCell>
-                                    <Badge variant={(v.quantity || 0) > 10 ? "secondary" : ((v.quantity || 0) > 0 ? "outline" : "destructive")}>
-                                        {v.quantity || 0}
-                                    </Badge>
-                                </TableCell>
-                            </TableRow>
-                        ))}
+                        {product.variants.map((v, i) => {
+                            const vTotal = Number(v.price || 0);
+                            const vBase = Number((vTotal / 1.05).toFixed(2));
+                            return (
+                                <TableRow key={i}>
+                                    <TableCell className="font-medium">{v.size}</TableCell>
+                                    <TableCell className="text-muted-foreground text-xs">{v.sku}</TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col">
+                                            <span>₹{vTotal.toFixed(2)}</span>
+                                            <span className="text-[10px] text-muted-foreground">
+                                                (₹{vBase.toFixed(2)} + 5% GST)
+                                            </span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">₹{v.mrp ? Number(v.mrp).toFixed(2) : 'N/A'}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={(v.quantity || 0) > 10 ? "secondary" : ((v.quantity || 0) > 0 ? "outline" : "destructive")}>
+                                            {v.quantity || 0}
+                                        </Badge>
+                                    </TableCell>
+                                </TableRow>
+                            )
+                        })}
                     </TableBody>
                 </Table>
             ) : (
-                <div className="grid grid-cols-2 gap-4 border p-4 rounded-lg bg-muted/30">
-                    <div>
-                        <Label className="text-xs text-muted-foreground uppercase">Price</Label>
-                        <p className="text-lg font-bold">₹{Number(product.price || 0).toFixed(2)}</p>
+                <div className="grid grid-cols-1 gap-4 border p-4 rounded-lg bg-muted/30">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2 sm:col-span-1">
+                            <Label className="text-xs text-muted-foreground uppercase">Price Breakdown</Label>
+                            <div className="flex flex-col">
+                                <p className="text-lg font-bold">₹{totalPrice.toFixed(2)}</p>
+                                <p className="text-xs text-muted-foreground italic">
+                                    (₹{basePrice.toFixed(2)} base + 5% GST = ₹{totalPrice.toFixed(2)})
+                                </p>
+                            </div>
+                        </div>
+                        <div className="col-span-2 sm:col-span-1">
+                            <Label className="text-xs text-muted-foreground uppercase">MRP</Label>
+                            <p className="text-lg text-muted-foreground">₹{product.mrp ? Number(product.mrp).toFixed(2) : 'N/A'}</p>
+                        </div>
                     </div>
-                    <div>
-                        <Label className="text-xs text-muted-foreground uppercase">MRP</Label>
-                        <p className="text-lg text-muted-foreground">₹{product.mrp ? Number(product.mrp).toFixed(2) : 'N/A'}</p>
-                    </div>
-                    <div>
-                        <Label className="text-xs text-muted-foreground uppercase">Quantity</Label>
-                        <p className="text-lg font-bold">{product.quantity || 0}</p>
-                    </div>
-                     <div>
-                        <Label className="text-xs text-muted-foreground uppercase">Status</Label>
+                    <div className="grid grid-cols-2 gap-4">
                         <div>
-                             <Badge variant={(product.quantity || 0) > 10 ? "secondary" : ((product.quantity || 0) > 0 ? "outline" : "destructive")}>
-                                {product.status}
-                            </Badge>
+                            <Label className="text-xs text-muted-foreground uppercase">Quantity</Label>
+                            <p className="text-lg font-bold">{product.quantity || 0}</p>
+                        </div>
+                         <div>
+                            <Label className="text-xs text-muted-foreground uppercase">Status</Label>
+                            <div>
+                                 <Badge variant={(product.quantity || 0) > 10 ? "secondary" : ((product.quantity || 0) > 0 ? "outline" : "destructive")}>
+                                    {product.status}
+                                </Badge>
+                            </div>
                         </div>
                     </div>
                 </div>
