@@ -65,7 +65,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
@@ -161,7 +160,7 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.text(": Rajasthan (08)", pageWidth / 2 + 35, 51);
 
     const boxY = 75;
-    const boxH = 40;
+    const boxH = 48; // Increased height for wrapped addresses
     doc.line(15, boxY + boxH, pageWidth - 15, boxY + boxH);
     doc.line(15, boxY, 15, boxY + boxH);
     doc.line(pageWidth - 15, boxY, pageWidth - 15, boxY + boxH);
@@ -176,23 +175,35 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.text("Bill To", 18, boxY + 4.5);
     doc.text("Ship To", pageWidth / 2 + 5, boxY + 4.5);
 
+    // Wrapping address function: 5 words per line maximum
+    const wrapAddress = (text: string, maxWords: number) => {
+      const words = text.split(' ');
+      const lines = [];
+      for (let i = 0; i < words.length; i += maxWords) {
+        lines.push(words.slice(i, i + maxWords).join(' '));
+      }
+      return lines;
+    };
+
+    const addressLines = [
+      ...wrapAddress(order.shippingAddress.address, 5),
+      order.shippingAddress.city,
+      `${order.shippingAddress.pincode} Rajasthan`,
+      "India"
+    ];
+
     doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
     doc.text(order.shippingAddress.fullName, 18, boxY + 12);
     doc.setFont("helvetica", "normal");
-    const addr = [
-        order.shippingAddress.address,
-        order.shippingAddress.city,
-        `${order.shippingAddress.pincode} Rajasthan`,
-        "India"
-    ];
-    doc.text(addr, 18, boxY + 18, { lineHeightFactor: 1.1 });
+    doc.text(addressLines, 18, boxY + 18, { lineHeightFactor: 1.1 });
 
     doc.setFont("helvetica", "bold");
     doc.text(order.shippingAddress.fullName, pageWidth / 2 + 5, boxY + 12);
     doc.setFont("helvetica", "normal");
-    doc.text(addr, pageWidth / 2 + 5, boxY + 18, { lineHeightFactor: 1.1 });
+    doc.text(addressLines, pageWidth / 2 + 5, boxY + 18, { lineHeightFactor: 1.1 });
 
-    const tableY = 125;
+    const tableY = boxY + boxH + 8; // Adjust table starting point based on box height
     doc.line(15, tableY, pageWidth - 15, tableY);
     doc.line(15, tableY + 12, pageWidth - 15, tableY + 12);
 
@@ -243,7 +254,6 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.setFont("helvetica", "normal");
     order.orderItems.forEach((item, index) => {
         const itemInclusiveTotal = item.price * item.quantity;
-        // Back-calculate taxable value and taxes from inclusive total
         const taxableValue = Math.round((itemInclusiveTotal / 1.05) * 100) / 100;
         const totalTax = Math.round((itemInclusiveTotal - taxableValue) * 100) / 100;
         const cgst = Math.round((totalTax / 2) * 100) / 100;
@@ -277,7 +287,6 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     const footerY = rowY + 5;
     const shipping = order.totalPrice < 999 ? 90 : 0;
     
-    // Ensure total components sum exactly to the intended grand total
     const roundedTotalTaxable = Number(totalTaxable.toFixed(2));
     const roundedTotalCGST = Number(totalCGST.toFixed(2));
     const roundedTotalSGST = Number(totalSGST.toFixed(2));
