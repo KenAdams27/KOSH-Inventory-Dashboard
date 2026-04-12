@@ -161,7 +161,6 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
 
     const boxY = 75;
     
-    // Address wrapping using splitTextToSize for pixel-perfect alignment
     const maxAddrWidth = (pageWidth / 2) - 25;
     const wrappedAddress = doc.splitTextToSize(order.shippingAddress.address, maxAddrWidth);
 
@@ -281,9 +280,8 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.line(15, rowY - 6, pageWidth - 15, rowY - 6);
 
     const footerY = rowY + 5;
-    const shipping = order.totalPrice < 999 ? 90 : 0;
+    const shipping = order.totalPrice < 1089 ? 90 : 0;
     
-    // Exact summation of components for accurate total display
     const grandTotal = Number((totalTaxable + totalCGST + totalSGST + shipping).toFixed(2));
 
     doc.setFont("helvetica", "normal");
