@@ -1,14 +1,15 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
-import { MoreHorizontal, Search, Download, Pencil, Mail, Loader2, FileText, X } from "lucide-react";
+import { MoreHorizontal, Search, Download, Pencil, Mail, Loader2, FileText, X, Eye } from "lucide-react";
 import { format } from "date-fns";
 import jsPDF from 'jspdf';
 
 
 import type { Order, Product, OrderItem, OrderStatus } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { updateOrderStatusAction, deleteOrderAction } from "./actions";
+import { updateOrderStatusAction, deleteOrderAction, saveInvoiceInfoAction } from "./actions";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -369,11 +370,13 @@ function OrderDetailsDialog({
   products,
   onEditTrackingId,
   onGenerateBill,
+  onViewBill,
 }: {
   order: Order;
   products: Product[];
   onEditTrackingId: (order: Order) => void;
   onGenerateBill: (order: Order) => void;
+  onViewBill: (order: Order) => void;
 }) {
   const status = order.status;
   const [skuDialog, setSkuDialog] = useState<{ open: boolean, item: OrderItem | null, sku: string | null }>({ open: false, item: null, sku: null });
@@ -480,9 +483,15 @@ function OrderDetailsDialog({
               <Download className="mr-2 h-4 w-4" />
               Shipping Label
             </Button>
+            {order.invoiceNo && (
+              <Button variant="secondary" size="sm" onClick={() => onViewBill(order)}>
+                <Eye className="mr-2 h-4 w-4" />
+                View Bill
+              </Button>
+            )}
             <Button variant="secondary" size="sm" onClick={() => onGenerateBill(order)}>
               <FileText className="mr-2 h-4 w-4" />
-              Generate Bill
+              {order.invoiceNo ? "Regenerate Bill" : "Generate Bill"}
             </Button>
           </DialogFooter>
       </DialogContent>
@@ -497,6 +506,7 @@ function OrdersTable({
   onStatusChange,
   onDeleteOrder,
   onGenerateBill,
+  onViewBill,
 }: { 
   orders: Order[],
   products: Product[],
@@ -504,6 +514,7 @@ function OrdersTable({
   onStatusChange: (orderId: string, newStatus: OrderStatus, trackingId?: string, sendEmail?: boolean) => void,
   onDeleteOrder: (orderId: string) => void,
   onGenerateBill: (order: Order) => void,
+  onViewBill: (order: Order) => void,
 }) {
   const { toast } = useToast();
   const [isTrackingDialogOpen, setIsTrackingDialogOpen] = useState(false);
@@ -643,7 +654,14 @@ function OrdersTable({
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuItem onSelect={() => onViewDetails(order)}>View Details</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => onGenerateBill(order)}><FileText className="mr-2 h-4 w-4" />Generate Bill</DropdownMenuItem>
+                      {order.invoiceNo && (
+                        <DropdownMenuItem onSelect={() => onViewBill(order)}>
+                          <Eye className="mr-2 h-4 w-4" />View Saved Bill
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onSelect={() => onGenerateBill(order)}>
+                        <FileText className="mr-2 h-4 w-4" />{order.invoiceNo ? "Regenerate Bill" : "Generate Bill"}
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuSub>
                         <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
@@ -721,8 +739,35 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     const handleEditTrackingId = (order: Order) => { setCurrentOrderForTracking(order); setTrackingId(order.tracking_id || ""); setIsTrackingDialogOpen(true); };
     const handleSaveTrackingId = () => { if (currentOrderForTracking) { handleStatusChange(currentOrderForTracking.id, currentOrderForTracking.status, trackingId, true); setIsTrackingDialogOpen(false); } };
 
-    const handlePromptForInvoiceInfo = (order: Order) => { setOrderForInvoice(order); setManualHsn(""); setManualInvoiceNo(""); setIsInvoiceInputDialogVisible(true); };
-    const handleGenerateBillWithInputs = () => { if (orderForInvoice) { generateInvoicePDF(orderForInvoice, manualHsn, manualInvoiceNo); setIsInvoiceInputDialogVisible(false); } };
+    const handlePromptForInvoiceInfo = (order: Order) => { 
+      setOrderForInvoice(order); 
+      setManualHsn(order.hsn || ""); 
+      setManualInvoiceNo(order.invoiceNo || ""); 
+      setIsInvoiceInputDialogVisible(true); 
+    };
+    
+    const handleGenerateBillWithInputs = async () => { 
+      if (orderForInvoice) { 
+        generateInvoicePDF(orderForInvoice, manualHsn, manualInvoiceNo); 
+        setIsInvoiceInputDialogVisible(false);
+        
+        // Save to DB
+        const result = await saveInvoiceInfoAction(orderForInvoice.id, manualInvoiceNo, manualHsn);
+        if (result.success) {
+          setOrders(prev => prev.map(o => o.id === orderForInvoice.id ? { ...o, invoiceNo: manualInvoiceNo, hsn: manualHsn } : o));
+          toast({ title: "Bill Saved", description: "The invoice details have been saved for this order." });
+        }
+      } 
+    };
+
+    const handleViewSavedBill = (order: Order) => {
+      if (order.invoiceNo && order.hsn) {
+        generateInvoicePDF(order, order.hsn, order.invoiceNo);
+        toast({ title: "Opening Bill", description: `Opening saved invoice ${order.invoiceNo}` });
+      } else {
+        handlePromptForInvoiceInfo(order);
+      }
+    };
 
     const searchFilteredOrders = orders.filter(o => {
       const q = searchQuery.toLowerCase();
@@ -753,12 +798,12 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
         </DialogContent>
       </Dialog>
       <Dialog open={isInvoiceInputDialogVisible} onOpenChange={setIsInvoiceInputDialogVisible}>
-        <DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Generate Tax Invoice</DialogTitle></DialogHeader>
+        <DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{orderForInvoice?.invoiceNo ? "Edit Tax Invoice" : "Generate Tax Invoice"}</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2"><Label>Invoice Number</Label><Input value={manualInvoiceNo} onChange={(e) => setManualInvoiceNo(e.target.value)} placeholder="e.g. VYP061" /></div>
             <div className="grid gap-2"><Label>HSN Code</Label><Input value={manualHsn} onChange={(e) => setManualHsn(e.target.value)} placeholder="e.g. 52082120" /></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setIsInvoiceInputDialogVisible(false)}>Cancel</Button><Button onClick={handleGenerateBillWithInputs} disabled={!manualHsn || !manualInvoiceNo}>Download Invoice</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setIsInvoiceInputDialogVisible(false)}>Cancel</Button><Button onClick={handleGenerateBillWithInputs} disabled={!manualHsn || !manualInvoiceNo}>Download & Save</Button></DialogFooter>
         </DialogContent>
       </Dialog>
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
@@ -776,14 +821,30 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
             </div>
           </div>
            <Card>
-            <OrdersTable orders={currentOrders} products={products} onViewDetails={handleViewDetails} onStatusChange={handleStatusChange} onDeleteOrder={handleDeleteOrder} onGenerateBill={handlePromptForInvoiceInfo} />
+            <OrdersTable 
+              orders={currentOrders} 
+              products={products} 
+              onViewDetails={handleViewDetails} 
+              onStatusChange={handleStatusChange} 
+              onDeleteOrder={handleDeleteOrder} 
+              onGenerateBill={handlePromptForInvoiceInfo} 
+              onViewBill={handleViewSavedBill}
+            />
             <CardFooter className="flex items-center justify-between pt-6">
                 <div className="text-xs text-muted-foreground">Showing <strong>{currentOrders.length > 0 ? (currentPage - 1) * ordersPerPage + 1 : 0}-{Math.min(currentPage * ordersPerPage, searchFilteredOrders.length)}</strong> of <strong>{searchFilteredOrders.length}</strong></div>
                 <div className="flex items-center gap-2"><Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}>Prev</Button><span className="text-sm">Page {currentPage} of {totalPages || 1}</span><Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages || totalPages === 0}>Next</Button></div>
             </CardFooter>
           </Card>
         </Tabs>
-        {selectedOrder && <OrderDetailsDialog order={selectedOrder} products={products} onEditTrackingId={handleEditTrackingId} onGenerateBill={handlePromptForInvoiceInfo} />}
+        {selectedOrder && (
+          <OrderDetailsDialog 
+            order={selectedOrder} 
+            products={products} 
+            onEditTrackingId={handleEditTrackingId} 
+            onGenerateBill={handlePromptForInvoiceInfo} 
+            onViewBill={handleViewSavedBill}
+          />
+        )}
       </Dialog>
     </>
   );

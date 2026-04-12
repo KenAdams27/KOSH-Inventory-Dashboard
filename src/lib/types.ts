@@ -75,6 +75,8 @@ export type Order = {
   createdAt: string; // ISO date string from timestamps
   tracking_id?: string;
   notifiedStatuses?: OrderStatus[];
+  invoiceNo?: string;
+  hsn?: string;
 };
 
 

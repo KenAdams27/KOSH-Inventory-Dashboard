@@ -154,6 +154,24 @@ export async function deleteOrderAction(orderId: string) {
     }
 }
 
+export async function saveInvoiceInfoAction(orderId: string, invoiceNo: string, hsn: string) {
+  try {
+    const db = await getDb();
+    const result = await db.collection('orders').updateOne(
+      { _id: new ObjectId(orderId) },
+      { $set: { invoiceNo, hsn } }
+    );
+    if (result.modifiedCount > 0) {
+      revalidatePath('/dashboard/orders');
+      return { success: true, message: 'Invoice info saved.' };
+    }
+    return { success: false, message: 'Failed to save invoice info.' };
+  } catch (error) {
+    console.error('[saveInvoiceInfoAction] Error:', error);
+    return { success: false, message: 'Database Error' };
+  }
+}
+
 export async function sendBulkConfirmationEmailsAction() {
   try {
     const db = await getDb();
@@ -194,6 +212,8 @@ export async function sendBulkConfirmationEmailsAction() {
             createdAt: dbOrder.createdAt.toISOString(),
             tracking_id: dbOrder.tracking_id,
             notifiedStatuses: dbOrder.notifiedStatuses || [],
+            invoiceNo: dbOrder.invoiceNo,
+            hsn: dbOrder.hsn,
         };
 
         const emailResult = await sendOrderConfirmationEmail({
