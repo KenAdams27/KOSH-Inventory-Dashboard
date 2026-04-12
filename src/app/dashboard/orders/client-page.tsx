@@ -88,7 +88,7 @@ function numberToWords(num: number): string {
     if (n < 20) return a[n];
     if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + a[n % 10] : '');
     if (n < 1000) return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' and ' + convert(n % 100) : '');
-    if (n < 100000) return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 !== 0 ? ' ' + convert(n % 1000) : '');
+    if (n < 10000) return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 !== 0 ? ' ' + convert(n % 1000) : '');
     if (n < 10000000) return convert(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 !== 0 ? ' ' + convert(n % 100000) : '');
     return convert(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 !== 0 ? ' ' + convert(n % 10000000) : '');
   };
@@ -161,17 +161,12 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
 
     const boxY = 75;
     
-    const wrapAddress = (text: string, maxWords: number) => {
-      const words = text.split(' ');
-      const lines = [];
-      for (let i = 0; i < words.length; i += maxWords) {
-        lines.push(words.slice(i, i + maxWords).join(' '));
-      }
-      return lines;
-    };
+    // Address wrapping using splitTextToSize for pixel-perfect alignment
+    const maxAddrWidth = (pageWidth / 2) - 25;
+    const wrappedAddress = doc.splitTextToSize(order.shippingAddress.address, maxAddrWidth);
 
     const addressLines = [
-      ...wrapAddress(order.shippingAddress.address, 5),
+      ...wrappedAddress,
       order.shippingAddress.city,
       `${order.shippingAddress.pincode} Rajasthan`,
       "India"
@@ -288,6 +283,7 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     const footerY = rowY + 5;
     const shipping = order.totalPrice < 999 ? 90 : 0;
     
+    // Exact summation of components for accurate total display
     const grandTotal = Number((totalTaxable + totalCGST + totalSGST + shipping).toFixed(2));
 
     doc.setFont("helvetica", "normal");
