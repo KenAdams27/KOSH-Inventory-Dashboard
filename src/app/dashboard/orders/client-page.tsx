@@ -162,8 +162,17 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
 
     const boxY = 75;
     
-    const maxAddrWidth = (pageWidth / 2) - 25;
-    const wrappedAddress = doc.splitTextToSize(order.shippingAddress.address, maxAddrWidth);
+    // Improved address wrapping - max 5 words per line
+    const wrapAddress = (text: string) => {
+        const words = text.split(' ');
+        const lines = [];
+        for (let i = 0; i < words.length; i += 5) {
+            lines.push(words.slice(i, i + 5).join(' '));
+        }
+        return lines;
+    };
+
+    const wrappedAddress = wrapAddress(order.shippingAddress.address);
 
     const addressLines = [
       ...wrappedAddress,
@@ -250,14 +259,15 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.setFont("helvetica", "normal");
     order.orderItems.forEach((item, index) => {
         const itemInclusiveTotal = item.price * item.quantity;
+        // Accurate decimal rounding
         const taxableValue = Number((itemInclusiveTotal / 1.05).toFixed(2));
         const totalTax = Number((itemInclusiveTotal - taxableValue).toFixed(2));
         const cgst = Number((totalTax / 2).toFixed(2));
         const sgst = Number((totalTax - cgst).toFixed(2));
 
-        totalTaxable += taxableValue;
-        totalCGST += cgst;
-        totalSGST += sgst;
+        totalTaxable = Number((totalTaxable + taxableValue).toFixed(2));
+        totalCGST = Number((totalCGST + cgst).toFixed(2));
+        totalSGST = Number((totalSGST + sgst).toFixed(2));
 
         doc.text((index + 1).toString(), 18.5, rowY, { align: "center" });
         const itemName = item.name + (item.size ? ` (${item.size})` : "") + (item.color ? ` - ${item.color}` : "");
@@ -788,6 +798,26 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
         doc.save(`shipping-labels-placed-page-${currentPage}.pdf`);
     };
 
+    const handleBulkInvoices = () => {
+        const deliveredWithBills = orders.filter(o => o.status === 'delivered' && o.invoiceNo && o.hsn);
+        if (deliveredWithBills.length === 0) {
+            return toast({ 
+                variant: "destructive", 
+                title: "No Delivered Bills", 
+                description: "No delivered orders have saved invoice information." 
+            });
+        }
+        
+        deliveredWithBills.forEach(o => {
+            generateInvoicePDF(o, o.hsn!, o.invoiceNo!);
+        });
+
+        toast({ 
+            title: "Downloading Bills", 
+            description: `Starting download for ${deliveredWithBills.length} invoices.` 
+        });
+    };
+
   return (
     <>
       <PageHeader title="Orders" description="View and manage all customer orders." />
@@ -817,7 +847,10 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
             </div>
              <div className="flex flex-col sm:flex-row items-center gap-2">
                 <div className="relative w-full sm:w-auto"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input placeholder="Search..." className="pl-8 w-full sm:w-48" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
-                <Button variant="outline" size="sm" onClick={handleBulkDownload} className="w-full sm:w-auto"><Download className="mr-2 h-4 w-4" />Labels</Button>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <Button variant="outline" size="sm" onClick={handleBulkDownload} className="flex-1 sm:flex-none"><Download className="mr-2 h-4 w-4" />Labels</Button>
+                    <Button variant="outline" size="sm" onClick={handleBulkInvoices} className="flex-1 sm:flex-none"><FileText className="mr-2 h-4 w-4" />Bulk Bills</Button>
+                </div>
             </div>
           </div>
            <Card>
