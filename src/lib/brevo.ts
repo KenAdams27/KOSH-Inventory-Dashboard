@@ -138,12 +138,16 @@ export async function sendOrderStatusUpdateEmail({
   orderId,
   newStatus,
   trackingId,
+  dispatchedBy,
+  trackingLink,
 }: {
   customerEmail: string;
   customerName: string;
   orderId: string;
   newStatus: OrderStatus;
   trackingId?: string;
+  dispatchedBy?: string;
+  trackingLink?: string;
 }) {
   try {
     const apiInstance = getApiInstance();
@@ -162,15 +166,27 @@ export async function sendOrderStatusUpdateEmail({
 
     let htmlContent = '';
 
-    if (newStatus === 'dispatched' && trackingId) {
+    if (newStatus === 'dispatched' && (dispatchedBy || trackingLink || trackingId)) {
+      const detailRows = [
+        dispatchedBy
+          ? `<p style="margin: 0 0 8px 0;"><strong>Dispatched by:</strong> ${dispatchedBy}</p>`
+          : '',
+        trackingLink
+          ? `<p style="margin: 0 0 8px 0;"><strong>Tracking Link:</strong> <a href="${trackingLink}" style="color: #3F51B5;">${trackingLink}</a></p>`
+          : '',
+        trackingId
+          ? `<p style="margin: 0;"><strong>Tracking ID:</strong> ${trackingId}</p>`
+          : '',
+      ].filter(Boolean).join('');
+
       htmlContent = `
         <div style="font-family: sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
             <h1 style="color: #1a1a1a;">Hello ${customerName},</h1>
             <p>Good news! Your order (<strong>#${orderId.slice(-6)}</strong>) has been dispatched.</p>
             <div style="background-color: #f0f7ff; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                <p style="margin: 0; font-weight: bold;">Tracking ID: <a href="${trackingId}" style="color: #3F51B5;">${trackingId}</a></p>
+                ${detailRows}
             </div>
-            <p>You can use the link above to track the progress of your delivery.</p>
+            ${trackingLink ? '<p>You can use the tracking link above to track the progress of your delivery.</p>' : ''}
             <p>Warm regards,<br><strong>Team KKosh</strong></p>
         </div>
       `;

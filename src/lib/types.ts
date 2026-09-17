@@ -60,6 +60,11 @@ export type ShippingAddress = {
 
 export type OrderStatus = 'placed' | 'dispatched' | 'delivered' | 'Refund Initiated' | 'Refund Complete';
 
+export type DispatchDetails = {
+  dispatchedBy?: string;
+  trackingLink?: string;
+};
+
 export type Order = {
   _id: string; // Raw MongoDB ID
   id: string;
@@ -74,6 +79,8 @@ export type Order = {
   deliveredAt?: string; // ISO date string
   createdAt: string; // ISO date string from timestamps
   tracking_id?: string;
+  dispatched_by?: string;
+  tracking_link?: string;
   notifiedStatuses?: OrderStatus[];
   invoiceNo?: string;
   hsn?: string;

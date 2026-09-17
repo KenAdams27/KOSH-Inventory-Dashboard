@@ -6,13 +6,15 @@ import { ObjectId } from 'mongodb';
 import { z } from 'zod';
 import clientPromise from '@/lib/mongodb';
 import { sendOrderStatusUpdateEmail, sendOrderConfirmationEmail } from '@/lib/brevo';
-import type { Customer, Order, OrderStatus } from '@/lib/types';
+import type { Customer, DispatchDetails, Order, OrderStatus } from '@/lib/types';
 
 
 const updateOrderStatusSchema = z.object({
   orderId: z.string().min(1, 'Order ID is required'),
   status: z.enum(['placed', 'dispatched', 'delivered', 'Refund Initiated', 'Refund Complete']),
   trackingId: z.string().optional(),
+  dispatchedBy: z.string().optional(),
+  trackingLink: z.string().optional(),
 });
 
 async function getDb() {
@@ -51,8 +53,10 @@ async function getCustomerForOrder(userId: string): Promise<Customer | null> {
   }
 }
 
-export async function updateOrderStatusAction(orderId: string, status: OrderStatus, trackingId?: string, sendEmail?: boolean) {
-  const validation = updateOrderStatusSchema.safeParse({ orderId, status, trackingId });
+export async function updateOrderStatusAction(orderId: string, status: OrderStatus, trackingId?: string, sendEmail?: boolean, dispatchDetails?: DispatchDetails) {
+  const dispatchedBy = dispatchDetails?.dispatchedBy;
+  const trackingLink = dispatchDetails?.trackingLink;
+  const validation = updateOrderStatusSchema.safeParse({ orderId, status, trackingId, dispatchedBy, trackingLink });
   if (!validation.success) {
     return { success: false, message: 'Invalid data.', errors: validation.error.flatten().fieldErrors };
   }
@@ -68,12 +72,18 @@ export async function updateOrderStatusAction(orderId: string, status: OrderStat
     if (trackingId !== undefined) {
       updatePayload.tracking_id = trackingId;
     }
-    
+    if (dispatchedBy !== undefined) {
+      updatePayload.dispatched_by = dispatchedBy;
+    }
+    if (trackingLink !== undefined) {
+      updatePayload.tracking_link = trackingLink;
+    }
+
     if (status === 'delivered') {
       updatePayload.deliveredAt = new Date().toISOString();
     } else if (status === 'dispatched' && trackingId) {
       updatePayload.tracking_id = trackingId;
-    } 
+    }
     
     let result;
     if (status !== 'delivered') {
@@ -108,7 +118,9 @@ export async function updateOrderStatusAction(orderId: string, status: OrderStat
                         customerName: customer.name,
                         orderId: orderId,
                         newStatus: status,
-                        trackingId: trackingId,
+                        trackingId: trackingId ?? order.tracking_id,
+                        dispatchedBy: dispatchedBy ?? order.dispatched_by,
+                        trackingLink: trackingLink ?? order.tracking_link,
                     });
                     
                     if (emailResult.success) {
@@ -211,6 +223,8 @@ export async function sendBulkConfirmationEmailsAction() {
             deliveredAt: dbOrder.deliveredAt,
             createdAt: dbOrder.createdAt.toISOString(),
             tracking_id: dbOrder.tracking_id,
+            dispatched_by: dbOrder.dispatched_by,
+            tracking_link: dbOrder.tracking_link,
             notifiedStatuses: dbOrder.notifiedStatuses || [],
             invoiceNo: dbOrder.invoiceNo,
             hsn: dbOrder.hsn,

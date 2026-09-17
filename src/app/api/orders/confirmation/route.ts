@@ -69,6 +69,8 @@ export async function POST(req: Request) {
         deliveredAt: dbOrder.deliveredAt,
         createdAt: dbOrder.createdAt instanceof Date ? dbOrder.createdAt.toISOString() : dbOrder.createdAt,
         tracking_id: dbOrder.tracking_id,
+        dispatched_by: dbOrder.dispatched_by,
+        tracking_link: dbOrder.tracking_link,
         notifiedStatuses: dbOrder.notifiedStatuses || [],
     };
 

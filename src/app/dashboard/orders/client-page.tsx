@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import jsPDF from 'jspdf';
 
 
-import type { Order, Product, OrderItem, OrderStatus } from "@/lib/types";
+import type { Order, Product, OrderItem, OrderStatus, DispatchDetails } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { updateOrderStatusAction, deleteOrderAction, saveInvoiceInfoAction } from "./actions";
 
@@ -581,17 +581,26 @@ function OrderDetailsDialog({
               <h4 className="font-medium">Customer ID</h4>
               <div className="text-sm text-muted-foreground">{order.user}</div>
           </div>
-          {order.status === 'dispatched' && order.tracking_id && (
+          {order.status === 'dispatched' && (order.dispatched_by || order.tracking_link || order.tracking_id) && (
              <div className="space-y-2">
-                <h4 className="font-medium">Tracking ID</h4>
                 <div className="flex items-center gap-2">
-                    <a href={order.tracking_id} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline-offset-4 hover:underline">
-                      {order.tracking_id}
-                    </a>
+                    <h4 className="font-medium">Dispatch Details</h4>
                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onEditTrackingId(order)}>
                         <Pencil className="h-3 w-3" />
-                        <span className="sr-only">Edit Tracking ID</span>
+                        <span className="sr-only">Edit Dispatch Details</span>
                     </Button>
+                </div>
+                <div className="space-y-1 text-sm text-muted-foreground">
+                    {order.dispatched_by && <div><span className="font-semibold">Dispatched by:</span> {order.dispatched_by}</div>}
+                    {order.tracking_link && (
+                      <div className="break-all">
+                        <span className="font-semibold">Tracking Link:</span>{' '}
+                        <a href={order.tracking_link} target="_blank" rel="noopener noreferrer" className="text-primary underline-offset-4 hover:underline">
+                          {order.tracking_link}
+                        </a>
+                      </div>
+                    )}
+                    {order.tracking_id && <div><span className="font-semibold">Tracking ID:</span> {order.tracking_id}</div>}
                 </div>
             </div>
           )}
@@ -660,7 +669,7 @@ function OrdersTable({
   orders: Order[],
   products: Product[],
   onViewDetails: (order: Order) => void,
-  onStatusChange: (orderId: string, newStatus: OrderStatus, trackingId?: string, sendEmail?: boolean) => void,
+  onStatusChange: (orderId: string, newStatus: OrderStatus, trackingId?: string, sendEmail?: boolean, dispatchDetails?: DispatchDetails) => void,
   onDeleteOrder: (orderId: string) => void,
   onGenerateBill: (order: Order) => void,
   onViewBill: (order: Order) => void,
@@ -669,6 +678,8 @@ function OrdersTable({
   const [isTrackingDialogOpen, setIsTrackingDialogOpen] = useState(false);
   const [currentOrderForTracking, setCurrentOrderForTracking] = useState<Order | null>(null);
   const [trackingId, setTrackingId] = useState("");
+  const [dispatchedBy, setDispatchedBy] = useState("");
+  const [trackingLink, setTrackingLink] = useState("");
   const [notifyCustomer, setNotifyCustomer] = useState(true);
   const [statusChangeConfirm, setStatusChangeConfirm] = useState<{ order: Order; status: OrderStatus } | null>(null);
   const statusOptions: OrderStatus[] = ['placed', 'dispatched', 'delivered', 'Refund Initiated', 'Refund Complete'];
@@ -695,6 +706,8 @@ function OrdersTable({
     }
     if (status === 'dispatched') {
       setCurrentOrderForTracking(order);
+      setDispatchedBy(order.dispatched_by || "");
+      setTrackingLink(order.tracking_link || "");
       setTrackingId(order.tracking_id || "");
       setNotifyCustomer(true);
       setIsTrackingDialogOpen(true);
@@ -711,10 +724,12 @@ function OrdersTable({
 
   const handleSaveTrackingId = () => {
     if (currentOrderForTracking) {
-      onStatusChange(currentOrderForTracking.id, 'dispatched', trackingId, notifyCustomer);
+      onStatusChange(currentOrderForTracking.id, 'dispatched', trackingId, notifyCustomer, { dispatchedBy, trackingLink });
       setIsTrackingDialogOpen(false);
       setCurrentOrderForTracking(null);
       setTrackingId("");
+      setDispatchedBy("");
+      setTrackingLink("");
     }
   };
 
@@ -725,10 +740,18 @@ function OrdersTable({
           <DialogHeader>
             <DialogTitle>Dispatch Order</DialogTitle>
             <DialogDescription>
-              Enter the tracking ID for order #{currentOrderForTracking?.id.slice(-6)}.
+              Enter the dispatch details for order #{currentOrderForTracking?.id.slice(-6)}.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="dispatchedBy" className="text-right">Dispatched by</Label>
+              <Input id="dispatchedBy" value={dispatchedBy} onChange={(e) => setDispatchedBy(e.target.value)} className="col-span-3" placeholder="e.g. Delhivery" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="trackingLink" className="text-right">Tracking Link</Label>
+              <Input id="trackingLink" value={trackingLink} onChange={(e) => setTrackingLink(e.target.value)} className="col-span-3" placeholder="https://..." />
+            </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="trackingId" className="text-right">Tracking ID</Label>
               <Input id="trackingId" value={trackingId} onChange={(e) => setTrackingId(e.target.value)} className="col-span-3" placeholder="Enter tracking ID" />
@@ -854,6 +877,8 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     const [isTrackingDialogOpen, setIsTrackingDialogOpen] = useState(false);
     const [currentOrderForTracking, setCurrentOrderForTracking] = useState<Order | null>(null);
     const [trackingId, setTrackingId] = useState("");
+    const [dispatchedBy, setDispatchedBy] = useState("");
+    const [trackingLink, setTrackingLink] = useState("");
     const [isInvoiceInputDialogVisible, setIsInvoiceInputDialogVisible] = useState(false);
     const [orderForInvoice, setOrderForInvoice] = useState<Order | null>(null);
     const [manualHsn, setManualHsn] = useState("");
@@ -866,17 +891,24 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
 
     const handleViewDetails = (order: Order) => { setSelectedOrder(order); setIsDetailsOpen(true); };
 
-    const handleStatusChange = async (orderId: string, newStatus: OrderStatus, tId?: string, sendEmail?: boolean) => {
+    const handleStatusChange = async (orderId: string, newStatus: OrderStatus, tId?: string, sendEmail?: boolean, dispatchDetails?: DispatchDetails) => {
       setOrders(prev => prev.map(o => {
         if (o.id === orderId) {
-          const updated = { ...o, status: newStatus, tracking_id: tId !== undefined ? tId : o.tracking_id, deliveredAt: newStatus === 'delivered' ? new Date().toISOString() : o.deliveredAt };
+          const updated = {
+            ...o,
+            status: newStatus,
+            tracking_id: tId !== undefined ? tId : o.tracking_id,
+            dispatched_by: dispatchDetails?.dispatchedBy !== undefined ? dispatchDetails.dispatchedBy : o.dispatched_by,
+            tracking_link: dispatchDetails?.trackingLink !== undefined ? dispatchDetails.trackingLink : o.tracking_link,
+            deliveredAt: newStatus === 'delivered' ? new Date().toISOString() : o.deliveredAt,
+          };
           if (newStatus !== 'delivered' && 'deliveredAt' in updated) delete (updated as any).deliveredAt;
           if (sendEmail) updated.notifiedStatuses = Array.from(new Set([...(o.notifiedStatuses || []), newStatus]));
           return updated as Order;
         }
         return o;
       }));
-      const res = await updateOrderStatusAction(orderId, newStatus, tId, sendEmail);
+      const res = await updateOrderStatusAction(orderId, newStatus, tId, sendEmail, dispatchDetails);
       if (!res.success) { setOrders(initialOrders); toast({ variant: "destructive", title: "Error", description: res.message }); }
     };
     
@@ -886,8 +918,8 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
         else toast({ variant: "destructive", title: "Error", description: res.message });
     };
     
-    const handleEditTrackingId = (order: Order) => { setCurrentOrderForTracking(order); setTrackingId(order.tracking_id || ""); setIsTrackingDialogOpen(true); };
-    const handleSaveTrackingId = () => { if (currentOrderForTracking) { handleStatusChange(currentOrderForTracking.id, currentOrderForTracking.status, trackingId, true); setIsTrackingDialogOpen(false); } };
+    const handleEditTrackingId = (order: Order) => { setCurrentOrderForTracking(order); setDispatchedBy(order.dispatched_by || ""); setTrackingLink(order.tracking_link || ""); setTrackingId(order.tracking_id || ""); setIsTrackingDialogOpen(true); };
+    const handleSaveTrackingId = () => { if (currentOrderForTracking) { handleStatusChange(currentOrderForTracking.id, currentOrderForTracking.status, trackingId, true, { dispatchedBy, trackingLink }); setIsTrackingDialogOpen(false); } };
 
     const handlePromptForInvoiceInfo = (order: Order) => { 
       setOrderForInvoice(order); 
@@ -942,8 +974,12 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
     <>
       <PageHeader title="Orders" description="View and manage all customer orders." />
       <Dialog open={isTrackingDialogOpen} onOpenChange={setIsTrackingDialogOpen}>
-        <DialogContent><DialogHeader><DialogTitle>Update Tracking ID</DialogTitle></DialogHeader>
-          <div className="py-4"><div className="grid grid-cols-4 items-center gap-4"><Label className="text-right">Tracking ID</Label><Input value={trackingId} onChange={(e) => setTrackingId(e.target.value)} className="col-span-3" /></div></div>
+        <DialogContent><DialogHeader><DialogTitle>Update Dispatch Details</DialogTitle></DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4"><Label className="text-right">Dispatched by</Label><Input value={dispatchedBy} onChange={(e) => setDispatchedBy(e.target.value)} className="col-span-3" placeholder="e.g. Delhivery" /></div>
+            <div className="grid grid-cols-4 items-center gap-4"><Label className="text-right">Tracking Link</Label><Input value={trackingLink} onChange={(e) => setTrackingLink(e.target.value)} className="col-span-3" placeholder="https://..." /></div>
+            <div className="grid grid-cols-4 items-center gap-4"><Label className="text-right">Tracking ID</Label><Input value={trackingId} onChange={(e) => setTrackingId(e.target.value)} className="col-span-3" /></div>
+          </div>
           <DialogFooter><Button variant="outline" onClick={() => setIsTrackingDialogOpen(false)}>Cancel</Button><Button onClick={handleSaveTrackingId}>Save</Button></DialogFooter>
         </DialogContent>
       </Dialog>
