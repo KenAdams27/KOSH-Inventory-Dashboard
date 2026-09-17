@@ -90,13 +90,17 @@ function numberToWords(num: number): string {
     if (n < 20) return a[n];
     if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + a[n % 10] : '');
     if (n < 1000) return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' and ' + convert(n % 100) : '');
-    if (n < 10000) return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 !== 0 ? ' ' + convert(n % 1000) : '');
+    // Indian numbering: the thousands bracket runs to 99,999 before lakhs begin.
+    // Stopping at 10,000 here made convert(25000) recurse into itself forever.
+    if (n < 100000) return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 !== 0 ? ' ' + convert(n % 1000) : '');
     if (n < 10000000) return convert(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 !== 0 ? ' ' + convert(n % 100000) : '');
     return convert(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 !== 0 ? ' ' + convert(n % 10000000) : '');
   };
 
-  const main = Math.floor(num);
-  const fraction = Math.round((num - main) * 100);
+  // Work in paise so a value like 1234.999 cannot round up to "One Hundred Paise".
+  const paise = Math.round(num * 100);
+  const main = Math.floor(paise / 100);
+  const fraction = paise % 100;
 
   let res = 'Indian Rupee ' + (main === 0 ? 'Zero' : convert(main));
   if (fraction > 0) {
@@ -108,11 +112,13 @@ function numberToWords(num: number): string {
 const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const bottomMargin = 15;
+
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.text("Kunal Enterprises", 15, 20);
-    
+
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     const sellerInfo = [
@@ -162,13 +168,14 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.text(": Rajasthan (08)", pageWidth / 2 + 35, 51);
 
     const boxY = 75;
-    
+
     // Robust address wrapping using jsPDF's splitTextToSize
-    const addressBoxWidth = (pageWidth / 2) - 25; 
+    const addressBoxWidth = (pageWidth / 2) - 25;
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    
+
     const wrappedAddress = doc.splitTextToSize(order.shippingAddress.address, addressBoxWidth);
+    const wrappedName = doc.splitTextToSize(order.shippingAddress.fullName, addressBoxWidth);
 
     const addressLines = [
       ...wrappedAddress,
@@ -177,7 +184,7 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
       "India"
     ];
 
-    const boxH = Math.max(48, (addressLines.length * 5) + 20);
+    const boxH = Math.max(48, ((wrappedName.length + addressLines.length) * 5) + 16);
 
     doc.line(15, boxY + boxH, pageWidth - 15, boxY + boxH);
     doc.line(15, boxY, 15, boxY + boxH);
@@ -187,123 +194,164 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.setFillColor(245, 245, 245);
     doc.rect(15.5, boxY + 0.5, (pageWidth / 2) - 15.5, 6, 'F');
     doc.rect((pageWidth / 2) + 0.5, boxY + 0.5, (pageWidth / 2) - 15.5, 6, 'F');
-    
+
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
     doc.text("Bill To", 18, boxY + 4.5);
     doc.text("Ship To", pageWidth / 2 + 5, boxY + 4.5);
 
+    // A name long enough to wrap pushes the address down instead of overprinting it.
+    const addressTop = boxY + 18 + ((wrappedName.length - 1) * 5);
+
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text(order.shippingAddress.fullName, 18, boxY + 12);
+    doc.text(wrappedName, 18, boxY + 12, { lineHeightFactor: 1.1 });
     doc.setFont("helvetica", "normal");
-    doc.text(addressLines, 18, boxY + 18, { lineHeightFactor: 1.1 });
+    doc.text(addressLines, 18, addressTop, { lineHeightFactor: 1.1 });
 
     doc.setFont("helvetica", "bold");
-    doc.text(order.shippingAddress.fullName, pageWidth / 2 + 5, boxY + 12);
+    doc.text(wrappedName, pageWidth / 2 + 5, boxY + 12, { lineHeightFactor: 1.1 });
     doc.setFont("helvetica", "normal");
-    doc.text(addressLines, pageWidth / 2 + 5, boxY + 18, { lineHeightFactor: 1.1 });
+    doc.text(addressLines, pageWidth / 2 + 5, addressTop, { lineHeightFactor: 1.1 });
 
-    const tableY = boxY + boxH + 8;
-    doc.line(15, tableY, pageWidth - 15, tableY);
-    doc.line(15, tableY + 12, pageWidth - 15, tableY + 12);
-
-    doc.setFillColor(245, 245, 245);
-    doc.rect(15.5, tableY + 0.5, pageWidth - 31, 11, 'F');
-
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "bold");
-    doc.text("#", 17, tableY + 7);
-    doc.text("Item & Description", 24, tableY + 7);
-    doc.text("HSN", 87, tableY + 5, { align: "center" });
-    doc.text("/SAC", 87, tableY + 9, { align: "center" });
-    doc.text("Qty", 100, tableY + 7, { align: "center" });
-    doc.text("Rate", 114, tableY + 7, { align: "center" });
-    
-    doc.text("CGST", 135, tableY + 4, { align: "center" });
-    doc.line(123, tableY + 6, 147, tableY + 6);
-    doc.text("%", 129, tableY + 10, { align: "center" });
-    doc.text("Amt", 141, tableY + 10, { align: "center" });
-
-    doc.text("SGST", 159, tableY + 4, { align: "center" });
-    doc.line(147, tableY + 6, 171, tableY + 6);
-    doc.text("%", 153, tableY + 10, { align: "center" });
-    doc.text("Amt", 165, tableY + 10, { align: "center" });
-
-    doc.text("Amount", 183, tableY + 7, { align: "center" });
-
-    const drawTableLines = (y: number, h: number) => {
+    // Column edges for the line-item table. 135 and 159 split the CGST and SGST
+    // cells into their "%" and "Amt" halves.
+    const drawTableLines = (y: number, h: number, isHeader = false) => {
+        // In the header those splits start below the spanning CGST/SGST label; in a
+        // body row they must run the full height or the tax columns lose their divider.
+        const gstSplitTop = isHeader ? y + 6 : y;
         doc.line(15, y, 15, y + h);
         doc.line(22, y, 22, y + h);
         doc.line(80, y, 80, y + h);
         doc.line(95, y, 95, y + h);
         doc.line(105, y, 105, y + h);
         doc.line(123, y, 123, y + h);
-        doc.line(135, y + 6, 135, y + h);
+        doc.line(135, gstSplitTop, 135, y + h);
         doc.line(147, y, 147, y + h);
-        doc.line(159, y + 6, 159, y + h);
+        doc.line(159, gstSplitTop, 159, y + h);
         doc.line(171, y, 171, y + h);
         doc.line(pageWidth - 15, y, pageWidth - 15, y + h);
     };
-    drawTableLines(tableY, 12);
 
-    let rowY = tableY + 18;
+    // Draws the table head at `y` and returns the baseline for the first body row.
+    const drawTableHeader = (y: number) => {
+        doc.line(15, y, pageWidth - 15, y);
+        doc.line(15, y + 12, pageWidth - 15, y + 12);
+
+        doc.setFillColor(245, 245, 245);
+        doc.rect(15.5, y + 0.5, pageWidth - 31, 11, 'F');
+
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "bold");
+        doc.text("#", 18.5, y + 7, { align: "center" });
+        doc.text("Item & Description", 24, y + 7);
+        doc.text("HSN", 87, y + 5, { align: "center" });
+        doc.text("/SAC", 87, y + 9, { align: "center" });
+        doc.text("Qty", 100, y + 7, { align: "center" });
+        doc.text("Rate", 114, y + 7, { align: "center" });
+
+        doc.text("CGST", 135, y + 4, { align: "center" });
+        doc.line(123, y + 6, 147, y + 6);
+        doc.text("%", 129, y + 10, { align: "center" });
+        doc.text("Amt", 141, y + 10, { align: "center" });
+
+        doc.text("SGST", 159, y + 4, { align: "center" });
+        doc.line(147, y + 6, 171, y + 6);
+        doc.text("%", 153, y + 10, { align: "center" });
+        doc.text("Amt", 165, y + 10, { align: "center" });
+
+        doc.text("Amount", 183, y + 7, { align: "center" });
+
+        drawTableLines(y, 12, true);
+        return y + 18;
+    };
+
+    let rowY = drawTableHeader(boxY + boxH + 8);
     let totalTaxable = 0;
     let totalCGST = 0;
     let totalSGST = 0;
 
     doc.setFont("helvetica", "normal");
     order.orderItems.forEach((item, index) => {
+        // Round each 2.5% half on its own so CGST always equals SGST (rounding the
+        // combined 5% and splitting it left them a paise apart), then let the taxable
+        // value absorb the remainder so the line still sums to what the customer paid.
         const itemInclusiveTotal = item.price * item.quantity;
-        const taxableValue = Number((itemInclusiveTotal / 1.05).toFixed(2));
-        const totalTax = Number((itemInclusiveTotal - taxableValue).toFixed(2));
-        const cgst = Number((totalTax / 2).toFixed(2));
-        const sgst = Number((totalTax - cgst).toFixed(2));
+        const cgst = Number(((itemInclusiveTotal * 0.025) / 1.05).toFixed(2));
+        const sgst = cgst;
+        const taxableValue = Number((itemInclusiveTotal - cgst - sgst).toFixed(2));
 
         totalTaxable = Number((totalTaxable + taxableValue).toFixed(2));
         totalCGST = Number((totalCGST + cgst).toFixed(2));
         totalSGST = Number((totalSGST + sgst).toFixed(2));
 
-        doc.text((index + 1).toString(), 18.5, rowY, { align: "center" });
         const itemName = item.name + (item.size ? ` (${item.size})` : "") + (item.color ? ` - ${item.color}` : "");
         const splitName = doc.splitTextToSize(itemName, 55);
+        const splitHsn = doc.splitTextToSize(hsn, 13);
+        // Min 12 keeps the "pcs" caption off the row's bottom border.
+        const itemH = Math.max((splitName.length * 5) + 5, (splitHsn.length * 5) + 5, 12);
+
+        // Break to a new page before drawing a row that would run past the page bottom.
+        if ((rowY - 6) + itemH > pageHeight - bottomMargin) {
+            doc.line(15, rowY - 6, pageWidth - 15, rowY - 6);
+            doc.addPage();
+            doc.setDrawColor(200);
+            rowY = drawTableHeader(20);
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8);
+        }
+
+        doc.text((index + 1).toString(), 18.5, rowY, { align: "center" });
         doc.text(splitName, 24, rowY);
-        doc.text(hsn, 87, rowY, { align: "center" });
+        doc.text(splitHsn, 87, rowY, { align: "center" });
         doc.text(item.quantity.toFixed(2), 100, rowY, { align: "center" });
-        doc.text("pcs", 100, rowY + 4, { align: "center" });
-        doc.text((taxableValue / item.quantity).toFixed(2), 114, rowY, { align: "center" });
+        doc.text("pcs", 100, rowY + 3.5, { align: "center" });
+        doc.text((item.price / 1.05).toFixed(2), 114, rowY, { align: "center" });
         doc.text("2.5%", 129, rowY, { align: "center" });
         doc.text(cgst.toFixed(2), 141, rowY, { align: "center" });
         doc.text("2.5%", 153, rowY, { align: "center" });
         doc.text(sgst.toFixed(2), 165, rowY, { align: "center" });
-        doc.text(taxableValue.toFixed(2), 183, rowY, { align: "center" });
+        // Line total including GST, i.e. taxable + CGST + SGST. The summary below
+        // still breaks the same figure back out into its taxable base and tax halves.
+        doc.text(itemInclusiveTotal.toFixed(2), 183, rowY, { align: "center" });
 
-        const itemH = Math.max((splitName.length * 5) + 5, 10);
         drawTableLines(rowY - 6, itemH);
         rowY += itemH;
     });
 
-    doc.line(15, rowY - 6, pageWidth - 15, rowY - 6);
+    let tableBottom = rowY - 6;
+    doc.line(15, tableBottom, pageWidth - 15, tableBottom);
 
-    const footerY = rowY + 5;
     const shipping = order.totalPrice < 1089 ? 90 : 0;
-    
     const grandTotal = Number((totalTaxable + totalCGST + totalSGST + shipping).toFixed(2));
+
+    const sumX = pageWidth / 2;
+    doc.setFontSize(9);
+    // Wrap inside the left half, otherwise long amounts run under the summary column.
+    const wordsLines = doc.splitTextToSize(numberToWords(grandTotal), sumX - 22);
+
+    // Space the totals block needs, so GST rows are never pushed off the page.
+    const footerBlockH = 11 + 26 + ((shipping > 0 ? 1 : 0) * 7) + (wordsLines.length * 4) + 32;
+
+    if (tableBottom + footerBlockH > pageHeight - bottomMargin) {
+        doc.addPage();
+        doc.setDrawColor(200);
+        tableBottom = 20;
+        doc.line(15, tableBottom, pageWidth - 15, tableBottom);
+    }
+
+    const footerY = tableBottom + 11;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.text("Total In Words", 15, footerY);
     doc.setFont("helvetica", "bolditalic");
-    doc.text(numberToWords(grandTotal), 15, footerY + 5);
+    doc.text(wordsLines, 15, footerY + 5, { lineHeightFactor: 1.15 });
 
+    const notesY = footerY + 5 + (wordsLines.length * 4) + 6;
     doc.setFont("helvetica", "normal");
-    doc.text("Notes", 15, footerY + 15);
-    doc.text("Thanks for your business.", 15, footerY + 20);
-
-    const sumX = pageWidth / 2;
-    doc.line(sumX, rowY - 6, sumX, footerY + 45);
-    doc.line(sumX, footerY + 45, pageWidth - 15, footerY + 45);
-    doc.line(pageWidth - 15, rowY - 6, pageWidth - 15, footerY + 45);
+    doc.text("Notes", 15, notesY);
+    doc.text("Thanks for your business.", 15, notesY + 5);
 
     const drawSummaryRow = (label: string, value: string, y: number, bold = false, color?: [number, number, number]) => {
         doc.setFont("helvetica", bold ? "bold" : "normal");
@@ -316,7 +364,7 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     drawSummaryRow("Sub Total", totalTaxable.toFixed(2), footerY);
     drawSummaryRow("CGST (2.5%)", totalCGST.toFixed(2), footerY + 7);
     drawSummaryRow("SGST (2.5%)", totalSGST.toFixed(2), footerY + 14);
-    
+
     let summaryY = footerY + 21;
     if (shipping > 0) {
         drawSummaryRow("Shipping Charges", shipping.toFixed(2), summaryY);
@@ -329,9 +377,16 @@ const generateInvoicePDF = (order: Order, hsn: string, invoiceNo: string) => {
     doc.line(sumX, summaryY + 15, pageWidth - 15, summaryY + 15);
     drawSummaryRow("Balance Due", "Rs. 0.00", summaryY + 21, true);
 
+    // Close the summary column under its last row. The old fixed footerY + 45
+    // left "Balance Due" hanging outside the box whenever shipping was charged.
+    const summaryBoxBottom = summaryY + 26;
+    doc.line(sumX, tableBottom, sumX, summaryBoxBottom);
+    doc.line(sumX, summaryBoxBottom, pageWidth - 15, summaryBoxBottom);
+    doc.line(pageWidth - 15, tableBottom, pageWidth - 15, summaryBoxBottom);
+
     doc.setFont("helvetica", "normal");
-    doc.text("Authorized Signature", pageWidth - 35, summaryY + 50, { align: "center" });
-    doc.line(pageWidth - 60, summaryY + 45, pageWidth - 10, summaryY + 45);
+    doc.line(pageWidth - 60, summaryBoxBottom + 19, pageWidth - 10, summaryBoxBottom + 19);
+    doc.text("Authorized Signature", pageWidth - 35, summaryBoxBottom + 24, { align: "center" });
 
     doc.save(`Invoice_KOSH_${invoiceNo}.pdf`);
 };
