@@ -744,19 +744,19 @@ function OrdersTable({
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="dispatchedBy" className="text-right">Dispatched by</Label>
-              <Input id="dispatchedBy" value={dispatchedBy} onChange={(e) => setDispatchedBy(e.target.value)} className="col-span-3" placeholder="e.g. Delhivery" />
+            <div className="grid gap-2">
+              <Label htmlFor="dispatchedBy">Dispatched by</Label>
+              <Input id="dispatchedBy" value={dispatchedBy} onChange={(e) => setDispatchedBy(e.target.value)} placeholder="e.g. Delhivery" />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="trackingLink" className="text-right">Tracking Link</Label>
-              <Input id="trackingLink" value={trackingLink} onChange={(e) => setTrackingLink(e.target.value)} className="col-span-3" placeholder="https://..." />
+            <div className="grid gap-2">
+              <Label htmlFor="trackingLink">Tracking Link</Label>
+              <Input id="trackingLink" value={trackingLink} onChange={(e) => setTrackingLink(e.target.value)} placeholder="https://..." />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="trackingId" className="text-right">Tracking ID</Label>
-              <Input id="trackingId" value={trackingId} onChange={(e) => setTrackingId(e.target.value)} className="col-span-3" placeholder="Enter tracking ID" />
+            <div className="grid gap-2">
+              <Label htmlFor="trackingId">Tracking ID</Label>
+              <Input id="trackingId" value={trackingId} onChange={(e) => setTrackingId(e.target.value)} placeholder="Enter tracking ID" />
             </div>
-            <div className="col-span-4 flex items-center justify-end space-x-2">
+            <div className="flex items-center space-x-2">
                 <Checkbox id="notify" checked={notifyCustomer} onCheckedChange={(checked) => setNotifyCustomer(!!checked)} />
                 <Label htmlFor="notify" className="cursor-pointer">Notify customer via email</Label>
             </div>
@@ -976,9 +976,9 @@ export function OrdersClientPage({ orders: initialOrders, products }: { orders: 
       <Dialog open={isTrackingDialogOpen} onOpenChange={setIsTrackingDialogOpen}>
         <DialogContent><DialogHeader><DialogTitle>Update Dispatch Details</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4"><Label className="text-right">Dispatched by</Label><Input value={dispatchedBy} onChange={(e) => setDispatchedBy(e.target.value)} className="col-span-3" placeholder="e.g. Delhivery" /></div>
-            <div className="grid grid-cols-4 items-center gap-4"><Label className="text-right">Tracking Link</Label><Input value={trackingLink} onChange={(e) => setTrackingLink(e.target.value)} className="col-span-3" placeholder="https://..." /></div>
-            <div className="grid grid-cols-4 items-center gap-4"><Label className="text-right">Tracking ID</Label><Input value={trackingId} onChange={(e) => setTrackingId(e.target.value)} className="col-span-3" /></div>
+            <div className="grid gap-2"><Label>Dispatched by</Label><Input value={dispatchedBy} onChange={(e) => setDispatchedBy(e.target.value)} placeholder="e.g. Delhivery" /></div>
+            <div className="grid gap-2"><Label>Tracking Link</Label><Input value={trackingLink} onChange={(e) => setTrackingLink(e.target.value)} placeholder="https://..." /></div>
+            <div className="grid gap-2"><Label>Tracking ID</Label><Input value={trackingId} onChange={(e) => setTrackingId(e.target.value)} /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setIsTrackingDialogOpen(false)}>Cancel</Button><Button onClick={handleSaveTrackingId}>Save</Button></DialogFooter>
         </DialogContent>
